@@ -1,0 +1,2453 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CR Control — Quản lý Change Request</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ==========================================================================
+   DESIGN TOKENS
+   ========================================================================== */
+:root{
+  --navy:#0a1e33;
+  --navy-mid:#102944;
+  --navy-deep:#08182a;
+  --bg-gradient: linear-gradient(180deg, var(--navy) 0%, #102944 55%, #08182a 100%);
+
+  --panel: rgba(255,255,255,0.045);
+  --panel-hover: rgba(255,255,255,0.075);
+  --panel-border: rgba(255,255,255,0.09);
+  --panel-solid: #0f2a45;
+  --panel-solid-2: #0c223a;
+
+  --text: #eef3f8;
+  --text-dim: #93a8c0;
+  --text-faint: #5f7690;
+
+  --accent: #3fd0c9;
+  --accent-dim: rgba(63,208,201,0.15);
+  --accent-2: #f2b84b;
+  --danger: #ee6b74;
+  --danger-dim: rgba(238,107,116,0.15);
+  --success: #4cc38a;
+  --success-dim: rgba(76,195,138,0.15);
+  --info: #5b8def;
+  --info-dim: rgba(91,141,239,0.15);
+  --purple: #b78af0;
+  --purple-dim: rgba(183,138,240,0.15);
+  --orange: #e08a3c;
+  --orange-dim: rgba(224,138,60,0.15);
+
+  --radius-lg: 18px;
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --font-head: 'Manrope', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --shadow-lift: 0 20px 50px -20px rgba(0,0,0,0.6);
+  --shadow-soft: 0 8px 24px -12px rgba(0,0,0,0.5);
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family: var(--font-body);
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text);
+  min-height:100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background-image:
+    radial-gradient(circle at 15% 8%, rgba(63,208,201,0.07), transparent 40%),
+    radial-gradient(circle at 85% 0%, rgba(91,141,239,0.06), transparent 45%);
+  pointer-events:none;
+  z-index:0;
+}
+::selection{ background: var(--accent-dim); color: var(--text); }
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.12); border-radius:10px; }
+::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,0.2); }
+
+a{ color: var(--accent); text-decoration:none; }
+button{ font-family: inherit; cursor:pointer; }
+input, textarea, select{ font-family: inherit; }
+:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+h1,h2,h3,h4{ font-family: var(--font-head); font-weight:700; letter-spacing:-0.01em; }
+
+.hidden{ display:none !important; }
+
+/* ==========================================================================
+   CONFIG SCREEN
+   ========================================================================== */
+#configScreen, #loginScreen, #pendingScreen{
+  position:fixed; inset:0; z-index:500;
+  display:flex; align-items:center; justify-content:center;
+  padding:24px;
+}
+.config-card{
+  width:100%; max-width:520px;
+  background: var(--panel-solid);
+  border:1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  padding:40px;
+  box-shadow: var(--shadow-lift);
+  position:relative;
+  z-index:1;
+}
+.config-brand{
+  display:flex; align-items:center; gap:12px; margin-bottom:28px;
+}
+.config-brand .mark{
+  width:40px; height:40px; border-radius:11px;
+  background: linear-gradient(135deg, var(--accent), #24a39d);
+  display:flex; align-items:center; justify-content:center;
+  font-family: var(--font-head); font-weight:800; color:#04302d; font-size:18px;
+}
+.config-brand .name{ font-family: var(--font-head); font-weight:800; font-size:19px; }
+.config-brand .tag{ font-size:12px; color: var(--text-faint); margin-top:1px; }
+.config-card h2{ font-size:22px; margin-bottom:8px; }
+.config-card p.lead{ color: var(--text-dim); font-size:14px; line-height:1.6; margin-bottom:26px; }
+.field{ margin-bottom:16px; }
+.field label{ display:block; font-size:12.5px; color: var(--text-dim); margin-bottom:7px; font-weight:600; }
+.field input, .field textarea, .field select{
+  width:100%; background: rgba(255,255,255,0.04);
+  border:1px solid var(--panel-border); border-radius: var(--radius-sm);
+  padding:11px 13px; color: var(--text); font-size:14px;
+  transition: border-color .15s, background .15s;
+}
+.field input:focus, .field textarea:focus, .field select:focus{
+  border-color: var(--accent); background: rgba(255,255,255,0.06);
+}
+.field .hint{ font-size:11.5px; color: var(--text-faint); margin-top:6px; }
+.config-actions{ display:flex; gap:10px; margin-top:24px; }
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border:none; border-radius: var(--radius-sm); padding:11px 18px;
+  font-size:13.5px; font-weight:600; transition: transform .1s, background .15s, box-shadow .15s;
+  white-space:nowrap;
+}
+.btn:active{ transform: scale(0.97); }
+.btn-primary{ background: var(--accent); color:#04302d; }
+.btn-primary:hover{ background:#55dad4; box-shadow: 0 6px 18px -6px rgba(63,208,201,0.5); }
+.btn-ghost{ background: rgba(255,255,255,0.06); color: var(--text); border:1px solid var(--panel-border); }
+.btn-ghost:hover{ background: rgba(255,255,255,0.1); }
+.btn-danger{ background: var(--danger-dim); color: var(--danger); border:1px solid rgba(238,107,116,0.3); }
+.btn-danger:hover{ background: rgba(238,107,116,0.25); }
+.btn-sm{ padding:7px 12px; font-size:12.5px; }
+.btn-icon{ padding:9px; }
+.btn:disabled{ opacity:0.5; cursor:not-allowed; }
+.config-status{ margin-top:16px; font-size:13px; padding:10px 12px; border-radius: var(--radius-sm); display:none; }
+.config-status.show{ display:block; }
+.config-status.ok{ background: var(--success-dim); color: var(--success); }
+.config-status.err{ background: var(--danger-dim); color: var(--danger); }
+
+/* ==========================================================================
+   APP SHELL
+   ========================================================================== */
+#app{ position:relative; z-index:1; display:flex; min-height:100vh; }
+
+.sidebar{
+  width:236px; flex-shrink:0;
+  border-right:1px solid var(--panel-border);
+  padding:22px 16px;
+  display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh;
+}
+.sidebar .brand{ display:flex; align-items:center; gap:10px; padding:6px 8px 26px; }
+.sidebar .brand .mark{
+  width:34px; height:34px; border-radius:9px;
+  background: linear-gradient(135deg, var(--accent), #24a39d);
+  display:flex; align-items:center; justify-content:center;
+  font-family: var(--font-head); font-weight:800; color:#04302d; font-size:15px;
+}
+.sidebar .brand .name{ font-family: var(--font-head); font-weight:800; font-size:16px; }
+.sidebar .brand .tag{ font-size:10.5px; color: var(--text-faint); }
+
+.nav-group-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color: var(--text-faint); padding:14px 12px 8px; font-weight:700; }
+.nav-item{
+  display:flex; align-items:center; gap:11px;
+  padding:10px 12px; border-radius:10px; color: var(--text-dim);
+  font-size:13.8px; font-weight:600; cursor:pointer; margin-bottom:2px;
+  transition: background .15s, color .15s;
+  border:1px solid transparent;
+}
+.nav-item svg{ width:17px; height:17px; flex-shrink:0; opacity:.85; }
+.nav-item:hover{ background: var(--panel); color: var(--text); }
+.nav-item.active{ background: var(--accent-dim); color: var(--accent); border-color: rgba(63,208,201,0.25); }
+.nav-item.active svg{ opacity:1; }
+.nav-item .count{
+  margin-left:auto; font-size:11px; font-weight:700; color: var(--text-faint);
+  background: rgba(255,255,255,0.06); padding:1px 7px; border-radius:20px;
+}
+.nav-item.active .count{ background: rgba(63,208,201,0.2); color: var(--accent); }
+
+.sidebar-foot{ margin-top:auto; padding-top:14px; border-top:1px solid var(--panel-border); }
+.conn-pill{
+  display:flex; align-items:center; gap:8px; font-size:11.5px; color: var(--text-faint);
+  padding:8px 10px; border-radius: var(--radius-sm); background: var(--panel); margin-bottom:8px;
+}
+.conn-dot{ width:7px; height:7px; border-radius:50%; background: var(--success); box-shadow:0 0 0 3px var(--success-dim); flex-shrink:0; }
+
+.main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+
+.topbar{
+  display:flex; align-items:center; gap:16px;
+  padding:20px 32px; border-bottom:1px solid var(--panel-border);
+  position:sticky; top:0; background: rgba(10,30,51,0.55); backdrop-filter: blur(14px);
+  z-index:20;
+}
+.topbar h1{ font-size:19px; }
+.topbar .sub{ font-size:12.5px; color: var(--text-faint); margin-top:2px; font-weight:500; }
+.search-box{
+  flex:1; max-width:380px; position:relative; margin-left:8px;
+}
+.search-box svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:15px; height:15px; color: var(--text-faint); }
+.search-box input{
+  width:100%; background: rgba(255,255,255,0.04); border:1px solid var(--panel-border);
+  border-radius:10px; padding:9px 12px 9px 34px; font-size:13.5px; color: var(--text);
+}
+.search-box input:focus{ background: rgba(255,255,255,0.07); border-color: var(--accent); }
+.topbar-actions{ margin-left:auto; display:flex; gap:10px; align-items:center; }
+
+.view{ padding:28px 32px 60px; }
+.view-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+.view-head h2{ font-size:22px; }
+.view-head p{ color: var(--text-faint); font-size:13px; margin-top:4px; }
+
+/* ==========================================================================
+   PANELS / CARDS
+   ========================================================================== */
+.panel{
+  background: var(--panel);
+  border:1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+}
+.panel-pad{ padding:22px; }
+
+.kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:14px; margin-bottom:22px; }
+.kpi-card{
+  background: var(--panel); border:1px solid var(--panel-border); border-radius: var(--radius);
+  padding:18px 20px; position:relative; overflow:hidden;
+}
+.kpi-card .kpi-label{ font-size:12px; color: var(--text-dim); font-weight:600; margin-bottom:10px; }
+.kpi-card .kpi-value{ font-family: var(--font-head); font-size:30px; font-weight:800; line-height:1; }
+.kpi-card .kpi-foot{ font-size:11.5px; color: var(--text-faint); margin-top:8px; }
+.kpi-card.accent .kpi-value{ color: var(--accent); }
+.kpi-card.danger .kpi-value{ color: var(--danger); }
+.kpi-card.warn .kpi-value{ color: var(--accent-2); }
+.kpi-card.success .kpi-value{ color: var(--success); }
+.kpi-icon{ position:absolute; right:14px; top:14px; width:30px; height:30px; opacity:.4; }
+
+.dash-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:16px; }
+@media (max-width:1080px){ .dash-grid{ grid-template-columns:1fr; } }
+.dash-col{ display:flex; flex-direction:column; gap:16px; }
+
+.chart-block h3{ font-size:14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
+.chart-block h3 .total{ font-size:12px; color: var(--text-faint); font-weight:500; }
+.bar-row{ display:flex; align-items:center; gap:12px; margin-bottom:11px; }
+.bar-row:last-child{ margin-bottom:0; }
+.bar-label{ width:118px; flex-shrink:0; font-size:12.5px; color: var(--text-dim); display:flex; align-items:center; gap:7px; }
+.bar-dot{ width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.bar-track{ flex:1; height:9px; background: rgba(255,255,255,0.05); border-radius:6px; overflow:hidden; }
+.bar-fill{ height:100%; border-radius:6px; transition: width .5s ease; }
+.bar-num{ width:26px; text-align:right; font-size:12.5px; font-weight:700; font-variant-numeric: tabular-nums; }
+
+.recent-list{ display:flex; flex-direction:column; }
+.recent-item{
+  display:flex; align-items:center; gap:12px; padding:11px 0;
+  border-bottom:1px solid var(--panel-border); cursor:pointer;
+}
+.recent-item:last-child{ border-bottom:none; padding-bottom:0; }
+.recent-item:hover .recent-title{ color: var(--accent); }
+.recent-item .recent-id{ font-family: var(--font-mono); font-size:11px; color: var(--text-faint); background: rgba(255,255,255,0.05); padding:2px 7px; border-radius:5px; flex-shrink:0; }
+.recent-title{ font-size:13px; font-weight:600; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition: color .15s; }
+.recent-meta{ font-size:11px; color: var(--text-faint); flex-shrink:0; }
+
+/* ==========================================================================
+   TABLE
+   ========================================================================== */
+.table-toolbar{ display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.filter-chip{
+  display:flex; align-items:center; gap:6px; font-size:12.5px; color: var(--text-dim);
+  background: var(--panel); border:1px solid var(--panel-border); border-radius:9px; padding:7px 10px;
+}
+.filter-chip select{ background:transparent; border:none; color: var(--text); font-size:12.5px; padding:0; }
+.filter-chip select:focus{ outline:none; }
+.chip-clear{ font-size:12px; color: var(--text-faint); cursor:pointer; padding:6px 8px; }
+.chip-clear:hover{ color: var(--danger); }
+
+.table-wrap{
+  background: var(--panel); border:1px solid var(--panel-border); border-radius: var(--radius-lg);
+  overflow:auto;
+}
+table{ width:100%; border-collapse:collapse; min-width:900px; }
+thead th{
+  text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+  color: var(--text-faint); font-weight:700; padding:13px 16px; border-bottom:1px solid var(--panel-border);
+  white-space:nowrap; position:sticky; top:0; background: var(--panel-solid-2); z-index:5;
+}
+tbody td{ padding:13px 16px; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.045); vertical-align:middle; }
+tbody tr{ transition: background .12s; cursor:pointer; }
+tbody tr:hover{ background: rgba(255,255,255,0.03); }
+tbody tr:last-child td{ border-bottom:none; }
+td.cell-id{ font-family: var(--font-mono); font-weight:700; color: var(--accent); }
+td.cell-title{ font-weight:600; max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+td.cell-dim{ color: var(--text-dim); }
+td.cell-actions{ text-align:right; white-space:nowrap; }
+.row-actions{ display:flex; gap:6px; justify-content:flex-end; opacity:0; transition:opacity .12s; }
+tbody tr:hover .row-actions{ opacity:1; }
+.icon-btn{
+  width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+  background: rgba(255,255,255,0.05); border:1px solid var(--panel-border); color: var(--text-dim);
+  flex-shrink:0;
+}
+.icon-btn:hover{ background: rgba(255,255,255,0.1); color: var(--text); }
+.icon-btn svg{ width:14px; height:14px; }
+.icon-btn.danger:hover{ background: var(--danger-dim); color: var(--danger); }
+
+.badge{
+  display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700;
+  padding:4px 10px; border-radius:20px; white-space:nowrap;
+}
+.badge .dot{ width:6px; height:6px; border-radius:50%; }
+
+.empty-state{ text-align:center; padding:60px 20px; color: var(--text-faint); }
+.empty-state svg{ width:44px; height:44px; margin-bottom:14px; opacity:.4; }
+.empty-state h4{ color: var(--text-dim); font-size:15px; margin-bottom:6px; }
+.empty-state p{ font-size:13px; max-width:340px; margin:0 auto; line-height:1.6; }
+
+.loading-row{ padding:60px; text-align:center; color: var(--text-faint); font-size:13px; }
+.spinner{
+  width:22px; height:22px; border-radius:50%; border:2.5px solid rgba(255,255,255,0.12);
+  border-top-color: var(--accent); animation: spin .7s linear infinite; margin:0 auto 12px;
+}
+@keyframes spin{ to{ transform: rotate(360deg); } }
+
+/* ==========================================================================
+   MODALS
+   ========================================================================== */
+.modal-overlay{
+  position:fixed; inset:0; background: rgba(4,12,20,0.68); backdrop-filter: blur(3px);
+  display:flex; align-items:center; justify-content:center; z-index:200; padding:24px;
+  opacity:0; pointer-events:none; transition: opacity .18s;
+}
+.modal-overlay.show{ opacity:1; pointer-events:auto; }
+.modal{
+  width:100%; max-width:760px; max-height:88vh; display:flex; flex-direction:column;
+  background: var(--panel-solid); border:1px solid var(--panel-border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift); transform: translateY(14px) scale(.98); transition: transform .18s;
+}
+.modal-overlay.show .modal{ transform: translateY(0) scale(1); }
+.modal.modal-sm{ max-width:460px; }
+.modal.modal-lg{ max-width:960px; }
+.modal-head{ display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--panel-border); flex-shrink:0; }
+.modal-head h3{ font-size:16.5px; }
+.modal-head .sub{ font-size:12px; color: var(--text-faint); font-weight:500; margin-top:2px; }
+.modal-close{ width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.05); color: var(--text-dim); flex-shrink:0; border: none;}
+.modal-close:hover{ background: rgba(255,255,255,0.1); color: var(--text); }
+.modal-body{ padding:22px 24px; overflow-y:auto; }
+.modal-foot{ display:flex; justify-content:flex-end; gap:10px; padding:16px 24px; border-top:1px solid var(--panel-border); flex-shrink:0; }
+
+.form-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px 16px; }
+.form-grid .span-2{ grid-column: 1 / -1; }
+@media(max-width:640px){ .form-grid{ grid-template-columns:1fr; } }
+.field textarea{ resize:vertical; min-height:64px; line-height:1.5; }
+.field textarea.tall{ min-height:110px; }
+.field-row-btn{ display:flex; gap:8px; }
+.field-row-btn input{ flex:1; }
+
+.tabs{ display:flex; gap:4px; border-bottom:1px solid var(--panel-border); padding:0 24px; flex-shrink:0; }
+.tab-btn{
+  padding:13px 4px; margin-right:22px; font-size:13.5px; font-weight:600; color: var(--text-faint);
+  background:none; border:none; border-bottom:2px solid transparent; position:relative; top:1px;
+}
+.tab-btn.active{ color: var(--text); border-bottom-color: var(--accent); }
+.tab-panel{ display:none; }
+.tab-panel.active{ display:block; }
+
+/* ==========================================================================
+   DETAIL DRAWER
+   ========================================================================== */
+.drawer-overlay{
+  position:fixed; inset:0; background: rgba(4,12,20,0.55); z-index:190;
+  opacity:0; pointer-events:none; transition: opacity .2s;
+}
+.drawer-overlay.show{ opacity:1; pointer-events:auto; }
+.drawer{
+  position:fixed; top:0; right:0; bottom:0; width:min(680px, 94vw);
+  background: var(--navy-mid); border-left:1px solid var(--panel-border);
+  z-index:195; display:flex; flex-direction:column; transform: translateX(100%);
+  transition: transform .25s cubic-bezier(.2,.9,.3,1); box-shadow: -30px 0 60px -20px rgba(0,0,0,.5);
+}
+.drawer.show{ transform: translateX(0); }
+.drawer-head{ padding:22px 26px; border-bottom:1px solid var(--panel-border); flex-shrink:0; }
+.drawer-head-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.drawer-head h2{ font-size:19px; margin-bottom:4px; }
+.drawer-head .drawer-app{ font-size:12.5px; color: var(--text-faint); }
+.drawer-badges{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.drawer-body{ flex:1; overflow-y:auto; padding:22px 26px 60px; }
+.drawer-close{ width:32px; height:32px; border-radius:9px; background: rgba(255,255,255,0.06); border:none; color: var(--text-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.drawer-close:hover{ background: rgba(255,255,255,0.12); color:var(--text); }
+
+.info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px 22px; margin-bottom:6px; }
+.info-item{ font-size:13px; }
+.info-item .k{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color: var(--text-faint); margin-bottom:4px; font-weight:700; }
+.info-item .v{ color: var(--text); line-height:1.55; word-break:break-word; }
+.info-item .v.empty{ color: var(--text-faint); font-style:italic; }
+.info-item.full{ grid-column:1/-1; }
+.info-item .v pre{ white-space:pre-wrap; font-family:inherit; font-size:13px; line-height:1.6; }
+
+.section-title{ display:flex; align-items:center; justify-content:space-between; margin:26px 0 14px; }
+.section-title h4{ font-size:13.5px; text-transform:uppercase; letter-spacing:.04em; color: var(--text-dim); font-weight:700; }
+.divider{ height:1px; background: var(--panel-border); margin:22px 0; }
+
+/* file grid */
+.file-drop{
+  border:1.5px dashed var(--panel-border); border-radius: var(--radius); padding:20px;
+  text-align:center; margin-bottom:16px; transition: border-color .15s, background .15s; cursor:pointer;
+}
+.file-drop:hover, .file-drop.drag{ border-color: var(--accent); background: rgba(63,208,201,0.04); }
+.file-drop svg{ width:26px; height:26px; color: var(--text-faint); margin-bottom:8px; }
+.file-drop p{ font-size:13px; color: var(--text-dim); }
+.file-drop p b{ color: var(--accent); font-weight:600; }
+.file-drop .hint{ font-size:11.5px; color: var(--text-faint); margin-top:4px; }
+.file-cat-row{ display:flex; gap:8px; align-items:center; margin-bottom:12px; }
+.file-cat-row select{ background: rgba(255,255,255,0.04); border:1px solid var(--panel-border); color: var(--text); border-radius:8px; padding:8px 10px; font-size:12.5px; flex:1; }
+
+.file-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(130px,1fr)); gap:12px; }
+.file-card{
+  background: rgba(255,255,255,0.03); border:1px solid var(--panel-border); border-radius: var(--radius-sm);
+  overflow:hidden; position:relative;
+}
+.file-thumb{
+  height:80px; display:flex; align-items:center; justify-content:center;
+  background: rgba(255,255,255,0.03); overflow:hidden;
+}
+.file-thumb img{ width:100%; height:100%; object-fit:cover; }
+.file-thumb svg{ width:26px; height:26px; }
+.file-meta{ padding:8px 9px; }
+.file-name{ font-size:11.3px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
+.file-sub{ font-size:10px; color: var(--text-faint); }
+.file-cat-tag{ position:absolute; top:6px; left:6px; font-size:9.5px; font-weight:700; padding:2px 6px; border-radius:5px; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+.file-del{ position:absolute; top:5px; right:5px; width:20px; height:20px; border-radius:6px; background: rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; color:#fff; opacity:0; transition: opacity .12s; }
+.file-card:hover .file-del{ opacity:1; }
+.file-del:hover{ background: var(--danger); }
+.file-card a.file-open{ position:absolute; inset:0; z-index:1; }
+
+.mini-list{ display:flex; flex-direction:column; gap:8px; }
+.mini-card{
+  background: rgba(255,255,255,0.03); border:1px solid var(--panel-border); border-radius: var(--radius-sm);
+  padding:12px 14px; display:flex; align-items:center; gap:12px; cursor:pointer;
+}
+.mini-card:hover{ background: rgba(255,255,255,0.06); }
+.mini-card .mc-main{ flex:1; min-width:0; }
+.mini-card .mc-title{ font-size:12.8px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mini-card .mc-sub{ font-size:11.3px; color: var(--text-faint); margin-top:2px; }
+
+/* evidence groups */
+.evidence-group{ margin-bottom:18px; }
+.evidence-group-title{ font-size:12px; font-weight:700; color: var(--text-dim); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.evidence-group-title .line{ flex:1; height:1px; background: var(--panel-border); }
+
+/* toast */
+#toastHost{ position:fixed; bottom:20px; right:20px; z-index:999; display:flex; flex-direction:column; gap:10px; align-items:flex-end; }
+.toast{
+  background: var(--panel-solid); border:1px solid var(--panel-border); border-radius: var(--radius-sm);
+  padding:12px 16px; font-size:13px; box-shadow: var(--shadow-soft); display:flex; align-items:center; gap:10px;
+  min-width:240px; max-width:360px; animation: toastIn .25s ease;
+}
+@keyframes toastIn{ from{ opacity:0; transform: translateY(8px); } to{ opacity:1; transform:none; } }
+.toast .t-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.toast.ok .t-dot{ background: var(--success); }
+.toast.err .t-dot{ background: var(--danger); }
+.toast.info .t-dot{ background: var(--info); }
+
+/* lightbox */
+#lightbox{
+  position:fixed; inset:0; background: rgba(0,0,0,0.85); z-index:400; display:none;
+  align-items:center; justify-content:center; padding:40px;
+}
+#lightbox.show{ display:flex; }
+#lightbox img{ max-width:100%; max-height:100%; border-radius:8px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+#lightbox .lb-close{ position:absolute; top:24px; right:28px; width:38px; height:38px; border-radius:10px; background: rgba(255,255,255,0.1); color:#fff; display:flex; align-items:center; justify-content:center; border:none; }
+
+/* confirm dialog reuses modal-sm */
+.confirm-icon{ width:44px; height:44px; border-radius:12px; background: var(--danger-dim); color: var(--danger); display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+.confirm-icon svg{ width:22px; height:22px; }
+
+@media(max-width:900px){
+  .sidebar{ display:none; }
+  .view{ padding:22px 16px 60px; }
+  .topbar{ padding:16px; }
+  .info-grid{ grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================== LOGIN SCREEN ============================== -->
+<div id="loginScreen">
+  <div class="config-card">
+    <div class="config-brand">
+      <div class="mark">CR</div>
+      <div>
+        <div class="name">CR Control</div>
+        <div class="tag">Change Request Management</div>
+      </div>
+    </div>
+    <h2>Đăng nhập để tiếp tục</h2>
+    <p class="lead">Sử dụng tài khoản Google (Gmail) được cấp quyền để truy cập hệ thống quản lý Change Request. Nếu email của bạn chưa được quản trị viên cấp quyền, bạn sẽ không thể vào bên trong.</p>
+    <div class="config-actions">
+      <button class="btn btn-primary" id="btnGoogleLogin" style="flex:1; gap:10px;">
+        <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.9 5.1 29.7 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.8 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.9 5.1 29.7 3 24 3 16.3 3 9.6 7.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 45c5.6 0 10.7-1.9 14.7-5.2l-6.8-5.7c-2 1.4-4.7 2.3-7.9 2.3-5.2 0-9.6-3.3-11.3-8l-6.6 5.1C9.5 40.6 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.8 5.7C39.8 37.5 45 31.7 45 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
+        Đăng nhập bằng Google
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== PENDING / ACCESS DENIED SCREEN ============================== -->
+<div id="pendingScreen" class="hidden">
+  <div class="config-card">
+    <div class="confirm-icon" style="background:var(--accent-dim); color:var(--accent);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    </div>
+    <h2>Đang chờ được cấp quyền</h2>
+    <p class="lead">Tài khoản <b id="pendingEmail" style="color:var(--text);"></b> chưa được cấp quyền truy cập (hoặc đã bị khóa). Vui lòng liên hệ quản trị viên hệ thống để được thêm vào danh sách truy cập.</p>
+    <div class="config-actions">
+      <button class="btn btn-ghost" id="btnLogoutPending" style="flex:1;">Đăng xuất</button>
+      <button class="btn btn-primary" id="btnRecheckPending" style="flex:1;">Kiểm tra lại</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== APP SHELL ============================== -->
+<div id="app" class="hidden">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">CR</div>
+      <div>
+        <div class="name">CR Control</div>
+        <div class="tag">Change Request Mgmt</div>
+      </div>
+    </div>
+
+    <div class="nav-group-label">Tổng quan</div>
+    <div class="nav-item active" data-view="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Dashboard
+    </div>
+
+    <div class="nav-group-label">Quản lý</div>
+    <div class="nav-item" data-view="crlog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>
+      CR Log
+      <span class="count" id="navCountCr">0</span>
+    </div>
+    <div class="nav-item" data-view="uat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      UAT Test Case
+      <span class="count" id="navCountUat">0</span>
+    </div>
+    <div class="nav-item" data-view="release">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 016.34-11.34.99.99 0 01.11-.1c1.62-.9 4-1.1 5.5.4s1.3 3.88.4 5.5c-.03.04-.07.08-.1.11A22 22 0 0112 15z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+      Release / PRD
+      <span class="count" id="navCountRel">0</span>
+    </div>
+
+    <div class="nav-item hidden" data-view="admin" id="navAdmin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Quản trị người dùng
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="conn-pill" style="flex-direction:column; align-items:flex-start; gap:2px;">
+        <div style="display:flex; align-items:center; gap:8px;"><span class="conn-dot"></span><span id="sidebarUserEmail" style="color:var(--text-dim); font-weight:600;"></span></div>
+        <span id="sidebarUserRole" style="padding-left:15px; font-size:10.5px;"></span>
+      </div>
+      <div class="nav-item" id="btnLogout" style="margin-bottom:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        Đăng xuất
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="topbarTitle">Dashboard</h1>
+        <div class="sub" id="topbarSub">Tổng quan tình trạng Change Request</div>
+      </div>
+      <div class="search-box hidden" id="globalSearchBox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="globalSearch" type="text" placeholder="Tìm theo CR ID, tiêu đề, requester...">
+      </div>
+      <div class="topbar-actions" id="topbarActions"></div>
+    </div>
+
+    <!-- ============ DASHBOARD VIEW ============ -->
+    <section class="view" id="view-dashboard">
+      <div class="view-head">
+        <div>
+          <h2>Xin chào 👋</h2>
+          <p>Cập nhật theo thời gian thực từ Supabase</p>
+        </div>
+        <button class="btn btn-primary" id="btnDashRefresh">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Làm mới
+        </button>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="dash-grid">
+        <div class="dash-col">
+          <div class="panel panel-pad chart-block">
+            <h3>Theo trạng thái <span class="total" id="statTotalStatus"></span></h3>
+            <div id="chartStatus"></div>
+          </div>
+          <div class="panel panel-pad chart-block">
+            <h3>CR gần đây</h3>
+            <div class="recent-list" id="recentList"></div>
+          </div>
+        </div>
+        <div class="dash-col">
+          <div class="panel panel-pad chart-block">
+            <h3>Theo mức ưu tiên</h3>
+            <div id="chartPriority"></div>
+          </div>
+          <div class="panel panel-pad chart-block">
+            <h3>Theo loại</h3>
+            <div id="chartCategory"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CR LOG VIEW ============ -->
+    <section class="view hidden" id="view-crlog">
+      <div class="view-head">
+        <div>
+          <h2>CR Log</h2>
+          <p>Sổ đăng ký toàn bộ Change Request</p>
+        </div>
+        <button class="btn btn-primary" id="btnAddCr">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Tạo CR mới
+        </button>
+      </div>
+      <div class="table-toolbar">
+        <div class="filter-chip"><span>Trạng thái</span>
+          <select id="filterStatus"><option value="">Tất cả</option></select>
+        </div>
+        <div class="filter-chip"><span>Ưu tiên</span>
+          <select id="filterPriority"><option value="">Tất cả</option></select>
+        </div>
+        <div class="filter-chip"><span>Loại</span>
+          <select id="filterCategory"><option value="">Tất cả</option></select>
+        </div>
+        <div class="chip-clear" id="clearFilters">Xóa lọc</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>CR ID</th><th>Tiêu đề / App</th><th>Requester</th><th>Category</th><th>Priority</th><th>Status</th><th>Deadline</th><th></th>
+          </tr></thead>
+          <tbody id="crTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ UAT VIEW ============ -->
+    <section class="view hidden" id="view-uat">
+      <div class="view-head">
+        <div>
+          <h2>UAT Test Case</h2>
+          <p>Test case UAT cho từng Change Request</p>
+        </div>
+        <button class="btn btn-primary" id="btnAddTc">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Thêm Test Case
+        </button>
+      </div>
+      <div class="table-toolbar">
+        <div class="filter-chip"><span>CR ID</span>
+          <select id="filterTcCr"><option value="">Tất cả</option></select>
+        </div>
+        <div class="filter-chip"><span>Kết quả</span>
+          <select id="filterTcResult"><option value="">Tất cả</option></select>
+        </div>
+        <div class="chip-clear" id="clearTcFilters">Xóa lọc</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>CR ID</th><th>Test Case ID</th><th>Scenario</th><th>Testor</th><th>Ngày test</th><th>Kết quả</th><th></th>
+          </tr></thead>
+          <tbody id="tcTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ RELEASE VIEW ============ -->
+    <section class="view hidden" id="view-release">
+      <div class="view-head">
+        <div>
+          <h2>Release / PRD</h2>
+          <p>Thông tin phát hành cho từng Change Request</p>
+        </div>
+        <button class="btn btn-primary" id="btnAddRel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Thêm Release
+        </button>
+      </div>
+      <div class="table-toolbar">
+        <div class="filter-chip"><span>CR ID</span>
+          <select id="filterRelCr"><option value="">Tất cả</option></select>
+        </div>
+        <div class="filter-chip"><span>Trạng thái</span>
+          <select id="filterRelStatus"><option value="">Tất cả</option></select>
+        </div>
+        <div class="chip-clear" id="clearRelFilters">Xóa lọc</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>CR ID</th><th>Release</th><th>Version</th><th>Ngày dự kiến</th><th>Ngày thực tế</th><th>Trạng thái</th><th></th>
+          </tr></thead>
+          <tbody id="relTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ ADMIN VIEW ============ -->
+    <section class="view hidden" id="view-admin">
+      <div class="view-head">
+        <div>
+          <h2>Quản trị người dùng</h2>
+          <p>Chỉ những email Gmail dưới đây mới đăng nhập và chỉnh sửa được dữ liệu</p>
+        </div>
+        <button class="btn btn-primary" id="btnAddUser">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Thêm người dùng
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Email</th><th>Vai trò</th><th>Trạng thái</th><th>Ngày thêm</th><th></th>
+          </tr></thead>
+          <tbody id="userTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ============================== MODALS (injected content by JS) ============================== -->
+<div class="modal-overlay" id="crModalOverlay"></div>
+<div class="modal-overlay" id="tcModalOverlay"></div>
+<div class="modal-overlay" id="relModalOverlay"></div>
+<div class="modal-overlay" id="userModalOverlay"></div>
+<div class="modal-overlay" id="confirmModalOverlay"></div>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="crDrawer"></div>
+
+<div id="lightbox"><button class="lb-close" id="lbClose">✕</button><img id="lbImg" src="" alt=""></div>
+<div id="toastHost"></div>
+
+<script>
+window.CR_LISTS = {
+  status: ["New","In Review","Approved","Rejected","In Progress","UAT","Ready to Release","Released","Closed","On Hold"],
+  priority: ["Critical","High","Medium","Low"],
+  category: ["Enhancement","Bug Fix","New Feature","Compliance","Infrastructure"],
+  approval: ["Pending","Approved","Rejected"],
+  uatResult: ["Not Started","Pass","Fail","Blocked"],
+  yesNo: ["Yes","No"],
+  environment: ["Dev","Staging","Prod"],
+  releaseStatus: ["Planned","In Progress","Completed","Rolled Back"],
+  attachCategory: ["BRD","FSD","Quotation","Mail","Evidence","Other"],
+  evidenceSteps: [
+    "Prepare Data Testing 01","Prepare Data Testing 02","Prepare Data Testing 03",
+    "Create Sales Order On Pace 01","Create Sales Order On Pace 02","Create Sales Order On Pace 03",
+    "Sync Sales Order To DMS 01","Sync Sales Order To DMS 02",
+    "Delivery Note 01","Delivery Note 02",
+    "Load Out 01","Load Out 02","Load Out 03","Load Out 04","Load Out 05","Load Out 06","Load Out 07",
+    "Sales Order Report 01","Sales Order Report 02",
+    "Sales Register 01","Sales Register 02"
+  ]
+};
+</script>
+<script>
+/* ============================================================================
+   CR CONTROL — application logic
+   ============================================================================ */
+"use strict";
+
+/* ---------------------------------------------------------------------------
+   0. STATE
+--------------------------------------------------------------------------- */
+const STATE = {
+  sb: null,
+  connected: false,
+  session: null,
+  userEmail: null,
+  userRole: null,
+  booted: false,
+  crList: [],
+  tcList: [],
+  relList: [],
+  userList: [],
+  currentView: "dashboard",
+  filters: { status:"", priority:"", category:"", search:"" },
+  tcFilters: { cr:"", result:"" },
+  relFilters: { cr:"", status:"" },
+  editingCrId: null,      // uuid of cr_log row being edited (null = create)
+  editingTcId: null,
+  editingRelId: null,
+  editingUserId: null,
+  drawerCrId: null,       // cr_id (text) currently shown in drawer
+  drawerTab: "info",
+  attachCache: {},        // cr_id -> [attachments]
+};
+
+const BUCKET = "cr-attachments";
+const SIGNED_URL_TTL = 3600; // giây — link file có hiệu lực 1 giờ
+
+/* ---------------------------------------------------------------------------
+   1. HELPERS
+--------------------------------------------------------------------------- */
+function $(sel, root){ return (root||document).querySelector(sel); }
+function $all(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+function esc(str){
+  if(str === null || str === undefined) return "";
+  return String(str)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function fmtDate(d){
+  if(!d) return "";
+  try{
+    const dt = new Date(d + (String(d).length<=10 ? "T00:00:00" : ""));
+    if(isNaN(dt.getTime())) return d;
+    return dt.toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
+  }catch(e){ return d; }
+}
+function fmtDateTime(d){
+  if(!d) return "";
+  try{
+    const dt = new Date(d);
+    return dt.toLocaleString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+  }catch(e){ return d; }
+}
+function fmtBytes(n){
+  if(!n && n!==0) return "";
+  if(n < 1024) return n + " B";
+  if(n < 1024*1024) return (n/1024).toFixed(1) + " KB";
+  return (n/1024/1024).toFixed(1) + " MB";
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function isOverdue(cr){
+  if(!cr.deadline) return false;
+  if(["Released","Closed"].includes(cr.status)) return false;
+  return cr.deadline < todayISO();
+}
+function debounce(fn, ms){
+  let t; return function(...args){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,args), ms); };
+}
+function uid(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+  const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16);
+});}
+
+const COLOR = {
+  status: {
+    "New":"#8fa6c2","In Review":"#f2b84b","Approved":"#4cc38a","Rejected":"#ee6b74",
+    "In Progress":"#5b8def","UAT":"#b78af0","Ready to Release":"#3fd0c9",
+    "Released":"#2fae67","Closed":"#62778f","On Hold":"#e08a3c"
+  },
+  priority: { "Critical":"#ee6b74","High":"#e08a3c","Medium":"#f2b84b","Low":"#4cc38a" },
+  category: { "Enhancement":"#5b8def","Bug Fix":"#ee6b74","New Feature":"#3fd0c9","Compliance":"#b78af0","Infrastructure":"#f2b84b" },
+  pass_fail: { "Not Started":"#8fa6c2","Pass":"#4cc38a","Fail":"#ee6b74","Blocked":"#e08a3c" },
+  release_status: { "Planned":"#8fa6c2","In Progress":"#5b8def","Completed":"#4cc38a","Rolled Back":"#ee6b74" },
+  role: { "Quản trị":"#b78af0","Thành viên":"#5b8def" }
+};
+function colorFor(group, key){ return (COLOR[group] && COLOR[group][key]) || "#7488a0"; }
+function badge(group, value){
+  if(!value) return `<span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-faint)"><span class="dot" style="background:var(--text-faint)"></span>—</span>`;
+  const c = colorFor(group, value);
+  return `<span class="badge" style="background:${c}22; color:${c}"><span class="dot" style="background:${c}"></span>${esc(value)}</span>`;
+}
+
+function fileKind(name, mime){
+  const ext = (name||"").split(".").pop().toLowerCase();
+  if(["png","jpg","jpeg","gif","webp","svg","bmp"].includes(ext) || (mime||"").startsWith("image/")) return "image";
+  if(ext === "pdf") return "pdf";
+  if(["doc","docx"].includes(ext)) return "docx";
+  if(["xls","xlsx","csv"].includes(ext)) return "xlsx";
+  if(["eml","msg"].includes(ext)) return "mail";
+  if(["ppt","pptx"].includes(ext)) return "ppt";
+  if(["zip","rar","7z"].includes(ext)) return "zip";
+  return "other";
+}
+const FILE_ICON = {
+  image: `<svg viewBox="0 0 24 24" fill="none" stroke="#5b8def" stroke-width="1.8" width="26" height="26"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`,
+  pdf: `<svg viewBox="0 0 24 24" fill="none" stroke="#ee6b74" stroke-width="1.8" width="26" height="26"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><text x="7" y="17" font-size="7" fill="#ee6b74" stroke="none" font-family="sans-serif">PDF</text></svg>`,
+  docx: `<svg viewBox="0 0 24 24" fill="none" stroke="#5b8def" stroke-width="1.8" width="26" height="26"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><text x="6" y="17" font-size="6.5" fill="#5b8def" stroke="none" font-family="sans-serif">DOC</text></svg>`,
+  xlsx: `<svg viewBox="0 0 24 24" fill="none" stroke="#4cc38a" stroke-width="1.8" width="26" height="26"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><text x="6" y="17" font-size="6" fill="#4cc38a" stroke="none" font-family="sans-serif">XLS</text></svg>`,
+  mail: `<svg viewBox="0 0 24 24" fill="none" stroke="#f2b84b" stroke-width="1.8" width="26" height="26"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>`,
+  ppt: `<svg viewBox="0 0 24 24" fill="none" stroke="#e08a3c" stroke-width="1.8" width="26" height="26"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><text x="6" y="17" font-size="6" fill="#e08a3c" stroke="none" font-family="sans-serif">PPT</text></svg>`,
+  zip: `<svg viewBox="0 0 24 24" fill="none" stroke="#b78af0" stroke-width="1.8" width="26" height="26"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>`,
+  other: `<svg viewBox="0 0 24 24" fill="none" stroke="#7488a0" stroke-width="1.8" width="26" height="26"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>`
+};
+
+/* ---------------------------------------------------------------------------
+   2. TOAST
+--------------------------------------------------------------------------- */
+function toast(msg, type="info"){
+  const host = $("#toastHost");
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="t-dot"></span><span>${esc(msg)}</span>`;
+  host.appendChild(el);
+  setTimeout(()=>{
+    el.style.transition = "opacity .25s, transform .25s";
+    el.style.opacity = "0"; el.style.transform = "translateY(6px)";
+    setTimeout(()=>el.remove(), 260);
+  }, 3200);
+}
+
+/* ---------------------------------------------------------------------------
+   3. SUPABASE CLIENT & GOOGLE AUTH
+--------------------------------------------------------------------------- */
+// Thông tin dự án Supabase — anon public key, an toàn để đặt ở phía client.
+const SUPABASE_URL = "https://rnsjiqbbeywgbnqsojce.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJuc2ppcWJiZXl3Z2JucXNvamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0OTExNjAsImV4cCI6MjA5MzA2NzE2MH0.1BrlS__GNAMFbBmudl6gUJwJ9j_zoDdAj9rtfhBkhdk";
+
+function initClient(){
+  STATE.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, detectSessionInUrl: true, autoRefreshToken: true }
+  });
+}
+
+function showScreen(name){
+  $("#loginScreen").classList.toggle("hidden", name !== "login");
+  $("#pendingScreen").classList.toggle("hidden", name !== "pending");
+  $("#app").classList.toggle("hidden", name !== "app");
+}
+
+async function loginWithGoogle(){
+  const btn = $("#btnGoogleLogin");
+  if(btn){ btn.disabled = true; }
+  const { error } = await STATE.sb.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.href.split("#")[0] }
+  });
+  if(error){
+    toast("Đăng nhập thất bại: " + error.message, "err");
+    if(btn){ btn.disabled = false; }
+  }
+}
+
+async function logout(){
+  await STATE.sb.auth.signOut();
+  STATE.session = null; STATE.userEmail = null; STATE.userRole = null; STATE.booted = false;
+  showScreen("login");
+}
+
+async function handleAuthState(){
+  if(!STATE.session){
+    showScreen("login");
+    return;
+  }
+  STATE.userEmail = STATE.session.user.email;
+  const { data, error } = await STATE.sb.from("app_users").select("*").eq("email", STATE.userEmail).maybeSingle();
+  if(error){
+    toast("Lỗi kiểm tra quyền truy cập: " + error.message, "err");
+    showScreen("pending");
+    $("#pendingEmail").textContent = STATE.userEmail;
+    return;
+  }
+  if(!data || !data.active){
+    STATE.userRole = null;
+    showScreen("pending");
+    $("#pendingEmail").textContent = STATE.userEmail;
+    return;
+  }
+  STATE.userRole = data.role;
+  showScreen("app");
+  if(!STATE.booted){
+    STATE.booted = true;
+    initShell();
+    refreshAll();
+    subscribeRealtime();
+  }
+  $("#sidebarUserEmail").textContent = STATE.userEmail;
+  $("#sidebarUserRole").textContent = STATE.userRole === "admin" ? "Quản trị viên" : "Thành viên";
+  $("#navAdmin").classList.toggle("hidden", STATE.userRole !== "admin");
+  if(STATE.currentView === "admin" && STATE.userRole !== "admin"){ setView("dashboard"); }
+}
+
+async function initAuth(){
+  initClient();
+  $("#btnGoogleLogin").addEventListener("click", loginWithGoogle);
+  $("#btnLogoutPending").addEventListener("click", logout);
+  $("#btnRecheckPending").addEventListener("click", async ()=>{
+    toast("Đang kiểm tra lại quyền truy cập...", "info");
+    await handleAuthState();
+  });
+
+  const { data: { session } } = await STATE.sb.auth.getSession();
+  STATE.session = session;
+  await handleAuthState();
+
+  STATE.sb.auth.onAuthStateChange(async (_event, session)=>{
+    STATE.session = session;
+    await handleAuthState();
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   3b. REALTIME — tự động đồng bộ khi có người khác thêm/sửa/xóa dữ liệu
+--------------------------------------------------------------------------- */
+let realtimeSubscribed = false;
+function subscribeRealtime(){
+  if(realtimeSubscribed) return;
+  realtimeSubscribed = true;
+
+  const debouncedRefresh = debounce(async ()=>{
+    await refreshAll();
+    if(STATE.drawerCrId){
+      const cr = STATE.crList.find(c=>c.cr_id===STATE.drawerCrId);
+      if(cr){
+        renderDrawer(cr);
+        await fetchAttachments(cr.cr_id);
+        renderDrawerFiles(cr.cr_id);
+        renderDrawerLinked(cr.cr_id);
+      } else {
+        closeDrawer();
+      }
+    }
+    if(STATE.currentView === "admin"){ loadAndRenderAdmin(); }
+  }, 500);
+
+  STATE.sb.channel("realtime-cr_log")
+    .on("postgres_changes", { event:"*", schema:"public", table:"cr_log" }, debouncedRefresh)
+    .subscribe();
+  STATE.sb.channel("realtime-uat_testcase")
+    .on("postgres_changes", { event:"*", schema:"public", table:"uat_testcase" }, debouncedRefresh)
+    .subscribe();
+  STATE.sb.channel("realtime-release_prd")
+    .on("postgres_changes", { event:"*", schema:"public", table:"release_prd" }, debouncedRefresh)
+    .subscribe();
+  STATE.sb.channel("realtime-cr_attachments")
+    .on("postgres_changes", { event:"*", schema:"public", table:"cr_attachments" }, ()=>{
+      if(STATE.drawerCrId){
+        fetchAttachments(STATE.drawerCrId).then(()=> renderDrawerFiles(STATE.drawerCrId));
+      }
+    })
+    .subscribe();
+  STATE.sb.channel("realtime-app_users")
+    .on("postgres_changes", { event:"*", schema:"public", table:"app_users" }, ()=>{
+      if(STATE.currentView === "admin"){ loadAndRenderAdmin(); }
+    })
+    .subscribe();
+}
+
+/* ---------------------------------------------------------------------------
+   4. APP SHELL / NAV
+--------------------------------------------------------------------------- */
+const VIEW_META = {
+  dashboard: { title:"Dashboard", sub:"Tổng quan tình trạng Change Request", search:false },
+  crlog:     { title:"CR Log", sub:"Sổ đăng ký toàn bộ Change Request", search:true },
+  uat:       { title:"UAT Test Case", sub:"Test case UAT cho từng Change Request", search:true },
+  release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:true },
+  admin:     { title:"Quản trị người dùng", sub:"Cấp quyền truy cập cho tài khoản Gmail", search:false },
+};
+
+function initShell(){
+  $all(".nav-item[data-view]").forEach(item=>{
+    item.addEventListener("click", ()=> setView(item.dataset.view));
+  });
+
+  $("#btnLogout").addEventListener("click", ()=>{
+    confirmDelete("Đăng xuất?", "Bạn sẽ cần đăng nhập lại bằng Google để tiếp tục sử dụng.", async ()=>{ await logout(); }, "Đăng xuất");
+  });
+  $("#btnAddUser").addEventListener("click", ()=> openUserModal(null));
+
+  populateSelect($("#filterStatus"), CR_LISTS.status);
+  populateSelect($("#filterPriority"), CR_LISTS.priority);
+  populateSelect($("#filterCategory"), CR_LISTS.category);
+  populateSelect($("#filterTcResult"), CR_LISTS.uatResult);
+  populateSelect($("#filterRelStatus"), CR_LISTS.releaseStatus);
+
+  $("#filterStatus").addEventListener("change", e=>{ STATE.filters.status = e.target.value; renderCrTable(); });
+  $("#filterPriority").addEventListener("change", e=>{ STATE.filters.priority = e.target.value; renderCrTable(); });
+  $("#filterCategory").addEventListener("change", e=>{ STATE.filters.category = e.target.value; renderCrTable(); });
+  $("#clearFilters").addEventListener("click", ()=>{
+    STATE.filters = { status:"", priority:"", category:"", search: STATE.filters.search };
+    $("#filterStatus").value=""; $("#filterPriority").value=""; $("#filterCategory").value="";
+    renderCrTable();
+  });
+
+  $("#filterTcCr").addEventListener("change", e=>{ STATE.tcFilters.cr = e.target.value; renderTcTable(); });
+  $("#filterTcResult").addEventListener("change", e=>{ STATE.tcFilters.result = e.target.value; renderTcTable(); });
+  $("#clearTcFilters").addEventListener("click", ()=>{
+    STATE.tcFilters = { cr:"", result:"" };
+    $("#filterTcCr").value=""; $("#filterTcResult").value="";
+    renderTcTable();
+  });
+
+  $("#filterRelCr").addEventListener("change", e=>{ STATE.relFilters.cr = e.target.value; renderRelTable(); });
+  $("#filterRelStatus").addEventListener("change", e=>{ STATE.relFilters.status = e.target.value; renderRelTable(); });
+  $("#clearRelFilters").addEventListener("click", ()=>{
+    STATE.relFilters = { cr:"", status:"" };
+    $("#filterRelCr").value=""; $("#filterRelStatus").value="";
+    renderRelTable();
+  });
+
+  $("#globalSearch").addEventListener("input", debounce(e=>{
+    STATE.filters.search = e.target.value.trim().toLowerCase();
+    if(STATE.currentView === "crlog") renderCrTable();
+  }, 220));
+
+  $("#btnAddCr").addEventListener("click", ()=> openCrModal(null));
+  $("#btnAddTc").addEventListener("click", ()=> openTcModal(null));
+  $("#btnAddRel").addEventListener("click", ()=> openRelModal(null));
+  $("#btnDashRefresh").addEventListener("click", ()=>{ toast("Đang làm mới dữ liệu...", "info"); refreshAll(); });
+
+  $("#lbClose").addEventListener("click", closeLightbox);
+  $("#lightbox").addEventListener("click", e=>{ if(e.target.id === "lightbox") closeLightbox(); });
+
+  $("#drawerOverlay").addEventListener("click", closeDrawer);
+
+  document.addEventListener("keydown", e=>{
+    if(e.key === "Escape"){
+      closeLightbox(); closeDrawer();
+      $all(".modal-overlay.show").forEach(m=> m.classList.remove("show"));
+    }
+  });
+}
+
+function populateSelect(sel, arr, withEmpty){
+  if(!sel) return;
+  const keep = sel.querySelector("option[value='']");
+  sel.innerHTML = "";
+  if(keep) sel.appendChild(keep);
+  arr.forEach(v=>{
+    const o = document.createElement("option");
+    o.value = v; o.textContent = v;
+    sel.appendChild(o);
+  });
+}
+
+function setView(view){
+  STATE.currentView = view;
+  $all(".nav-item[data-view]").forEach(i=> i.classList.toggle("active", i.dataset.view===view));
+  $all(".view").forEach(v=> v.classList.add("hidden"));
+  $("#view-"+view).classList.remove("hidden");
+  $("#topbarTitle").textContent = VIEW_META[view].title;
+  $("#topbarSub").textContent = VIEW_META[view].sub;
+  $("#globalSearchBox").classList.toggle("hidden", !VIEW_META[view].search || view!=="crlog");
+  if(view === "admin") loadAndRenderAdmin();
+}
+
+/* ---------------------------------------------------------------------------
+   5. DATA FETCH
+--------------------------------------------------------------------------- */
+async function refreshAll(){
+  await Promise.all([fetchCrList(), fetchTcList(), fetchRelList()]);
+  renderNavCounts();
+  renderDashboard();
+  renderCrTable();
+  renderTcTable();
+  renderRelTable();
+  populateCrDropdowns();
+}
+
+async function fetchCrList(){
+  const { data, error } = await STATE.sb.from("cr_log").select("*").order("created_at", { ascending:false });
+  if(error){ toast("Lỗi tải CR Log: " + error.message, "err"); STATE.crList = []; return; }
+  STATE.crList = data || [];
+}
+async function fetchTcList(){
+  const { data, error } = await STATE.sb.from("uat_testcase").select("*").order("created_at", { ascending:false });
+  if(error){ toast("Lỗi tải UAT Test Case: " + error.message, "err"); STATE.tcList = []; return; }
+  STATE.tcList = data || [];
+}
+async function fetchRelList(){
+  const { data, error } = await STATE.sb.from("release_prd").select("*").order("created_at", { ascending:false });
+  if(error){ toast("Lỗi tải Release/PRD: " + error.message, "err"); STATE.relList = []; return; }
+  STATE.relList = data || [];
+}
+async function fetchAttachments(cr_id){
+  const { data, error } = await STATE.sb.from("cr_attachments").select("*").eq("cr_id", cr_id).order("uploaded_at", { ascending:false });
+  if(error){ toast("Lỗi tải file: " + error.message, "err"); return []; }
+  STATE.attachCache[cr_id] = data || [];
+  return STATE.attachCache[cr_id];
+}
+async function fetchTcAttachments(testcase_id){
+  const { data, error } = await STATE.sb.from("cr_attachments").select("*").eq("testcase_id", testcase_id).order("uploaded_at", { ascending:false });
+  if(error){ toast("Lỗi tải evidence: " + error.message, "err"); return []; }
+  return data || [];
+}
+
+function renderNavCounts(){
+  $("#navCountCr").textContent = STATE.crList.length;
+  $("#navCountUat").textContent = STATE.tcList.length;
+  $("#navCountRel").textContent = STATE.relList.length;
+}
+
+function populateCrDropdowns(){
+  const ids = STATE.crList.map(c=>c.cr_id).filter(Boolean);
+  [$("#filterTcCr"), $("#filterRelCr")].forEach(sel=>{
+    const cur = sel.value;
+    populateSelect(sel, ids);
+    sel.value = cur;
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   6. DASHBOARD
+--------------------------------------------------------------------------- */
+function renderDashboard(){
+  const list = STATE.crList;
+  const total = list.length;
+  const overdue = list.filter(isOverdue).length;
+  const inflight = list.filter(c=> ["In Progress","UAT","In Review"].includes(c.status)).length;
+  const released = list.filter(c=> c.status === "Released").length;
+
+  $("#kpiGrid").innerHTML = `
+    ${kpiCard("Tổng số CR", total, "", "")}
+    ${kpiCard("Đang xử lý", inflight, "In Progress / UAT / In Review", "accent")}
+    ${kpiCard("Trễ hạn", overdue, "Deadline đã qua, chưa Released/Closed", "danger")}
+    ${kpiCard("Đã Released", released, "", "success")}
+  `;
+
+  $("#statTotalStatus").textContent = total + " CR";
+  $("#chartStatus").innerHTML = barChart(CR_LISTS.status, list, "status");
+  $("#chartPriority").innerHTML = barChart(CR_LISTS.priority, list, "priority");
+  $("#chartCategory").innerHTML = barChart(CR_LISTS.category, list, "category");
+
+  const recent = [...list].sort((a,b)=> new Date(b.updated_at||b.created_at) - new Date(a.updated_at||a.created_at)).slice(0,6);
+  $("#recentList").innerHTML = recent.length ? recent.map(c=>`
+    <div class="recent-item" data-cr="${esc(c.cr_id)}">
+      <span class="recent-id">${esc(c.cr_id)}</span>
+      <span class="recent-title">${esc(c.rename_folder || c.old_name || c.app || "(chưa có tiêu đề)")}</span>
+      ${badge("status", c.status)}
+      <span class="recent-meta">${fmtDate(c.request_date)}</span>
+    </div>
+  `).join("") : emptyRow("Chưa có Change Request nào");
+  $all(".recent-item[data-cr]").forEach(el=> el.addEventListener("click", ()=> openDrawer(el.dataset.cr)));
+}
+
+function kpiCard(label, value, foot, cls){
+  return `<div class="kpi-card ${cls||''}">
+    <div class="kpi-label">${esc(label)}</div>
+    <div class="kpi-value">${value}</div>
+    ${foot? `<div class="kpi-foot">${esc(foot)}</div>` : ""}
+  </div>`;
+}
+
+function barChart(keys, list, field){
+  const total = list.length || 1;
+  const counts = {};
+  keys.forEach(k=> counts[k]=0);
+  list.forEach(item=>{ const v = item[field]; if(v!==undefined && v!==null && v!=="") counts[v] = (counts[v]||0)+1; });
+  return keys.map(k=>{
+    const n = counts[k]||0;
+    const pct = Math.round((n/total)*100);
+    const c = colorFor(field==="status"?"status":field, k);
+    return `<div class="bar-row">
+      <div class="bar-label"><span class="bar-dot" style="background:${c}"></span>${esc(k)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${c};"></div></div>
+      <div class="bar-num">${n}</div>
+    </div>`;
+  }).join("");
+}
+
+function emptyRow(msg){
+  return `<div class="empty-state" style="padding:30px 10px;">
+    <p>${esc(msg)}</p>
+  </div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   7. CR LOG TABLE
+--------------------------------------------------------------------------- */
+function filteredCrList(){
+  const f = STATE.filters;
+  return STATE.crList.filter(c=>{
+    if(f.status && c.status !== f.status) return false;
+    if(f.priority && c.priority !== f.priority) return false;
+    if(f.category && c.category !== f.category) return false;
+    if(f.search){
+      const hay = [c.cr_id, c.old_name, c.rename_folder, c.app, c.requester, c.department, c.owner].join(" ").toLowerCase();
+      if(!hay.includes(f.search)) return false;
+    }
+    return true;
+  });
+}
+
+function renderCrTable(){
+  const rows = filteredCrList();
+  const tbody = $("#crTableBody");
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="8">${emptyStateBlock("Chưa có Change Request", "Bấm \"Tạo CR mới\" để bắt đầu ghi nhận Change Request đầu tiên.")}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(c=>{
+    const overdue = isOverdue(c);
+    return `<tr data-cr="${esc(c.cr_id)}">
+      <td class="cell-id">${esc(c.cr_id)}</td>
+      <td class="cell-title" title="${esc(c.rename_folder || c.old_name || '')}">${esc(c.rename_folder || c.old_name || c.app || '—')}</td>
+      <td class="cell-dim">${esc(c.requester || '—')}</td>
+      <td>${badge("category", c.category)}</td>
+      <td>${badge("priority", c.priority)}</td>
+      <td>${badge("status", c.status)}</td>
+      <td class="cell-dim" style="${overdue? 'color:var(--danger); font-weight:700;':''}">${c.deadline? fmtDate(c.deadline) : '—'}${overdue? ' ⚠' : ''}</td>
+      <td class="cell-actions">
+        <div class="row-actions">
+          <button class="icon-btn" data-act="view" title="Xem chi tiết"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+
+  $all("#crTableBody tr[data-cr]").forEach(tr=>{
+    tr.addEventListener("click", (e)=>{
+      const actBtn = e.target.closest("[data-act]");
+      const crId = tr.dataset.cr;
+      if(!actBtn){ openDrawer(crId); return; }
+      const act = actBtn.dataset.act;
+      if(act === "view") openDrawer(crId);
+      if(act === "edit") openCrModal(STATE.crList.find(c=>c.cr_id===crId));
+      if(act === "del") confirmDelete("Xóa Change Request?", `CR "${crId}" cùng toàn bộ test case, release và file đính kèm liên quan sẽ bị xóa vĩnh viễn.`, ()=> deleteCr(crId));
+    });
+  });
+}
+
+function emptyStateBlock(title, msg){
+  return `<div class="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>
+    <h4>${esc(title)}</h4>
+    <p>${esc(msg)}</p>
+  </div>`;
+}
+
+async function deleteCr(cr_id){
+  const row = STATE.crList.find(c=>c.cr_id===cr_id);
+  // best-effort remove storage files first
+  const files = await fetchAttachments(cr_id);
+  if(files.length){
+    await STATE.sb.storage.from(BUCKET).remove(files.map(f=>f.file_path));
+  }
+  const { error } = await STATE.sb.from("cr_log").delete().eq("id", row.id);
+  if(error){ toast("Xóa thất bại: " + error.message, "err"); return; }
+  toast(`Đã xóa ${cr_id}`, "ok");
+  closeDrawer();
+  await refreshAll();
+}
+
+/* ---------------------------------------------------------------------------
+   8. CR MODAL (ADD / EDIT)
+--------------------------------------------------------------------------- */
+function nextCrIdSuggestion(){
+  let max = 0;
+  STATE.crList.forEach(c=>{
+    const m = /^CR_(\d+)$/i.exec(c.cr_id||"");
+    if(m) max = Math.max(max, parseInt(m[1],10));
+  });
+  return "CR_" + String(max+1).padStart(3,"0");
+}
+
+function crModalTemplate(cr){
+  const v = cr || {};
+  const isEdit = !!cr;
+  return `
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>${isEdit? "Sửa Change Request" : "Tạo Change Request mới"}</h3>
+        <div class="sub">${isEdit? esc(v.cr_id) : "Điền thông tin CR — tương ứng sheet CR_Log"}</div></div>
+      <button class="modal-close" id="crModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>CR ID *</label>
+          <div class="field-row-btn">
+            <input id="f_cr_id" type="text" value="${esc(v.cr_id||'')}" placeholder="CR_001" ${isEdit?'':''}>
+            ${isEdit? '' : '<button class="btn btn-ghost btn-sm" id="btnSuggestCrId" type="button">Gợi ý</button>'}
+          </div>
+        </div>
+        <div class="field">
+          <label>App</label>
+          <input id="f_app" type="text" value="${esc(v.app||'')}" placeholder="DMS, XnappReports...">
+        </div>
+        <div class="field">
+          <label>Old Name From InterK</label>
+          <input id="f_old_name" type="text" value="${esc(v.old_name||'')}">
+        </div>
+        <div class="field">
+          <label>Rename Folder</label>
+          <input id="f_rename_folder" type="text" value="${esc(v.rename_folder||'')}" placeholder="[CR_001] Tên mô tả ngắn">
+        </div>
+        <div class="field">
+          <label>Requester</label>
+          <input id="f_requester" type="text" value="${esc(v.requester||'')}">
+        </div>
+        <div class="field">
+          <label>Department</label>
+          <input id="f_department" type="text" value="${esc(v.department||'')}">
+        </div>
+        <div class="field">
+          <label>Request Date</label>
+          <input id="f_request_date" type="date" value="${v.request_date||''}">
+        </div>
+        <div class="field">
+          <label>Deadline</label>
+          <input id="f_deadline" type="date" value="${v.deadline||''}">
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select id="f_category">${optionsHtml(CR_LISTS.category, v.category)}</select>
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select id="f_priority">${optionsHtml(CR_LISTS.priority, v.priority)}</select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="f_status">${optionsHtml(CR_LISTS.status, v.status||'New')}</select>
+        </div>
+        <div class="field">
+          <label>Approved Status</label>
+          <select id="f_approved_status">${optionsHtml(CR_LISTS.approval, v.approved_status)}</select>
+        </div>
+        <div class="field">
+          <label>Owner</label>
+          <input id="f_owner" type="text" value="${esc(v.owner||'')}">
+        </div>
+        <div class="field">
+          <label>Approved Date</label>
+          <input id="f_approved_date" type="date" value="${v.approved_date||''}">
+        </div>
+        <div class="field span-2">
+          <label>BRD Link</label>
+          <input id="f_brd_link" type="text" value="${esc(v.brd_link||'')}" placeholder="CCBVL_BRD001 hoặc URL">
+        </div>
+        <div class="field">
+          <label>FSD Link</label>
+          <input id="f_fsd_link" type="text" value="${esc(v.fsd_link||'')}">
+        </div>
+        <div class="field">
+          <label>Quotation Link</label>
+          <input id="f_quotation_link" type="text" value="${esc(v.quotation_link||'')}">
+        </div>
+        <div class="field span-2">
+          <label>Loop Mail Header</label>
+          <input id="f_loop_mail_header" type="text" value="${esc(v.loop_mail_header||'')}">
+        </div>
+        <div class="field span-2">
+          <label>Description BRD</label>
+          <textarea id="f_description_brd" class="tall">${esc(v.description_brd||'')}</textarea>
+        </div>
+        <div class="field span-2">
+          <label>Description FSD</label>
+          <textarea id="f_description_fsd" class="tall">${esc(v.description_fsd||'')}</textarea>
+        </div>
+        <div class="field span-2">
+          <label>Progress</label>
+          <textarea id="f_progress">${esc(v.progress||'')}</textarea>
+        </div>
+        <div class="field span-2">
+          <label>Note</label>
+          <textarea id="f_note">${esc(v.note||'')}</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="crModalCancel">Hủy</button>
+      <button class="btn btn-primary" id="crModalSave">${isEdit? "Lưu thay đổi" : "Tạo CR"}</button>
+    </div>
+  </div>`;
+}
+function optionsHtml(arr, selected){
+  return `<option value="">— chọn —</option>` + arr.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join("");
+}
+
+function openCrModal(cr){
+  STATE.editingCrId = cr ? cr.id : null;
+  const overlay = $("#crModalOverlay");
+  overlay.innerHTML = crModalTemplate(cr);
+  overlay.classList.add("show");
+  $("#crModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
+  $("#crModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  $("#btnSuggestCrId")?.addEventListener("click", ()=>{ $("#f_cr_id").value = nextCrIdSuggestion(); });
+  $("#crModalSave").addEventListener("click", ()=> saveCr(overlay, !!cr));
+}
+
+async function saveCr(overlay, isEdit){
+  const payload = {
+    cr_id: $("#f_cr_id").value.trim(),
+    old_name: $("#f_old_name").value.trim(),
+    rename_folder: $("#f_rename_folder").value.trim(),
+    app: $("#f_app").value.trim(),
+    requester: $("#f_requester").value.trim(),
+    department: $("#f_department").value.trim(),
+    request_date: $("#f_request_date").value || null,
+    category: $("#f_category").value,
+    priority: $("#f_priority").value,
+    description_brd: $("#f_description_brd").value,
+    description_fsd: $("#f_description_fsd").value,
+    status: $("#f_status").value || "New",
+    brd_link: $("#f_brd_link").value.trim(),
+    fsd_link: $("#f_fsd_link").value.trim(),
+    quotation_link: $("#f_quotation_link").value.trim(),
+    owner: $("#f_owner").value.trim(),
+    approved_date: $("#f_approved_date").value || null,
+    approved_status: $("#f_approved_status").value,
+    deadline: $("#f_deadline").value || null,
+    loop_mail_header: $("#f_loop_mail_header").value.trim(),
+    progress: $("#f_progress").value,
+    note: $("#f_note").value,
+  };
+  if(!payload.cr_id){ toast("Vui lòng nhập CR ID", "err"); return; }
+
+  const btn = $("#crModalSave"); btn.disabled = true; btn.textContent = "Đang lưu...";
+  let error;
+  if(isEdit){
+    ({ error } = await STATE.sb.from("cr_log").update(payload).eq("id", STATE.editingCrId));
+  } else {
+    ({ error } = await STATE.sb.from("cr_log").insert(payload));
+  }
+  btn.disabled = false; btn.textContent = isEdit? "Lưu thay đổi":"Tạo CR";
+  if(error){
+    toast("Lưu thất bại: " + error.message, "err");
+    return;
+  }
+  toast(isEdit? "Đã cập nhật CR" : "Đã tạo CR mới", "ok");
+  overlay.classList.remove("show");
+  await refreshAll();
+  if(STATE.drawerCrId === payload.cr_id) openDrawer(payload.cr_id);
+}
+
+/* ---------------------------------------------------------------------------
+   9. CR DETAIL DRAWER
+--------------------------------------------------------------------------- */
+function infoItem(label, value, full){
+  const v = (value===null||value===undefined||value==="") ? `<span class="v empty">Chưa có dữ liệu</span>` : `<div class="v"><pre>${esc(value)}</pre></div>`;
+  return `<div class="info-item ${full?'full':''}"><div class="k">${esc(label)}</div>${v}</div>`;
+}
+
+async function openDrawer(cr_id){
+  const cr = STATE.crList.find(c=>c.cr_id===cr_id);
+  if(!cr){ toast("Không tìm thấy CR", "err"); return; }
+  STATE.drawerCrId = cr_id;
+  STATE.drawerTab = "info";
+  renderDrawer(cr);
+  $("#drawerOverlay").classList.add("show");
+  $("#crDrawer").classList.add("show");
+  await fetchAttachments(cr_id);
+  renderDrawerFiles(cr_id);
+  renderDrawerLinked(cr_id);
+}
+
+function closeDrawer(){
+  $("#drawerOverlay").classList.remove("show");
+  $("#crDrawer").classList.remove("show");
+}
+
+function renderDrawer(cr){
+  const overdue = isOverdue(cr);
+  $("#crDrawer").innerHTML = `
+    <div class="drawer-head">
+      <div class="drawer-head-top">
+        <div>
+          <h2>${esc(cr.cr_id)}</h2>
+          <div class="drawer-app">${esc(cr.rename_folder || cr.old_name || cr.app || '')}</div>
+        </div>
+        <div style="display:flex; gap:8px; flex-shrink:0;">
+          <button class="icon-btn" id="drawerEditBtn" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="drawer-close" id="drawerCloseBtn">✕</button>
+        </div>
+      </div>
+      <div class="drawer-badges">
+        ${badge("status", cr.status)}
+        ${badge("priority", cr.priority)}
+        ${badge("category", cr.category)}
+        ${overdue? `<span class="badge" style="background:var(--danger-dim); color:var(--danger);"><span class="dot" style="background:var(--danger)"></span>Trễ hạn</span>` : ""}
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="info">Thông tin</button>
+      <button class="tab-btn" data-tab="files">Tệp đính kèm</button>
+      <button class="tab-btn" data-tab="tc">Test Case UAT</button>
+      <button class="tab-btn" data-tab="rel">Release / PRD</button>
+    </div>
+    <div class="drawer-body">
+      <div class="tab-panel active" id="tab-info">
+        <div class="info-grid">
+          ${infoItem("Requester", cr.requester)}
+          ${infoItem("Department", cr.department)}
+          ${infoItem("App", cr.app)}
+          ${infoItem("Owner", cr.owner)}
+          ${infoItem("Request Date", cr.request_date? fmtDate(cr.request_date): "")}
+          ${infoItem("Deadline", cr.deadline? fmtDate(cr.deadline): "")}
+          ${infoItem("Approved Status", cr.approved_status)}
+          ${infoItem("Approved Date", cr.approved_date? fmtDate(cr.approved_date): "")}
+          ${infoItem("BRD Link", cr.brd_link)}
+          ${infoItem("FSD Link", cr.fsd_link)}
+          ${infoItem("Quotation Link", cr.quotation_link)}
+          ${infoItem("Old Name From InterK", cr.old_name)}
+        </div>
+        <div class="divider"></div>
+        <div class="info-grid">
+          ${infoItem("Loop Mail Header", cr.loop_mail_header, true)}
+          ${infoItem("Description BRD", cr.description_brd, true)}
+          ${infoItem("Description FSD", cr.description_fsd, true)}
+          ${infoItem("Progress", cr.progress, true)}
+          ${infoItem("Note", cr.note, true)}
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-files">
+        <div class="file-cat-row">
+          <select id="uploadCategory">${CR_LISTS.attachCategory.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select>
+        </div>
+        <div class="file-drop" id="crFileDrop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+          <p><b>Bấm để chọn file</b> hoặc kéo thả vào đây</p>
+          <div class="hint">Ảnh, PDF, Word, Excel, mail (.eml/.msg)... — nhiều file cùng lúc</div>
+          <input type="file" id="crFileInput" multiple hidden>
+        </div>
+        <div class="file-grid" id="crFileGrid"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-tc">
+        <div class="section-title"><h4>Test case liên quan</h4>
+          <button class="btn btn-ghost btn-sm" id="drawerAddTc">+ Thêm test case</button>
+        </div>
+        <div class="mini-list" id="drawerTcList"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-rel">
+        <div class="section-title"><h4>Release liên quan</h4>
+          <button class="btn btn-ghost btn-sm" id="drawerAddRel">+ Thêm release</button>
+        </div>
+        <div class="mini-list" id="drawerRelList"></div>
+      </div>
+    </div>
+  `;
+
+  $("#drawerCloseBtn").addEventListener("click", closeDrawer);
+  $("#drawerEditBtn").addEventListener("click", ()=> openCrModal(cr));
+  $all(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      $all(".tab-btn").forEach(b=>b.classList.remove("active"));
+      $all(".tab-panel").forEach(p=>p.classList.remove("active"));
+      btn.classList.add("active");
+      $("#tab-"+btn.dataset.tab).classList.add("active");
+      STATE.drawerTab = btn.dataset.tab;
+    });
+  });
+
+  const drop = $("#crFileDrop");
+  const input = $("#crFileInput");
+  drop.addEventListener("click", ()=> input.click());
+  input.addEventListener("change", ()=> handleFileUpload(cr.cr_id, null, null, Array.from(input.files), $("#uploadCategory").value));
+  ["dragenter","dragover"].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add("drag"); }));
+  ["dragleave","drop"].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove("drag"); }));
+  drop.addEventListener("drop", e=>{
+    const files = Array.from(e.dataTransfer.files || []);
+    if(files.length) handleFileUpload(cr.cr_id, null, null, files, $("#uploadCategory").value);
+  });
+
+  $("#drawerAddTc").addEventListener("click", ()=> openTcModal(null, cr.cr_id));
+  $("#drawerAddRel").addEventListener("click", ()=> openRelModal(null, cr.cr_id));
+}
+
+async function renderDrawerFiles(cr_id){
+  const grid = $("#crFileGrid");
+  if(!grid) return;
+  const files = (STATE.attachCache[cr_id]||[]).filter(f=> !f.testcase_id);
+  if(!files.length){ grid.innerHTML = `<div style="grid-column:1/-1;">${emptyRow("Chưa có file nào được đính kèm cho CR này")}</div>`; return; }
+  grid.innerHTML = `<div class="loading-row" style="grid-column:1/-1;"><div class="spinner"></div>Đang tải file...</div>`;
+  const urls = await Promise.all(files.map(f=> getSignedUrl(f.file_path)));
+  grid.innerHTML = files.map((f,i)=> fileCardHtml(f, urls[i])).join("");
+  bindFileCardEvents(grid, cr_id);
+}
+
+async function getSignedUrl(path){
+  try{
+    const { data, error } = await STATE.sb.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_TTL);
+    if(error){ console.error(error); return "#"; }
+    return data.signedUrl;
+  }catch(e){ console.error(e); return "#"; }
+}
+
+function fileCardHtml(f, url){
+  const kind = fileKind(f.file_name, f.file_type);
+  const thumb = kind==="image"
+    ? `<img src="${url}" loading="lazy" alt="${esc(f.file_name)}">`
+    : FILE_ICON[kind];
+  return `<div class="file-card" data-file="${f.id}" data-kind="${kind}" data-url="${url}">
+    <span class="file-cat-tag">${esc(f.category||'Other')}</span>
+    <button class="file-del" data-del="${f.id}" data-path="${esc(f.file_path)}" title="Xóa file">✕</button>
+    <div class="file-thumb">${thumb}</div>
+    <div class="file-meta">
+      <div class="file-name" title="${esc(f.file_name)}">${esc(f.file_name)}</div>
+      <div class="file-sub">${fmtBytes(f.file_size)} · ${fmtDate(f.uploaded_at)}</div>
+    </div>
+    ${kind!=="image" ? `<a class="file-open" href="${url}" target="_blank" rel="noopener"></a>` : ""}
+  </div>`;
+}
+
+function bindFileCardEvents(container, cr_id, testcase_id){
+  $all(".file-card", container).forEach(card=>{
+    if(card.dataset.kind === "image"){
+      card.addEventListener("click", (e)=>{
+        if(e.target.closest("[data-del]")) return;
+        openLightbox(card.dataset.url);
+      });
+    }
+  });
+  $all("[data-del]", container).forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const label = testcase_id ? "Xóa ảnh evidence?" : "Xóa file này?";
+      confirmDelete(label, "File sẽ bị xóa vĩnh viễn khỏi Supabase Storage.", ()=> deleteAttachment(btn.dataset.del, btn.dataset.path, cr_id, testcase_id));
+    });
+  });
+}
+
+async function handleFileUpload(cr_id, testcase_id, evidence_step, files, category){
+  if(!files.length) return;
+  toast(`Đang tải lên ${files.length} file...`, "info");
+  let okCount = 0, failCount = 0;
+  for(const file of files){
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${cr_id}/${testcase_id? 'evidence/'+testcase_id : category||'Other'}/${Date.now()}_${safeName}`;
+    const { error: upErr } = await STATE.sb.storage.from(BUCKET).upload(path, file, { upsert:false });
+    if(upErr){ failCount++; continue; }
+    const { error: insErr } = await STATE.sb.from("cr_attachments").insert({
+      cr_id, testcase_id: testcase_id || null, evidence_step: evidence_step || null,
+      category: testcase_id ? "Evidence" : (category || "Other"),
+      file_name: file.name, file_path: path, file_type: file.type, file_size: file.size,
+    });
+    if(insErr){ failCount++; continue; }
+    okCount++;
+  }
+  if(okCount) toast(`Đã tải lên ${okCount} file thành công`, "ok");
+  if(failCount) toast(`${failCount} file tải lên thất bại`, "err");
+
+  if(testcase_id){
+    renderEvidenceGrid(testcase_id);
+  } else {
+    await fetchAttachments(cr_id);
+    renderDrawerFiles(cr_id);
+  }
+}
+
+async function deleteAttachment(id, path, cr_id, testcase_id){
+  const { error: rmErr } = await STATE.sb.storage.from(BUCKET).remove([path]);
+  const { error: delErr } = await STATE.sb.from("cr_attachments").delete().eq("id", id);
+  if(delErr){ toast("Xóa file thất bại: " + delErr.message, "err"); return; }
+  toast("Đã xóa file", "ok");
+  if(testcase_id){
+    renderEvidenceGrid(testcase_id);
+  } else if(cr_id){
+    await fetchAttachments(cr_id);
+    renderDrawerFiles(cr_id);
+  }
+}
+
+function renderDrawerLinked(cr_id){
+  const tcs = STATE.tcList.filter(t=>t.cr_id===cr_id);
+  const tcList = $("#drawerTcList");
+  if(tcList){
+    tcList.innerHTML = tcs.length ? tcs.map(t=>`
+      <div class="mini-card" data-tc="${t.id}">
+        <div class="mc-main">
+          <div class="mc-title">${esc(t.test_case_id || '(chưa đặt tên)')} — ${esc(t.scenario||'')}</div>
+          <div class="mc-sub">${esc(t.testor||'—')} · ${fmtDate(t.testing_date)}</div>
+        </div>
+        ${badge("pass_fail", t.pass_fail)}
+      </div>
+    `).join("") : emptyRow("Chưa có test case nào cho CR này");
+    $all("[data-tc]", tcList).forEach(el=> el.addEventListener("click", ()=> openTcModal(STATE.tcList.find(t=>t.id===el.dataset.tc))));
+  }
+
+  const rels = STATE.relList.filter(r=>r.cr_id===cr_id);
+  const relList = $("#drawerRelList");
+  if(relList){
+    relList.innerHTML = rels.length ? rels.map(r=>`
+      <div class="mini-card" data-rel="${r.id}">
+        <div class="mc-main">
+          <div class="mc-title">${esc(r.release_name || r.release_id || '(chưa đặt tên)')}</div>
+          <div class="mc-sub">${fmtDate(r.planned_date)} → ${r.actual_date? fmtDate(r.actual_date): 'chưa release'}</div>
+        </div>
+        ${badge("release_status", r.status)}
+      </div>
+    `).join("") : emptyRow("Chưa có release nào cho CR này");
+    $all("[data-rel]", relList).forEach(el=> el.addEventListener("click", ()=> openRelModal(STATE.relList.find(r=>r.id===el.dataset.rel))));
+  }
+}
+
+function openLightbox(url){
+  $("#lbImg").src = url;
+  $("#lightbox").classList.add("show");
+}
+function closeLightbox(){
+  $("#lightbox").classList.remove("show");
+  $("#lbImg").src = "";
+}
+
+/* ---------------------------------------------------------------------------
+   10. UAT TEST CASE TABLE + MODAL
+--------------------------------------------------------------------------- */
+function filteredTcList(){
+  const f = STATE.tcFilters;
+  return STATE.tcList.filter(t=>{
+    if(f.cr && t.cr_id !== f.cr) return false;
+    if(f.result && t.pass_fail !== f.result) return false;
+    return true;
+  });
+}
+
+function renderTcTable(){
+  const rows = filteredTcList();
+  const tbody = $("#tcTableBody");
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="7">${emptyStateBlock("Chưa có Test Case", "Bấm \"Thêm Test Case\" để tạo test case UAT đầu tiên.")}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(t=>`
+    <tr data-tc="${t.id}">
+      <td class="cell-id">${esc(t.cr_id||'—')}</td>
+      <td class="cell-dim">${esc(t.test_case_id||'—')}</td>
+      <td class="cell-title" title="${esc(t.scenario||'')}">${esc(t.scenario||'—')}</td>
+      <td class="cell-dim">${esc(t.testor||'—')}</td>
+      <td class="cell-dim">${t.testing_date? fmtDate(t.testing_date):'—'}</td>
+      <td>${badge("pass_fail", t.pass_fail)}</td>
+      <td class="cell-actions">
+        <div class="row-actions">
+          <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  $all("#tcTableBody tr[data-tc]").forEach(tr=>{
+    tr.addEventListener("click", e=>{
+      const t = STATE.tcList.find(x=>x.id===tr.dataset.tc);
+      const actBtn = e.target.closest("[data-act]");
+      if(!actBtn){ openTcModal(t); return; }
+      if(actBtn.dataset.act==="edit") openTcModal(t);
+      if(actBtn.dataset.act==="del") confirmDelete("Xóa test case?", `Test case "${t.test_case_id||''}" và toàn bộ evidence sẽ bị xóa.`, ()=> deleteTc(t));
+    });
+  });
+}
+
+async function deleteTc(t){
+  const files = await fetchTcAttachments(t.id);
+  if(files.length) await STATE.sb.storage.from(BUCKET).remove(files.map(f=>f.file_path));
+  const { error } = await STATE.sb.from("uat_testcase").delete().eq("id", t.id);
+  if(error){ toast("Xóa thất bại: " + error.message, "err"); return; }
+  toast("Đã xóa test case", "ok");
+  await refreshAll();
+  if(STATE.drawerCrId===t.cr_id) renderDrawerLinked(t.cr_id);
+}
+
+function tcModalTemplate(t, presetCrId){
+  const v = t || {};
+  const isEdit = !!t;
+  const crOptions = STATE.crList.map(c=>c.cr_id);
+  return `
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>${isEdit? "Sửa Test Case" : "Thêm Test Case UAT"}</h3>
+        <div class="sub">${isEdit? esc(v.test_case_id||v.cr_id) : "Tương ứng sheet UAT_Testcase"}</div></div>
+      <button class="modal-close" id="tcModalClose">✕</button>
+    </div>
+    <div class="tabs" style="padding:0 24px;">
+      <button class="tab-btn active" data-tctab="info">Thông tin</button>
+      <button class="tab-btn" data-tctab="evidence" ${isEdit?'':'style="opacity:.4; pointer-events:none;"'}>Evidence ${isEdit?'':'(lưu trước)'}</button>
+    </div>
+    <div class="modal-body">
+      <div class="tab-panel active" id="tctab-info">
+        <div class="form-grid">
+          <div class="field">
+            <label>CR ID *</label>
+            <select id="t_cr_id">${optionsHtml(crOptions, v.cr_id || presetCrId)}</select>
+          </div>
+          <div class="field">
+            <label>Test Case ID</label>
+            <input id="t_test_case_id" type="text" value="${esc(v.test_case_id||'')}" placeholder="UAT_CR_001_01">
+          </div>
+          <div class="field span-2">
+            <label>Scenario</label>
+            <input id="t_scenario" type="text" value="${esc(v.scenario||'')}">
+          </div>
+          <div class="field span-2">
+            <label>Description</label>
+            <textarea id="t_description">${esc(v.description||'')}</textarea>
+          </div>
+          <div class="field span-2">
+            <label>Expectation</label>
+            <textarea id="t_expectation">${esc(v.expectation||'')}</textarea>
+          </div>
+          <div class="field span-2">
+            <label>Step by Step</label>
+            <textarea id="t_step_by_step" class="tall">${esc(v.step_by_step||'')}</textarea>
+          </div>
+          <div class="field span-2">
+            <label>Data test</label>
+            <textarea id="t_data_test">${esc(v.data_test||'')}</textarea>
+          </div>
+          <div class="field span-2">
+            <label>Actual Result</label>
+            <textarea id="t_actual_result">${esc(v.actual_result||'')}</textarea>
+          </div>
+          <div class="field">
+            <label>Kết quả (Pass/Fail)</label>
+            <select id="t_pass_fail">${optionsHtml(CR_LISTS.uatResult, v.pass_fail || "Not Started")}</select>
+          </div>
+          <div class="field">
+            <label>Owner Scenario</label>
+            <input id="t_owner_scenario" type="text" value="${esc(v.owner_scenario||'')}">
+          </div>
+          <div class="field">
+            <label>Testor</label>
+            <input id="t_testor" type="text" value="${esc(v.testor||'')}">
+          </div>
+          <div class="field">
+            <label>Testing Date</label>
+            <input id="t_testing_date" type="date" value="${v.testing_date||''}">
+          </div>
+          <div class="field">
+            <label>Owner Confirm (Business)</label>
+            <input id="t_owner_confirm" type="text" value="${esc(v.owner_confirm||'')}">
+          </div>
+          <div class="field">
+            <label>Confirmed Date</label>
+            <input id="t_confirmed_date" type="date" value="${v.confirmed_date||''}">
+          </div>
+          <div class="field span-2">
+            <label>Note</label>
+            <textarea id="t_note">${esc(v.note||'')}</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="tab-panel" id="tctab-evidence">
+        ${isEdit ? `
+          <div class="file-cat-row">
+            <select id="evidenceStepSelect">
+              <option value="">— Chọn bước (hoặc tự nhập bên dưới) —</option>
+              ${CR_LISTS.evidenceSteps.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:12px;">
+            <input id="evidenceStepCustom" type="text" placeholder="Hoặc nhập tên bước tùy chỉnh...">
+          </div>
+          <div class="file-drop" id="evidenceDrop">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+            <p><b>Bấm để chọn ảnh evidence</b> hoặc kéo thả vào đây</p>
+            <div class="hint">Ảnh chụp màn hình kết quả test — có thể chọn nhiều ảnh</div>
+            <input type="file" id="evidenceInput" multiple accept="image/*,.pdf" hidden>
+          </div>
+          <div id="evidenceGrid"></div>
+        ` : `<div style="padding:30px 0;">${emptyRow("Lưu test case trước, sau đó bạn có thể tải ảnh evidence lên.")}</div>`}
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="tcModalCancel">Hủy</button>
+      <button class="btn btn-primary" id="tcModalSave">${isEdit? "Lưu thay đổi" : "Tạo Test Case"}</button>
+    </div>
+  </div>`;
+}
+
+function openTcModal(t, presetCrId){
+  STATE.editingTcId = t ? t.id : null;
+  const overlay = $("#tcModalOverlay");
+  overlay.innerHTML = tcModalTemplate(t, presetCrId);
+  overlay.classList.add("show");
+  $("#tcModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
+  $("#tcModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+
+  $all(".tab-btn", overlay).forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      if(btn.style.pointerEvents === "none") return;
+      $all(".tab-btn", overlay).forEach(b=>b.classList.remove("active"));
+      $all(".tab-panel", overlay).forEach(p=>p.classList.remove("active"));
+      btn.classList.add("active");
+      $("#tctab-"+btn.dataset.tctab).classList.add("active");
+    });
+  });
+
+  $("#tcModalSave").addEventListener("click", ()=> saveTc(overlay, !!t));
+
+  if(t){
+    renderEvidenceGrid(t.id);
+    const drop = $("#evidenceDrop");
+    const input = $("#evidenceInput");
+    if(drop && input){
+      drop.addEventListener("click", ()=> input.click());
+      input.addEventListener("change", ()=>{
+        const step = $("#evidenceStepCustom").value.trim() || $("#evidenceStepSelect").value || "Evidence";
+        handleFileUpload(t.cr_id, t.id, step, Array.from(input.files), "Evidence");
+        input.value = "";
+      });
+      $("#evidenceStepSelect").addEventListener("change", e=>{ if(e.target.value) $("#evidenceStepCustom").value = ""; });
+    }
+  }
+}
+
+async function saveTc(overlay, isEdit){
+  const payload = {
+    cr_id: $("#t_cr_id").value,
+    test_case_id: $("#t_test_case_id").value.trim(),
+    scenario: $("#t_scenario").value.trim(),
+    description: $("#t_description").value,
+    expectation: $("#t_expectation").value,
+    step_by_step: $("#t_step_by_step").value,
+    data_test: $("#t_data_test").value,
+    actual_result: $("#t_actual_result").value,
+    pass_fail: $("#t_pass_fail").value || "Not Started",
+    owner_scenario: $("#t_owner_scenario").value.trim(),
+    testor: $("#t_testor").value.trim(),
+    testing_date: $("#t_testing_date").value || null,
+    owner_confirm: $("#t_owner_confirm").value.trim(),
+    confirmed_date: $("#t_confirmed_date").value || null,
+    note: $("#t_note").value,
+  };
+  if(!payload.cr_id){ toast("Vui lòng chọn CR ID", "err"); return; }
+
+  const btn = $("#tcModalSave"); btn.disabled = true; btn.textContent = "Đang lưu...";
+  let error, data;
+  if(isEdit){
+    ({ error } = await STATE.sb.from("uat_testcase").update(payload).eq("id", STATE.editingTcId));
+  } else {
+    ({ data, error } = await STATE.sb.from("uat_testcase").insert(payload).select().single());
+  }
+  btn.disabled = false; btn.textContent = isEdit? "Lưu thay đổi":"Tạo Test Case";
+  if(error){ toast("Lưu thất bại: " + error.message, "err"); return; }
+  toast(isEdit? "Đã cập nhật test case" : "Đã tạo test case", "ok");
+  await refreshAll();
+  if(STATE.drawerCrId === payload.cr_id) renderDrawerLinked(payload.cr_id);
+
+  if(!isEdit && data){
+    // reopen in edit mode so user can immediately attach evidence
+    openTcModal(data);
+  } else {
+    overlay.classList.remove("show");
+  }
+}
+
+async function renderEvidenceGrid(testcase_id){
+  const grid = $("#evidenceGrid");
+  if(!grid) return;
+  grid.innerHTML = `<div class="loading-row"><div class="spinner"></div>Đang tải evidence...</div>`;
+  const files = await fetchTcAttachments(testcase_id);
+  if(!files.length){ grid.innerHTML = emptyRow("Chưa có ảnh evidence nào cho test case này"); return; }
+  const urlMap = {};
+  await Promise.all(files.map(async f=>{ urlMap[f.id] = await getSignedUrl(f.file_path); }));
+  const groups = {};
+  files.forEach(f=>{
+    const key = f.evidence_step || "Khác";
+    (groups[key] = groups[key]||[]).push(f);
+  });
+  grid.innerHTML = Object.keys(groups).map(step=>`
+    <div class="evidence-group">
+      <div class="evidence-group-title">${esc(step)}<span class="line"></span></div>
+      <div class="file-grid">${groups[step].map(f=>fileCardHtml(f, urlMap[f.id])).join("")}</div>
+    </div>
+  `).join("");
+  bindFileCardEvents(grid, null, testcase_id);
+}
+
+/* ---------------------------------------------------------------------------
+   11. RELEASE / PRD TABLE + MODAL
+--------------------------------------------------------------------------- */
+function filteredRelList(){
+  const f = STATE.relFilters;
+  return STATE.relList.filter(r=>{
+    if(f.cr && r.cr_id !== f.cr) return false;
+    if(f.status && r.status !== f.status) return false;
+    return true;
+  });
+}
+
+function renderRelTable(){
+  const rows = filteredRelList();
+  const tbody = $("#relTableBody");
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="7">${emptyStateBlock("Chưa có Release", "Bấm \"Thêm Release\" để tạo release package đầu tiên.")}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r=>`
+    <tr data-rel="${r.id}">
+      <td class="cell-id">${esc(r.cr_id||'—')}</td>
+      <td class="cell-title">${esc(r.release_id||'—')}</td>
+      <td class="cell-dim">${esc(r.release_name||'—')}</td>
+      <td class="cell-dim">${r.planned_date? fmtDate(r.planned_date):'—'}</td>
+      <td class="cell-dim">${r.actual_date? fmtDate(r.actual_date):'—'}</td>
+      <td>${badge("release_status", r.status)}</td>
+      <td class="cell-actions">
+        <div class="row-actions">
+          <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  $all("#relTableBody tr[data-rel]").forEach(tr=>{
+    tr.addEventListener("click", e=>{
+      const r = STATE.relList.find(x=>x.id===tr.dataset.rel);
+      const actBtn = e.target.closest("[data-act]");
+      if(!actBtn){ openRelModal(r); return; }
+      if(actBtn.dataset.act==="edit") openRelModal(r);
+      if(actBtn.dataset.act==="del") confirmDelete("Xóa release?", `Release "${r.release_name||r.release_id||''}" sẽ bị xóa.`, ()=> deleteRel(r));
+    });
+  });
+}
+
+async function deleteRel(r){
+  const { error } = await STATE.sb.from("release_prd").delete().eq("id", r.id);
+  if(error){ toast("Xóa thất bại: " + error.message, "err"); return; }
+  toast("Đã xóa release", "ok");
+  await refreshAll();
+  if(STATE.drawerCrId===r.cr_id) renderDrawerLinked(r.cr_id);
+}
+
+function relModalTemplate(r, presetCrId){
+  const v = r || {};
+  const isEdit = !!r;
+  const crOptions = STATE.crList.map(c=>c.cr_id);
+  return `
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>${isEdit? "Sửa Release" : "Thêm Release / PRD"}</h3>
+        <div class="sub">${isEdit? esc(v.release_id||v.cr_id) : "Tương ứng sheet Release_PRD"}</div></div>
+      <button class="modal-close" id="relModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>CR ID *</label>
+          <select id="r_cr_id">${optionsHtml(crOptions, v.cr_id || presetCrId)}</select>
+        </div>
+        <div class="field">
+          <label>Release ID</label>
+          <input id="r_release_id" type="text" value="${esc(v.release_id||'')}">
+        </div>
+        <div class="field">
+          <label>Tên Release / Version</label>
+          <input id="r_release_name" type="text" value="${esc(v.release_name||'')}">
+        </div>
+        <div class="field">
+          <label>Môi trường</label>
+          <select id="r_environment">${optionsHtml(CR_LISTS.environment, v.environment)}</select>
+        </div>
+        <div class="field">
+          <label>Ngày dự kiến Release</label>
+          <input id="r_planned_date" type="date" value="${v.planned_date||''}">
+        </div>
+        <div class="field">
+          <label>Ngày Release thực tế</label>
+          <input id="r_actual_date" type="date" value="${v.actual_date||''}">
+        </div>
+        <div class="field">
+          <label>Trạng thái</label>
+          <select id="r_status">${optionsHtml(CR_LISTS.releaseStatus, v.status)}</select>
+        </div>
+        <div class="field">
+          <label>Checklist Go-live hoàn tất</label>
+          <select id="r_checklist_golive">${optionsHtml(CR_LISTS.yesNo, v.checklist_golive)}</select>
+        </div>
+        <div class="field">
+          <label>Người phụ trách Release</label>
+          <input id="r_release_owner" type="text" value="${esc(v.release_owner||'')}">
+        </div>
+        <div class="field">
+          <label>Người sign-off</label>
+          <input id="r_signoff_by" type="text" value="${esc(v.signoff_by||'')}">
+        </div>
+        <div class="field">
+          <label>Ngày sign-off</label>
+          <input id="r_signoff_date" type="date" value="${v.signoff_date||''}">
+        </div>
+        <div class="field"></div>
+        <div class="field span-2">
+          <label>Danh sách tính năng đính kèm</label>
+          <textarea id="r_features">${esc(v.features||'')}</textarea>
+        </div>
+        <div class="field span-2">
+          <label>Kế hoạch triển khai (Deploy Plan)</label>
+          <textarea id="r_deploy_plan">${esc(v.deploy_plan||'')}</textarea>
+        </div>
+        <div class="field span-2">
+          <label>Kế hoạch rollback</label>
+          <textarea id="r_rollback_plan">${esc(v.rollback_plan||'')}</textarea>
+        </div>
+        <div class="field span-2">
+          <label>Ghi chú</label>
+          <textarea id="r_note">${esc(v.note||'')}</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="relModalCancel">Hủy</button>
+      <button class="btn btn-primary" id="relModalSave">${isEdit? "Lưu thay đổi" : "Tạo Release"}</button>
+    </div>
+  </div>`;
+}
+
+function openRelModal(r, presetCrId){
+  STATE.editingRelId = r ? r.id : null;
+  const overlay = $("#relModalOverlay");
+  overlay.innerHTML = relModalTemplate(r, presetCrId);
+  overlay.classList.add("show");
+  $("#relModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
+  $("#relModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  $("#relModalSave").addEventListener("click", ()=> saveRel(overlay, !!r));
+}
+
+async function saveRel(overlay, isEdit){
+  const payload = {
+    cr_id: $("#r_cr_id").value,
+    release_id: $("#r_release_id").value.trim(),
+    release_name: $("#r_release_name").value.trim(),
+    environment: $("#r_environment").value,
+    planned_date: $("#r_planned_date").value || null,
+    actual_date: $("#r_actual_date").value || null,
+    status: $("#r_status").value,
+    checklist_golive: $("#r_checklist_golive").value,
+    release_owner: $("#r_release_owner").value.trim(),
+    signoff_by: $("#r_signoff_by").value.trim(),
+    signoff_date: $("#r_signoff_date").value || null,
+    features: $("#r_features").value,
+    deploy_plan: $("#r_deploy_plan").value,
+    rollback_plan: $("#r_rollback_plan").value,
+    note: $("#r_note").value,
+  };
+  if(!payload.cr_id){ toast("Vui lòng chọn CR ID", "err"); return; }
+
+  const btn = $("#relModalSave"); btn.disabled = true; btn.textContent = "Đang lưu...";
+  let error;
+  if(isEdit){
+    ({ error } = await STATE.sb.from("release_prd").update(payload).eq("id", STATE.editingRelId));
+  } else {
+    ({ error } = await STATE.sb.from("release_prd").insert(payload));
+  }
+  btn.disabled = false; btn.textContent = isEdit? "Lưu thay đổi":"Tạo Release";
+  if(error){ toast("Lưu thất bại: " + error.message, "err"); return; }
+  toast(isEdit? "Đã cập nhật release" : "Đã tạo release", "ok");
+  overlay.classList.remove("show");
+  await refreshAll();
+  if(STATE.drawerCrId === payload.cr_id) renderDrawerLinked(payload.cr_id);
+}
+
+/* ---------------------------------------------------------------------------
+   12. CONFIRM DIALOG
+--------------------------------------------------------------------------- */
+function confirmDelete(title, msg, onConfirm, confirmLabel){
+  const label = confirmLabel || "Xóa";
+  const overlay = $("#confirmModalOverlay");
+  overlay.innerHTML = `
+    <div class="modal modal-sm">
+      <div class="modal-body" style="padding-top:26px;">
+        <div class="confirm-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+        </div>
+        <h3 style="font-size:16px; margin-bottom:8px;">${esc(title)}</h3>
+        <p style="font-size:13.5px; color:var(--text-dim); line-height:1.6;">${esc(msg)}</p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" id="confirmCancel">Hủy</button>
+        <button class="btn btn-danger" id="confirmOk">${esc(label)}</button>
+      </div>
+    </div>`;
+  overlay.classList.add("show");
+  $("#confirmCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  $("#confirmOk").addEventListener("click", async ()=>{
+    const btn = $("#confirmOk"); btn.disabled = true; btn.textContent = "Đang xử lý...";
+    await onConfirm();
+    overlay.classList.remove("show");
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   12b. ADMIN — QUẢN LÝ NGƯỜI DÙNG ĐƯỢC CẤP QUYỀN
+--------------------------------------------------------------------------- */
+async function loadAndRenderAdmin(){
+  if(STATE.userRole !== "admin"){ return; }
+  const tbody = $("#userTableBody");
+  if(tbody) tbody.innerHTML = `<tr><td colspan="5"><div class="loading-row"><div class="spinner"></div>Đang tải danh sách...</div></td></tr>`;
+  await fetchAppUsers();
+  renderAdminTable();
+}
+
+async function fetchAppUsers(){
+  const { data, error } = await STATE.sb.from("app_users").select("*").order("added_at", { ascending:false });
+  if(error){ toast("Lỗi tải danh sách người dùng: " + error.message, "err"); STATE.userList = []; return; }
+  STATE.userList = data || [];
+}
+
+function renderAdminTable(){
+  const tbody = $("#userTableBody");
+  if(!tbody) return;
+  if(!STATE.userList.length){
+    tbody.innerHTML = `<tr><td colspan="5">${emptyStateBlock("Chưa có ai được cấp quyền", "Bấm \"+ Thêm người dùng\" để cấp quyền cho một email Gmail.")}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = STATE.userList.map(u=>`
+    <tr data-user="${u.id}">
+      <td class="cell-title">${esc(u.email)} ${u.email===STATE.userEmail? '<span style="color:var(--text-faint); font-weight:500;">(bạn)</span>':''}</td>
+      <td>${badge("role", u.role==='admin'?'Quản trị':'Thành viên')}</td>
+      <td>${u.active? `<span class="badge" style="background:var(--success-dim); color:var(--success);"><span class="dot" style="background:var(--success)"></span>Đang hoạt động</span>` : `<span class="badge" style="background:var(--danger-dim); color:var(--danger);"><span class="dot" style="background:var(--danger)"></span>Đã khóa</span>`}</td>
+      <td class="cell-dim">${fmtDate(u.added_at)}</td>
+      <td class="cell-actions">
+        <div class="row-actions" style="opacity:1;">
+          <button class="icon-btn" data-act="toggle" title="${u.active?'Khóa quyền':'Kích hoạt lại'}">
+            ${u.active
+              ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`
+              : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>`}
+          </button>
+          <button class="icon-btn" data-act="edit" title="Đổi vai trò"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="icon-btn danger" data-act="del" title="Gỡ quyền"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  $all("#userTableBody tr[data-user]").forEach(tr=>{
+    const u = STATE.userList.find(x=>x.id===tr.dataset.user);
+    $all("[data-act]", tr).forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const act = btn.dataset.act;
+        if(act==="edit") openUserModal(u);
+        if(act==="toggle") toggleUserActive(u);
+        if(act==="del") confirmDelete("Gỡ quyền truy cập?", `Email "${u.email}" sẽ không thể đăng nhập vào hệ thống nữa.`, ()=> deleteUser(u));
+      });
+    });
+  });
+}
+
+async function toggleUserActive(u){
+  const { error } = await STATE.sb.from("app_users").update({ active: !u.active }).eq("id", u.id);
+  if(error){ toast("Cập nhật thất bại: " + error.message, "err"); return; }
+  toast(!u.active ? `Đã kích hoạt ${u.email}` : `Đã khóa quyền của ${u.email}`, "ok");
+  await loadAndRenderAdmin();
+}
+
+async function deleteUser(u){
+  const { error } = await STATE.sb.from("app_users").delete().eq("id", u.id);
+  if(error){ toast("Gỡ quyền thất bại: " + error.message, "err"); return; }
+  toast(`Đã gỡ quyền của ${u.email}`, "ok");
+  await loadAndRenderAdmin();
+}
+
+function userModalTemplate(u){
+  const v = u || {};
+  const isEdit = !!u;
+  return `
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <div><h3>${isEdit? "Sửa quyền người dùng" : "Cấp quyền truy cập"}</h3>
+        <div class="sub">${isEdit? esc(v.email) : "Nhập email Gmail được phép đăng nhập"}</div></div>
+      <button class="modal-close" id="userModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Email Gmail *</label>
+        <input id="u_email" type="email" value="${esc(v.email||'')}" placeholder="ten@gmail.com" ${isEdit?'disabled':''}>
+        ${isEdit? '' : '<div class="hint">Người dùng chỉ đăng nhập được sau khi email này khớp với tài khoản Google họ dùng.</div>'}
+      </div>
+      <div class="field">
+        <label>Vai trò</label>
+        <select id="u_role">
+          <option value="editor" ${v.role!=='admin'?'selected':''}>Thành viên (được sửa dữ liệu CR)</option>
+          <option value="admin" ${v.role==='admin'?'selected':''}>Quản trị viên (được sửa dữ liệu + cấp quyền)</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Trạng thái</label>
+        <select id="u_active">
+          <option value="true" ${v.active!==false?'selected':''}>Đang hoạt động (được phép đăng nhập)</option>
+          <option value="false" ${v.active===false?'selected':''}>Khóa (không được đăng nhập)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="userModalCancel">Hủy</button>
+      <button class="btn btn-primary" id="userModalSave">${isEdit? "Lưu thay đổi" : "Cấp quyền"}</button>
+    </div>
+  </div>`;
+}
+
+function openUserModal(u){
+  STATE.editingUserId = u ? u.id : null;
+  const overlay = $("#userModalOverlay");
+  overlay.innerHTML = userModalTemplate(u);
+  overlay.classList.add("show");
+  $("#userModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
+  $("#userModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  $("#userModalSave").addEventListener("click", ()=> saveUser(overlay, !!u));
+}
+
+async function saveUser(overlay, isEdit){
+  const role = $("#u_role").value;
+  const active = $("#u_active").value === "true";
+  const btn = $("#userModalSave"); btn.disabled = true; btn.textContent = "Đang lưu...";
+  let error;
+  if(isEdit){
+    ({ error } = await STATE.sb.from("app_users").update({ role, active }).eq("id", STATE.editingUserId));
+  } else {
+    const email = $("#u_email").value.trim().toLowerCase();
+    if(!email || !email.includes("@")){ toast("Vui lòng nhập email hợp lệ", "err"); btn.disabled=false; btn.textContent="Cấp quyền"; return; }
+    ({ error } = await STATE.sb.from("app_users").insert({ email, role, active }));
+  }
+  btn.disabled = false; btn.textContent = isEdit? "Lưu thay đổi":"Cấp quyền";
+  if(error){
+    if(String(error.message||"").includes("duplicate")){ toast("Email này đã được cấp quyền trước đó.", "err"); }
+    else toast("Lưu thất bại: " + error.message, "err");
+    return;
+  }
+  toast(isEdit? "Đã cập nhật quyền" : "Đã cấp quyền truy cập", "ok");
+  overlay.classList.remove("show");
+  await loadAndRenderAdmin();
+}
+
+/* ---------------------------------------------------------------------------
+   13. INIT
+--------------------------------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", initAuth);
+
+</script>
+</body>
+</html>

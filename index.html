@@ -404,17 +404,24 @@ tbody tr:hover .row-actions{ opacity:1; }
 .modal-foot{ display:flex; justify-content:flex-end; gap:10px; padding:16px 24px; border-top:1px solid var(--panel-border); flex-shrink:0; }
 
 /* Full-screen detail-page mode for modals (used for CR / Test Case / Release editors) */
-.modal-overlay.full{ padding:0; background: var(--navy-deep); backdrop-filter:none; align-items:stretch; justify-content:stretch; }
-.modal-overlay.full .modal{
-  width:100%; max-width:none; height:100%; max-height:none; border-radius:0; border:none;
-  transform:translateY(10px); box-shadow:none;
+.modal-overlay.full{
+  padding:0; background: var(--navy-deep); backdrop-filter:none; align-items:stretch; justify-content:stretch;
+  left: var(--sidebar-w); transition: opacity .18s, left .25s cubic-bezier(.4,0,.2,1);
 }
-.modal-overlay.full.show .modal{ transform:translateY(0); }
-.modal-overlay.full .modal-head{ padding:20px clamp(20px, 5vw, 64px); position:sticky; top:0; background: rgba(10,30,51,0.7); backdrop-filter: blur(14px); z-index:2; }
+body.sidebar-collapsed .modal-overlay.full{ left: var(--sidebar-w-collapsed); }
+.modal-overlay.full .modal{
+  width:100%; max-width:none; height:100%; max-height:none; border-radius:0; border:none; border-left:1px solid var(--panel-border);
+  transform:translateX(28px); box-shadow: -40px 0 70px -35px rgba(0,0,0,0.55);
+}
+.modal-overlay.full.show .modal{ transform:translateX(0); }
+.modal-overlay.full .modal-head{ padding:22px clamp(20px, 4vw, 48px); position:sticky; top:0; background: rgba(10,30,51,0.7); backdrop-filter: blur(14px); z-index:2; }
 .modal-overlay.full .modal-head h3{ font-size:19px; }
-.modal-overlay.full .modal-body{ padding:26px clamp(20px, 5vw, 64px) 40px; max-width:1120px; width:100%; margin:0 auto; }
-.modal-overlay.full .modal-foot{ padding:16px clamp(20px, 5vw, 64px); position:sticky; bottom:0; background: rgba(10,30,51,0.85); backdrop-filter: blur(14px); }
-.modal-overlay.full .tabs{ padding:0 clamp(20px, 5vw, 64px); }
+.modal-overlay.full .modal-body{ padding:26px clamp(20px, 4vw, 48px) 40px; max-width:920px; width:100%; margin:0 auto; }
+.modal-overlay.full .modal-foot{ padding:16px clamp(20px, 4vw, 48px); position:sticky; bottom:0; background: rgba(10,30,51,0.85); backdrop-filter: blur(14px); }
+.modal-overlay.full .tabs{ padding:0 clamp(20px, 4vw, 48px); }
+@media(max-width:900px){
+  .modal-overlay.full{ left:0 !important; }
+}
 
 .form-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px 16px; }
 .form-grid .span-2{ grid-column: 1 / -1; }
@@ -670,7 +677,20 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input id="globalSearch" type="text" placeholder="Tìm theo CR ID, tiêu đề, requester...">
       </div>
-      <div class="topbar-actions" id="topbarActions"></div>
+      <div class="topbar-actions" id="topbarActions">
+        <button class="btn btn-primary view-action hidden" data-for="crlog" id="btnAddCr">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Tạo CR mới
+        </button>
+        <button class="btn btn-primary view-action hidden" data-for="uat" id="btnAddTc">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Thêm Test Case
+        </button>
+        <button class="btn btn-primary view-action hidden" data-for="release" id="btnAddRel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Thêm Release
+        </button>
+      </div>
     </div>
 
     <!-- ============ DASHBOARD VIEW ============ -->
@@ -714,12 +734,6 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 
     <!-- ============ CR LOG VIEW ============ -->
     <section class="view hidden" id="view-crlog">
-      <div class="view-head view-head-end">
-        <button class="btn btn-primary" id="btnAddCr">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Tạo CR mới
-        </button>
-      </div>
       <div class="list-panel">
         <div class="list-panel-head">
           <div class="list-panel-count"><b id="crCount">0</b> Change Request</div>
@@ -749,55 +763,53 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 
     <!-- ============ UAT VIEW ============ -->
     <section class="view hidden" id="view-uat">
-      <div class="view-head view-head-end">
-        <button class="btn btn-primary" id="btnAddTc">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Thêm Test Case
-        </button>
-      </div>
-      <div class="table-toolbar">
-        <div class="filter-chip"><span>CR ID</span>
-          <select id="filterTcCr"><option value="">Tất cả</option></select>
+      <div class="list-panel">
+        <div class="list-panel-head">
+          <div class="list-panel-count"><b id="tcCount">0</b> Test Case</div>
+          <div class="table-toolbar">
+            <div class="filter-chip"><span>CR ID</span>
+              <select id="filterTcCr"><option value="">Tất cả</option></select>
+            </div>
+            <div class="filter-chip"><span>Kết quả</span>
+              <select id="filterTcResult"><option value="">Tất cả</option></select>
+            </div>
+            <div class="chip-clear" id="clearTcFilters">Xóa lọc</div>
+          </div>
         </div>
-        <div class="filter-chip"><span>Kết quả</span>
-          <select id="filterTcResult"><option value="">Tất cả</option></select>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>CR ID</th><th>Test Case ID</th><th>Scenario</th><th>Testor</th><th>Ngày test</th><th>Kết quả</th><th></th>
+            </tr></thead>
+            <tbody id="tcTableBody"></tbody>
+          </table>
         </div>
-        <div class="chip-clear" id="clearTcFilters">Xóa lọc</div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>CR ID</th><th>Test Case ID</th><th>Scenario</th><th>Testor</th><th>Ngày test</th><th>Kết quả</th><th></th>
-          </tr></thead>
-          <tbody id="tcTableBody"></tbody>
-        </table>
       </div>
     </section>
 
     <!-- ============ RELEASE VIEW ============ -->
     <section class="view hidden" id="view-release">
-      <div class="view-head view-head-end">
-        <button class="btn btn-primary" id="btnAddRel">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Thêm Release
-        </button>
-      </div>
-      <div class="table-toolbar">
-        <div class="filter-chip"><span>CR ID</span>
-          <select id="filterRelCr"><option value="">Tất cả</option></select>
+      <div class="list-panel">
+        <div class="list-panel-head">
+          <div class="list-panel-count"><b id="relCount">0</b> Release</div>
+          <div class="table-toolbar">
+            <div class="filter-chip"><span>CR ID</span>
+              <select id="filterRelCr"><option value="">Tất cả</option></select>
+            </div>
+            <div class="filter-chip"><span>Trạng thái</span>
+              <select id="filterRelStatus"><option value="">Tất cả</option></select>
+            </div>
+            <div class="chip-clear" id="clearRelFilters">Xóa lọc</div>
+          </div>
         </div>
-        <div class="filter-chip"><span>Trạng thái</span>
-          <select id="filterRelStatus"><option value="">Tất cả</option></select>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>CR ID</th><th>Release</th><th>Version</th><th>Ngày dự kiến</th><th>Ngày thực tế</th><th>Trạng thái</th><th></th>
+            </tr></thead>
+            <tbody id="relTableBody"></tbody>
+          </table>
         </div>
-        <div class="chip-clear" id="clearRelFilters">Xóa lọc</div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>CR ID</th><th>Release</th><th>Version</th><th>Ngày dự kiến</th><th>Ngày thực tế</th><th>Trạng thái</th><th></th>
-          </tr></thead>
-          <tbody id="relTableBody"></tbody>
-        </table>
       </div>
     </section>
 
@@ -1234,12 +1246,15 @@ function populateSelect(sel, arr, withEmpty){
 
 function setView(view){
   STATE.currentView = view;
+  closeDrawer();
+  $all(".modal-overlay.show").forEach(m=> m.classList.remove("show"));
   $all(".nav-item[data-view]").forEach(i=> i.classList.toggle("active", i.dataset.view===view));
   $all(".view").forEach(v=> v.classList.add("hidden"));
   $("#view-"+view).classList.remove("hidden");
   $("#topbarTitle").textContent = VIEW_META[view].title;
   $("#topbarSub").textContent = VIEW_META[view].sub;
   $("#globalSearchBox").classList.toggle("hidden", !VIEW_META[view].search || view!=="crlog");
+  $all(".view-action").forEach(b=> b.classList.toggle("hidden", b.dataset.for !== view));
   if(view === "admin") loadAndRenderAdmin();
 }
 
@@ -1940,6 +1955,8 @@ function filteredTcList(){
 function renderTcTable(){
   const rows = filteredTcList();
   const tbody = $("#tcTableBody");
+  const countEl = $("#tcCount");
+  if(countEl) countEl.textContent = rows.length;
   if(!rows.length){
     tbody.innerHTML = `<tr><td colspan="7">${emptyStateBlock("Chưa có Test Case", "Bấm \"Thêm Test Case\" để tạo test case UAT đầu tiên.")}</td></tr>`;
     return;
@@ -2205,6 +2222,8 @@ function filteredRelList(){
 function renderRelTable(){
   const rows = filteredRelList();
   const tbody = $("#relTableBody");
+  const countEl = $("#relCount");
+  if(countEl) countEl.textContent = rows.length;
   if(!rows.length){
     tbody.innerHTML = `<tr><td colspan="7">${emptyStateBlock("Chưa có Release", "Bấm \"Thêm Release\" để tạo release package đầu tiên.")}</td></tr>`;
     return;

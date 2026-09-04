@@ -224,6 +224,7 @@ h1,h2,h3,h4{ font-family: var(--font-head); font-weight:700; letter-spacing:-0.0
 
 .view{ padding:28px 32px 60px; }
 .view-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+.view-head.view-head-end{ justify-content:flex-end; }
 .view-head h2{ font-size:22px; }
 .view-head p{ color: var(--text-faint); font-size:13px; margin-top:4px; }
 
@@ -361,6 +362,19 @@ tbody tr:hover .row-actions{ opacity:1; }
 .modal-body{ padding:22px 24px; overflow-y:auto; }
 .modal-foot{ display:flex; justify-content:flex-end; gap:10px; padding:16px 24px; border-top:1px solid var(--panel-border); flex-shrink:0; }
 
+/* Full-screen detail-page mode for modals (used for CR / Test Case / Release editors) */
+.modal-overlay.full{ padding:0; background: var(--navy-deep); backdrop-filter:none; align-items:stretch; justify-content:stretch; }
+.modal-overlay.full .modal{
+  width:100%; max-width:none; height:100%; max-height:none; border-radius:0; border:none;
+  transform:translateY(10px); box-shadow:none;
+}
+.modal-overlay.full.show .modal{ transform:translateY(0); }
+.modal-overlay.full .modal-head{ padding:20px clamp(20px, 5vw, 64px); position:sticky; top:0; background: rgba(10,30,51,0.7); backdrop-filter: blur(14px); z-index:2; }
+.modal-overlay.full .modal-head h3{ font-size:19px; }
+.modal-overlay.full .modal-body{ padding:26px clamp(20px, 5vw, 64px) 40px; max-width:1120px; width:100%; margin:0 auto; }
+.modal-overlay.full .modal-foot{ padding:16px clamp(20px, 5vw, 64px); position:sticky; bottom:0; background: rgba(10,30,51,0.85); backdrop-filter: blur(14px); }
+.modal-overlay.full .tabs{ padding:0 clamp(20px, 5vw, 64px); }
+
 .form-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px 16px; }
 .form-grid .span-2{ grid-column: 1 / -1; }
 @media(max-width:640px){ .form-grid{ grid-template-columns:1fr; } }
@@ -387,20 +401,22 @@ tbody tr:hover .row-actions{ opacity:1; }
 }
 .drawer-overlay.show{ opacity:1; pointer-events:auto; }
 .drawer{
-  position:fixed; top:0; right:0; bottom:0; width:min(680px, 94vw);
-  background: var(--navy-mid); border-left:1px solid var(--panel-border);
-  z-index:195; display:flex; flex-direction:column; transform: translateX(100%);
-  transition: transform .25s cubic-bezier(.2,.9,.3,1); box-shadow: -30px 0 60px -20px rgba(0,0,0,.5);
+  position:fixed; inset:0; width:100%;
+  background: var(--navy-mid); border-left:none;
+  z-index:195; display:flex; flex-direction:column; transform: translateY(18px);
+  opacity:0; pointer-events:none;
+  transition: transform .22s cubic-bezier(.2,.9,.3,1), opacity .2s;
 }
-.drawer.show{ transform: translateX(0); }
-.drawer-head{ padding:22px 26px; border-bottom:1px solid var(--panel-border); flex-shrink:0; }
+.drawer.show{ transform: translateY(0); opacity:1; pointer-events:auto; }
+.drawer-head{ padding:20px clamp(20px, 5vw, 64px); border-bottom:1px solid var(--panel-border); flex-shrink:0; position:sticky; top:0; background: rgba(10,30,51,0.7); backdrop-filter: blur(14px); z-index:2; }
 .drawer-head-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
-.drawer-head h2{ font-size:19px; margin-bottom:4px; }
+.drawer-head h2{ font-size:22px; margin-bottom:4px; }
 .drawer-head .drawer-app{ font-size:12.5px; color: var(--text-faint); }
 .drawer-badges{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
-.drawer-body{ flex:1; overflow-y:auto; padding:22px 26px 60px; }
-.drawer-close{ width:32px; height:32px; border-radius:9px; background: rgba(255,255,255,0.06); border:none; color: var(--text-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.drawer-body{ flex:1; overflow-y:auto; padding:26px clamp(20px, 5vw, 64px) 80px; max-width:1120px; width:100%; margin:0 auto; }
+.drawer-close{ width:34px; height:34px; border-radius:9px; background: rgba(255,255,255,0.06); border:none; color: var(--text-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .drawer-close:hover{ background: rgba(255,255,255,0.12); color:var(--text); }
+.drawer .tabs{ padding:0 clamp(20px, 5vw, 64px); flex-shrink:0; }
 
 .info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px 22px; margin-bottom:6px; }
 .info-item{ font-size:13px; }
@@ -640,11 +656,7 @@ tbody tr:hover .row-actions{ opacity:1; }
 
     <!-- ============ CR LOG VIEW ============ -->
     <section class="view hidden" id="view-crlog">
-      <div class="view-head">
-        <div>
-          <h2>CR Log</h2>
-          <p>Sổ đăng ký toàn bộ Change Request</p>
-        </div>
+      <div class="view-head view-head-end">
         <button class="btn btn-primary" id="btnAddCr">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Tạo CR mới
@@ -674,11 +686,7 @@ tbody tr:hover .row-actions{ opacity:1; }
 
     <!-- ============ UAT VIEW ============ -->
     <section class="view hidden" id="view-uat">
-      <div class="view-head">
-        <div>
-          <h2>UAT Test Case</h2>
-          <p>Test case UAT cho từng Change Request</p>
-        </div>
+      <div class="view-head view-head-end">
         <button class="btn btn-primary" id="btnAddTc">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Thêm Test Case
@@ -705,11 +713,7 @@ tbody tr:hover .row-actions{ opacity:1; }
 
     <!-- ============ RELEASE VIEW ============ -->
     <section class="view hidden" id="view-release">
-      <div class="view-head">
-        <div>
-          <h2>Release / PRD</h2>
-          <p>Thông tin phát hành cho từng Change Request</p>
-        </div>
+      <div class="view-head view-head-end">
         <button class="btn btn-primary" id="btnAddRel">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Thêm Release
@@ -736,11 +740,7 @@ tbody tr:hover .row-actions{ opacity:1; }
 
     <!-- ============ ADMIN VIEW ============ -->
     <section class="view hidden" id="view-admin">
-      <div class="view-head">
-        <div>
-          <h2>Quản trị người dùng</h2>
-          <p>Chỉ những email Gmail dưới đây mới đăng nhập và chỉnh sửa được dữ liệu</p>
-        </div>
+      <div class="view-head view-head-end">
         <button class="btn btn-primary" id="btnAddUser">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Thêm người dùng
@@ -1497,7 +1497,7 @@ function openCrModal(cr){
   STATE.editingCrId = cr ? cr.id : null;
   const overlay = $("#crModalOverlay");
   overlay.innerHTML = crModalTemplate(cr);
-  overlay.classList.add("show");
+  overlay.classList.add("show", "full");
   $("#crModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#crModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
   overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
@@ -1990,7 +1990,7 @@ function openTcModal(t, presetCrId){
   STATE.editingTcId = t ? t.id : null;
   const overlay = $("#tcModalOverlay");
   overlay.innerHTML = tcModalTemplate(t, presetCrId);
-  overlay.classList.add("show");
+  overlay.classList.add("show", "full");
   $("#tcModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#tcModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
   overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
@@ -2228,7 +2228,7 @@ function openRelModal(r, presetCrId){
   STATE.editingRelId = r ? r.id : null;
   const overlay = $("#relModalOverlay");
   overlay.innerHTML = relModalTemplate(r, presetCrId);
-  overlay.classList.add("show");
+  overlay.classList.add("show", "full");
   $("#relModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#relModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
   overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });

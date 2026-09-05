@@ -1571,6 +1571,53 @@ tbody tr.detail-selected:hover{ background:
   .modal-overlay.full.detail-opening .modal-body,
   .modal-overlay.full.detail-opening .modal-foot{ animation:none; }
 }
+
+/* Synchronized exit states. The shell remains mounted until its transition
+   finishes, so close/X, backdrop and ESC all have the same visible lifecycle. */
+.drawer-overlay.detail-closing,
+.modal-overlay.detail-closing{
+  opacity:0;
+  pointer-events:none;
+}
+.drawer.show.detail-closing{
+  transform:translateX(28px);
+  opacity:0;
+  pointer-events:none;
+}
+.modal-overlay.full.show.detail-closing .modal{
+  transform:translateX(28px);
+  opacity:0;
+}
+.modal-overlay.full .modal{
+  transition:transform var(--duration-base) var(--ease-standard),
+             opacity var(--duration-base) var(--ease-standard);
+}
+.detail-closing .drawer-head,
+.detail-closing .tabs,
+.detail-closing .drawer-body,
+.detail-closing .modal-head,
+.detail-closing .modal-body,
+.detail-closing .modal-foot{
+  animation:none !important;
+}
+
+/* Dashboard/data skeletons preserve the real chart and recent-list geometry. */
+.skeleton-dashboard-chart{ display:flex; flex-direction:column; gap:13px; padding-top:3px; }
+.skeleton-dashboard-bar{ height:10px; border-radius:6px; }
+.skeleton-dashboard-recent{ display:flex; flex-direction:column; gap:13px; }
+.skeleton-dashboard-recent-row{
+  display:grid; grid-template-columns:58px 1fr 62px; gap:10px; align-items:center;
+}
+.skeleton-dashboard-recent-row .skeleton{ height:12px; }
+.view .skeleton{
+  --skeleton-base:#e7eff2;
+  --skeleton-shine:#f8fbfc;
+}
+.refresh-btn.is-loading{ cursor:wait; }
+.refresh-btn.is-loading svg{ animation:spin .75s linear infinite; }
+@media(prefers-reduced-motion: reduce){
+  .refresh-btn.is-loading svg{ animation:none; }
+}
 </style>
 </head>
 <body>
@@ -1680,6 +1727,10 @@ tbody tr.detail-selected:hover{ background:
         <span class="kbd-hint">Ctrl K</span>
       </div>
       <div class="topbar-actions" id="topbarActions">
+        <button class="btn btn-ghost btn-sm tb-btn refresh-btn" id="btnDashRefresh" type="button" title="Làm mới dữ liệu">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          <span class="refresh-label">Làm mới</span>
+        </button>
         <button class="btn btn-primary view-action hidden" data-for="crlog" id="btnAddCr">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Tạo CR mới
@@ -1701,17 +1752,6 @@ tbody tr.detail-selected:hover{ background:
 
     <!-- ============ DASHBOARD VIEW ============ -->
     <section class="view" id="view-dashboard">
-      <div class="view-head">
-        <div>
-          <h2>Xin chào 👋</h2>
-          <p>Cập nhật theo thời gian thực từ Supabase</p>
-        </div>
-        <button class="btn btn-primary" id="btnDashRefresh">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-          Làm mới
-        </button>
-      </div>
-
       <div class="kpi-grid" id="kpiGrid"></div>
 
       <div class="dash-grid">
@@ -1994,6 +2034,9 @@ const STATE = {
   drawerOpenSeq: 0,       // invalidates stale attachment renders when switching records quickly
   drawerTab: "info",
   detailSelection: { cr:null, tc:null, rel:null },
+  detailCloseSeq: { tc:0, rel:0 },
+  initialLoadComplete: false,
+  refreshing: false,
   attachCache: {},        // cr_id -> [attachments]
   crSelection: new Set(), // cr_id values currently selected in CR Log table
   crColumns: null,        // populated by loadCrColumnPrefs()
@@ -2227,13 +2270,16 @@ function subscribeRealtime(){
 
   const debouncedRefresh = debounce(async ()=>{
     await refreshAll();
-    if(STATE.drawerCrId){
-      const cr = STATE.crList.find(c=>c.cr_id===STATE.drawerCrId);
+    const drawerId = STATE.drawerCrId;
+    const drawerSeq = STATE.drawerOpenSeq;
+    if(drawerId){
+      const cr = STATE.crList.find(c=>c.cr_id===drawerId);
       if(cr){
         renderDrawer(cr);
         await fetchAttachments(cr.cr_id);
-        renderDrawerFiles(cr.cr_id);
-        renderDrawerLinked(cr.cr_id);
+        if(drawerSeq !== STATE.drawerOpenSeq || STATE.drawerCrId !== drawerId) return;
+        renderDrawerFiles(drawerId);
+        renderDrawerLinked(drawerId);
       } else {
         closeDrawer();
       }
@@ -2253,7 +2299,11 @@ function subscribeRealtime(){
   STATE.sb.channel("realtime-cr_attachments")
     .on("postgres_changes", { event:"*", schema:"public", table:"cr_attachments" }, ()=>{
       if(STATE.drawerCrId){
-        fetchAttachments(STATE.drawerCrId).then(()=> renderDrawerFiles(STATE.drawerCrId));
+        const drawerId = STATE.drawerCrId;
+        const drawerSeq = STATE.drawerOpenSeq;
+        fetchAttachments(drawerId).then(()=>{
+          if(drawerSeq === STATE.drawerOpenSeq && STATE.drawerCrId === drawerId) renderDrawerFiles(drawerId);
+        });
       }
     })
     .subscribe();
@@ -2316,8 +2366,21 @@ function restartDetailOpening(el){
 }
 function closeDetailOverlay(overlay, kind){
   if(!overlay) return;
-  overlay.classList.remove("show", "detail-opening");
-  clearDetailSelection(kind);
+  if(!overlay.classList.contains("show")){
+    overlay.classList.remove("detail-closing", "detail-opening");
+    clearDetailSelection(kind);
+    return;
+  }
+  if(overlay.classList.contains("detail-closing")) return;
+  const closeSeq = ++STATE.detailCloseSeq[kind];
+  overlay.classList.remove("detail-opening");
+  overlay.classList.add("detail-closing");
+  window.setTimeout(()=>{
+    if(closeSeq !== STATE.detailCloseSeq[kind]) return;
+    overlay.classList.remove("show", "detail-closing");
+    overlay.innerHTML = "";
+    clearDetailSelection(kind);
+  }, 300);
 }
 
 /* Nút 3 gạch duy nhất trên topbar:
@@ -2414,7 +2477,11 @@ function initShell(){
   $("#btnAddCr").addEventListener("click", ()=> openCrModal(null));
   $("#btnAddTc").addEventListener("click", ()=> openTcModal(null));
   $("#btnAddRel").addEventListener("click", ()=> openRelModal(null));
-  $("#btnDashRefresh").addEventListener("click", ()=>{ toast("Đang làm mới dữ liệu...", "info"); refreshAll(); });
+  $("#btnDashRefresh").addEventListener("click", ()=>{
+    if(STATE.refreshing) return;
+    toast("Đang làm mới dữ liệu...", "info");
+    refreshAll();
+  });
 
   $("#lbClose").addEventListener("click", closeLightbox);
   $("#lightbox").addEventListener("click", e=>{ if(e.target.id === "lightbox") closeLightbox(); });
@@ -2559,7 +2626,11 @@ function populateSelect(sel, arr, withEmpty){
 function setView(view){
   STATE.currentView = view;
   closeDrawer();
-  $all(".modal-overlay.show").forEach(m=> m.classList.remove("show"));
+  if($("#tcModalOverlay").classList.contains("show")) closeDetailOverlay($("#tcModalOverlay"), "tc");
+  if($("#relModalOverlay").classList.contains("show")) closeDetailOverlay($("#relModalOverlay"), "rel");
+  $all(".modal-overlay.show").forEach(m=>{
+    if(m.id !== "tcModalOverlay" && m.id !== "relModalOverlay") m.classList.remove("show");
+  });
   $all(".nav-item[data-view]").forEach(i=> i.classList.toggle("active", i.dataset.view===view));
   $all(".view").forEach(v=> v.classList.add("hidden"));
   $("#view-"+view).classList.remove("hidden");
@@ -2794,15 +2865,35 @@ function openGsResult(item){
 /* ---------------------------------------------------------------------------
    5. DATA FETCH
 --------------------------------------------------------------------------- */
+function setRefreshLoading(loading){
+  const btn = $("#btnDashRefresh");
+  if(!btn) return;
+  btn.disabled = loading;
+  btn.classList.toggle("is-loading", loading);
+  btn.setAttribute("aria-busy", loading ? "true" : "false");
+  const label = $(".refresh-label", btn);
+  if(label) label.textContent = loading ? "Đang tải..." : "Làm mới";
+}
+
 async function refreshAll(){
-  showLoadingSkeletons();
-  await Promise.all([fetchCrList(), fetchTcList(), fetchRelList()]);
-  renderNavCounts();
-  renderDashboard();
-  renderCrTable();
-  renderTcTable();
-  renderRelTable();
-  populateCrDropdowns();
+  if(STATE.refreshing) return;
+  const initialLoad = !STATE.initialLoadComplete;
+  STATE.refreshing = true;
+  setRefreshLoading(true);
+  if(initialLoad) showLoadingSkeletons();
+  try{
+    await Promise.all([fetchCrList(), fetchTcList(), fetchRelList()]);
+    renderNavCounts();
+    renderDashboard();
+    renderCrTable();
+    renderTcTable();
+    renderRelTable();
+    populateCrDropdowns();
+    STATE.initialLoadComplete = true;
+  }finally{
+    STATE.refreshing = false;
+    setRefreshLoading(false);
+  }
 }
 
 async function fetchCrList(){
@@ -2839,9 +2930,25 @@ function skeletonTableRows(tbody, colCount, rowCount){
       ${Array.from({length:colCount}).map(()=> `<td><div class="skeleton skeleton-line w-80"></div></td>`).join("")}
     </tr>`).join("");
 }
+function skeletonDashboardChart(){
+  return `<div class="skeleton-dashboard-chart">
+    ${[72,48,86,61,38].map(width=>`<div class="skeleton skeleton-dashboard-bar" style="width:${width}%"></div>`).join("")}
+  </div>`;
+}
+function skeletonDashboardRecent(){
+  return `<div class="skeleton-dashboard-recent">
+    ${Array.from({length:5}).map(()=>`<div class="skeleton-dashboard-recent-row">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    </div>`).join("")}
+  </div>`;
+}
 function showLoadingSkeletons(){
   skeletonKpiRow($("#kpiGrid"), 4);
   skeletonKpiRow($("#crKpis"), 4);
+  if($("#chartStatus")) $("#chartStatus").innerHTML = skeletonDashboardChart();
+  if($("#chartPriority")) $("#chartPriority").innerHTML = skeletonDashboardChart();
+  if($("#chartCategory")) $("#chartCategory").innerHTML = skeletonDashboardChart();
+  if($("#recentList")) $("#recentList").innerHTML = skeletonDashboardRecent();
   const crTbody = $("#crTableBody");
   if(crTbody) skeletonTableRows(crTbody, 7, 6);
   const tcTbody = $("#tcTableBody");
@@ -3513,6 +3620,8 @@ async function openDrawer(cr_id){
   STATE.drawerCrId = cr_id;
   STATE.drawerTab = "info";
   renderDrawer(cr);
+  $("#drawerOverlay").classList.remove("detail-closing");
+  $("#crDrawer").classList.remove("detail-closing");
   $("#drawerOverlay").classList.add("show");
   $("#crDrawer").classList.add("show");
   restartDetailOpening($("#crDrawer"));
@@ -3523,10 +3632,22 @@ async function openDrawer(cr_id){
 }
 
 function closeDrawer(){
+  if(!$("#crDrawer").classList.contains("show") && !$("#drawerOverlay").classList.contains("show")){
+    clearDetailSelection("cr");
+    return;
+  }
   STATE.drawerOpenSeq++;
-  $("#drawerOverlay").classList.remove("show");
-  $("#crDrawer").classList.remove("show", "detail-opening");
-  clearDetailSelection("cr");
+  $("#crDrawer").classList.remove("detail-opening");
+  $("#crDrawer").classList.add("detail-closing");
+  $("#drawerOverlay").classList.add("detail-closing");
+  const closeSeq = STATE.drawerOpenSeq;
+  window.setTimeout(()=>{
+    if(closeSeq !== STATE.drawerOpenSeq) return;
+    $("#drawerOverlay").classList.remove("show", "detail-closing");
+    $("#crDrawer").classList.remove("show", "detail-closing");
+    $("#crDrawer").innerHTML = "";
+    clearDetailSelection("cr");
+  }, 300);
 }
 
 function renderDrawer(cr){
@@ -3967,8 +4088,10 @@ function tcModalTemplate(t, presetCrId){
 function openTcModal(t, presetCrId){
   STATE.editingTcId = t ? t.id : null;
   if(t) selectDetailRow("tc", t.id);
+  STATE.detailCloseSeq.tc++;
   const overlay = $("#tcModalOverlay");
   overlay.innerHTML = tcModalTemplate(t, presetCrId);
+  overlay.classList.remove("detail-closing");
   overlay.classList.add("show", "full");
   restartDetailOpening(overlay);
   $("#tcModalClose").addEventListener("click", ()=> closeDetailOverlay(overlay, "tc"));
@@ -4217,8 +4340,10 @@ function relModalTemplate(r, presetCrId){
 function openRelModal(r, presetCrId){
   STATE.editingRelId = r ? r.id : null;
   if(r) selectDetailRow("rel", r.id);
+  STATE.detailCloseSeq.rel++;
   const overlay = $("#relModalOverlay");
   overlay.innerHTML = relModalTemplate(r, presetCrId);
+  overlay.classList.remove("detail-closing");
   overlay.classList.add("show", "full");
   restartDetailOpening(overlay);
   $("#relModalClose").addEventListener("click", ()=> closeDetailOverlay(overlay, "rel"));

@@ -387,7 +387,8 @@ body.sidebar-collapsed .conn-pill{ display:none; }
 .topbar-actions{ margin-left:auto; display:flex; gap:10px; align-items:center; }
 
 /* Every workspace view scrolls independently within the fixed sidebar/topbar frame */
-.view{ padding:28px 32px 60px; flex:1; min-height:0; overflow-y:auto; }
+.view{ padding:28px 32px 60px; flex:1; min-height:0; overflow-y:auto;
+  background: linear-gradient(165deg, #ffffff 0%, #f1f6f9 52%, #e9f3f4 100%); color:#22394e; }
 .view-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
 .view-head.view-head-end{ justify-content:flex-end; }
 .view-head h2{ font-size: var(--text-page-title-size); font-weight: var(--text-page-title-weight); }
@@ -523,68 +524,66 @@ tbody tr:hover .row-actions{ opacity:1; }
    ========================================================================== */
 .view#view-crlog{
   display:flex; flex-direction:column; overflow:hidden; padding-bottom:18px;
-  /* Nền sáng: trắng pha navy/teal chủ đạo — chỉ áp dụng riêng cho CR Log */
-  background: linear-gradient(165deg, #ffffff 0%, #f1f6f9 52%, #e9f3f4 100%);
-}
+  /* Nền sáng dùng chung từ .view */}
 
-/* ---- Light-theme overrides, chỉ trong phạm vi #view-crlog ---- */
-#view-crlog .kpi-card{ background:#ffffff; border-color:#dde7ec; }
-#view-crlog .kpi-card:hover{ border-color:#c6d6de; }
-#view-crlog .kpi-card .kpi-label{ color:#5f7690; }
-#view-crlog .kpi-card .kpi-value{ color:#0a1e33; }
-#view-crlog .kpi-card .kpi-foot{ color:#8498ad; }
-#view-crlog .kpi-card.accent .kpi-value{ color:#0e9a94; }
+/* ---- Light-theme overrides, áp dụng cho mọi view ---- */
+.view .kpi-card{ background:#ffffff; border-color:#dde7ec; }
+.view .kpi-card:hover{ border-color:#c6d6de; }
+.view .kpi-card .kpi-label{ color:#5f7690; }
+.view .kpi-card .kpi-value{ color:#0a1e33; }
+.view .kpi-card .kpi-foot{ color:#8498ad; }
+.view .kpi-card.accent .kpi-value{ color:#0e9a94; }
 
-#view-crlog .list-panel{ background:#ffffff; border-color:#dde7ec; }
-#view-crlog .list-panel-head{ border-bottom-color:#e4ebf0; }
-#view-crlog .list-panel-count{ color:#5f7690; }
-#view-crlog .list-panel-count b{ color:#0a1e33; }
+.view .list-panel{ background:#ffffff; border-color:#dde7ec; }
+.view .list-panel-head{ border-bottom-color:#e4ebf0; }
+.view .list-panel-count{ color:#5f7690; }
+.view .list-panel-count b{ color:#0a1e33; }
 
-#view-crlog .filter-chip{ background:#f2f6f8; border-color:#dde7ec; color:#43586e; }
-#view-crlog .filter-chip:hover{ border-color:#c6d6de; }
-#view-crlog .filter-chip span{ color:#5f7690; }
-#view-crlog .filter-chip select{ color:#0a1e33; }
-#view-crlog .chip-clear{ color:#8498ad; }
-#view-crlog .chip-clear:hover{ background: rgba(208,82,82,0.12); }
+.view .filter-chip{ background:#f2f6f8; border-color:#dde7ec; color:#43586e; }
+.view .filter-chip:hover{ border-color:#c6d6de; }
+.view .filter-chip span{ color:#5f7690; }
+.view .filter-chip select{ color:#0a1e33; }
+.view .chip-clear{ color:#8498ad; }
+.view .chip-clear:hover{ background: rgba(208,82,82,0.12); }
 
-#view-crlog .tb-search input{ background:#f2f6f8; border-color:#dde7ec; color:#0a1e33; }
-#view-crlog .tb-search input:focus{ background:#ffffff; }
-#view-crlog .tb-search input::placeholder{ color:#8498ad; }
+.view .tb-search input{ background:#f2f6f8; border-color:#dde7ec; color:#0a1e33; }
+.view .tb-search input:focus{ background:#ffffff; }
+.view .tb-search input::placeholder{ color:#8498ad; }
 
-#view-crlog .btn-ghost{ background:#f2f6f8; border-color:#dde7ec; color:#22394e; }
-#view-crlog .btn-ghost:hover{ background:#e6eef2; }
+.view .btn-ghost{ background:#f2f6f8; border-color:#dde7ec; color:#22394e; }
+.view .btn-ghost:hover{ background:#e6eef2; }
 
-#view-crlog .tb-menu{ background:#ffffff; border-color:#dde7ec; }
-#view-crlog .tb-menu select{ background:#f2f6f8; border-color:#dde7ec; color:#0a1e33; }
-#view-crlog .tb-menu-item-label{ color:#8498ad; }
-#view-crlog .tb-menu-divider{ background:#e4ebf0; }
-#view-crlog .tb-menu-foot{ color:#8498ad; }
-#view-crlog .tb-checkbox-row, #view-crlog .tb-radio-row{ color:#43586e; }
-#view-crlog .tb-checkbox-row:hover, #view-crlog .tb-radio-row:hover{ background:#f2f6f8; color:#0a1e33; }
+.view .tb-menu{ background:#ffffff; border-color:#dde7ec; }
+.view .tb-menu select{ background:#f2f6f8; border-color:#dde7ec; color:#0a1e33; }
+.view .tb-menu-item-label{ color:#8498ad; }
+.view .tb-menu-divider{ background:#e4ebf0; }
+.view .tb-menu-foot{ color:#8498ad; }
+.view .tb-checkbox-row, .view .tb-radio-row{ color:#43586e; }
+.view .tb-checkbox-row:hover, .view .tb-radio-row:hover{ background:#f2f6f8; color:#0a1e33; }
 
-#view-crlog .bulk-bar{ background: rgba(63,208,201,0.12); border-bottom-color:#e4ebf0; color:#0a1e33; }
-#view-crlog .bulk-bar b{ color:#0e9a94; }
+.view .bulk-bar{ background: rgba(63,208,201,0.12); border-bottom-color:#e4ebf0; color:#0a1e33; }
+.view .bulk-bar b{ color:#0e9a94; }
 
-#view-crlog thead th{ background:#f6fafb; color:#5f7690; border-bottom-color:#e4ebf0; }
-#view-crlog tbody td{ border-bottom-color:#edf2f5; color:#22394e; }
-#view-crlog tbody tr:hover{ background:#f0f7f7; }
-#view-crlog td.cell-id{ color:#0e9a94; }
-#view-crlog td.cell-dim{ color:#5f7690; }
+.view thead th{ background:#f6fafb; color:#5f7690; border-bottom-color:#e4ebf0; }
+.view tbody td{ border-bottom-color:#edf2f5; color:#22394e; }
+.view tbody tr:hover{ background:#f0f7f7; }
+.view td.cell-id{ color:#0e9a94; }
+.view td.cell-dim{ color:#5f7690; }
 
-#view-crlog .icon-btn{ background:#f2f6f8; border-color:#dde7ec; color:#5f7690; }
-#view-crlog .icon-btn:hover{ background:#e6eef2; color:#0a1e33; }
+.view .icon-btn{ background:#f2f6f8; border-color:#dde7ec; color:#5f7690; }
+.view .icon-btn:hover{ background:#e6eef2; color:#0a1e33; }
 
-#view-crlog .list-panel-foot{ border-top-color:#e4ebf0; color:#5f7690; }
+.view .list-panel-foot{ border-top-color:#e4ebf0; color:#5f7690; }
 
-#view-crlog .cr-card{ background:#ffffff; border-color:#dde7ec; }
-#view-crlog .cr-card:active{ background:#f2f6f8; }
-#view-crlog .cr-card-title{ color:#0a1e33; }
-#view-crlog .cr-card-meta{ color:#5f7690; }
+.view .cr-card{ background:#ffffff; border-color:#dde7ec; }
+.view .cr-card:active{ background:#f2f6f8; }
+.view .cr-card-title{ color:#0a1e33; }
+.view .cr-card-meta{ color:#5f7690; }
 
-#view-crlog .empty-state{ color:#8498ad; }
-#view-crlog .empty-state h4{ color:#43586e; }
-#view-crlog .loading-row{ color:#8498ad; }
-#view-crlog .spinner{ border-color: rgba(10,30,51,0.10); border-top-color:#0e9a94; }
+.view .empty-state{ color:#8498ad; }
+.view .empty-state h4{ color:#43586e; }
+.view .loading-row{ color:#8498ad; }
+.view .spinner{ border-color: rgba(10,30,51,0.10); border-top-color:#0e9a94; }
 .crlog-shell{ display:flex; flex-direction:column; height:100%; min-height:0; gap:16px; }
 
 .crlog-kpis{ flex-shrink:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; }
@@ -704,6 +703,37 @@ td.cell-id .id-chip{
   border-top-color: var(--accent); animation: spin .7s linear infinite; margin:0 auto 12px;
 }
 @keyframes spin{ to{ transform: rotate(360deg); } }
+
+
+/* ---- Light-theme bổ sung: dashboard panels, charts, headings ---- */
+.view .view-head h2{ color:#0a1e33; }
+.view .view-head p{ color:#5f7690; }
+.view .panel{ background:#ffffff; border-color:#dde7ec; }
+.view .chart-block h3{ color:#0a1e33; }
+.view .chart-block h3 .total{ color:#8498ad; }
+.view .bar-label{ color:#43586e; }
+.view .bar-track{ background: rgba(13,40,64,0.07); }
+.view .bar-num{ color:#0a1e33; }
+.view .recent-item{ border-bottom-color:#edf2f5; }
+.view .recent-item .recent-id{ color:#5f7690; background:#f2f6f8; }
+.view .recent-title{ color:#22394e; }
+.view .recent-meta{ color:#8498ad; }
+
+/* ---- Light-theme cho modal (đồng bộ với drawer) ---- */
+.modal{
+  --text-primary:#16283c; --text-secondary:#4c6478; --text-muted:#8496a8;
+  --text:var(--text-primary); --text-dim:var(--text-secondary); --text-faint:var(--text-muted);
+  --panel-solid:#ffffff; --bg-topbar: rgba(255,255,255,0.88);
+  --bg-surface-soft: rgba(13,40,64,0.045);
+  --bg-surface-soft-hover: rgba(13,40,64,0.08);
+  --bg-surface-soft-active: rgba(13,40,64,0.11);
+  --panel: var(--bg-surface-soft); --panel-hover: var(--bg-surface-soft-hover);
+  --border:#e2e9f0; --panel-border:var(--border);
+  color:#16283c;
+}
+.modal .detail-block .db-body, .modal .file-card, .modal .file-thumb, .modal .mini-card{ background: rgba(13,40,64,0.04); }
+.modal .mini-card:hover{ background: rgba(13,40,64,0.075); }
+.modal-overlay.full{ background:#eef4f7; }
 
 /* ==========================================================================
    MODALS

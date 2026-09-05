@@ -779,12 +779,31 @@ body.sidebar-collapsed .modal-overlay.full{ left: var(--sidebar-w-collapsed); }
 body.sidebar-collapsed .drawer-overlay{ left: var(--sidebar-w-collapsed); }
 .drawer{
   position:fixed; top:0; right:0; bottom:0; left: var(--sidebar-w);
-  background: var(--navy-mid); border-left:1px solid var(--border);
+  background: #ffffff; border-left:1px solid var(--border); color:#16283c;
+  /* Light theme overrides scoped to the drawer only */
+  --text-primary:#16283c; --text-secondary:#4c6478; --text-muted:#8496a8;
+  --text:var(--text-primary); --text-dim:var(--text-secondary); --text-faint:var(--text-muted);
+  --bg-topbar: rgba(255,255,255,0.88);
+  --bg-surface-soft: rgba(13,40,64,0.045);
+  --bg-surface-soft-hover: rgba(13,40,64,0.08);
+  --bg-surface-soft-active: rgba(13,40,64,0.11);
+  --panel: var(--bg-surface-soft); --panel-hover: var(--bg-surface-soft-hover);
+  --border:#e2e9f0; --panel-border:var(--border);
   z-index:195; display:flex; flex-direction:column; transform: translateX(28px);
   opacity:0; pointer-events:none; box-shadow: var(--shadow-floating);
   transition: var(--transition-panel);
 }
 .drawer.show{ transform: translateX(0); opacity:1; pointer-events:auto; }
+
+/* Light-theme fixes for hardcoded white-tinted surfaces inside the drawer */
+.drawer .detail-block .db-body,
+.drawer .file-card,
+.drawer .file-thumb,
+.drawer .mini-card{ background: rgba(13,40,64,0.04); }
+.drawer .mini-card:hover{ background: rgba(13,40,64,0.075); }
+.drawer .file-cat-row select{ background:#ffffff; color:var(--text-primary); }
+.drawer .file-cat-tag{ color:#fff; }
+.drawer .file-del{ color:#fff; }
 body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 .drawer-head{ padding:22px clamp(20px, 4vw, 48px); border-bottom:1px solid var(--border); flex-shrink:0; position:sticky; top:0; background: var(--bg-topbar); backdrop-filter: blur(14px); z-index:2; }
 .drawer-head-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }

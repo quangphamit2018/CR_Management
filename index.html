@@ -74,6 +74,11 @@
   --orange: #e08a3c;
   --orange-dim: rgba(224,138,60,0.15);
 
+  /* text color used ON solid accent/success fills (dark text for contrast) */
+  --on-accent-text: #04302d;
+  --on-danger-text: #2a0a0c;
+  --accent-shade: #24a39d; /* darker stop for accent gradients */
+
   /* ------------------------------------------------------------------
      BORDER
      ------------------------------------------------------------------ */
@@ -96,13 +101,30 @@
      Level 2 = floating card (dropdown, popover, toast)
      Level 3 = modal / drawer
      ------------------------------------------------------------------ */
-  --shadow-sm: 0 1px 2px rgba(3,10,18,0.3), 0 2px 8px -4px rgba(3,10,18,0.35);
-  --shadow-md: 0 10px 24px -14px rgba(3,10,18,0.5), 0 2px 6px -2px rgba(3,10,18,0.3);
-  --shadow-lg: 0 24px 48px -20px rgba(3,10,18,0.55), 0 4px 12px -4px rgba(3,10,18,0.35);
-  --shadow-floating: 0 32px 70px -28px rgba(3,10,18,0.6), 0 8px 20px -6px rgba(3,10,18,0.4);
+  --shadow-sm: 0 1px 2px rgba(3,10,18,0.3), 0 2px 8px -4px rgba(3,10,18,0.35), inset 0 1px 0 rgba(255,255,255,0.035);
+  --shadow-md: 0 10px 24px -14px rgba(3,10,18,0.5), 0 2px 6px -2px rgba(3,10,18,0.3), inset 0 1px 0 rgba(255,255,255,0.045);
+  --shadow-lg: 0 24px 48px -20px rgba(3,10,18,0.55), 0 4px 12px -4px rgba(3,10,18,0.35), inset 0 1px 0 rgba(255,255,255,0.055);
+  --shadow-floating: 0 32px 70px -28px rgba(3,10,18,0.6), 0 8px 20px -6px rgba(3,10,18,0.4), inset 0 1px 0 rgba(255,255,255,0.065);
   /* legacy aliases */
   --shadow-soft: var(--shadow-md);
   --shadow-lift: var(--shadow-lg);
+
+  /* ------------------------------------------------------------------
+     PHASE 06 — SURFACE GRADIENT / GLASS / SKELETON TOKENS
+     Controlled 3D depth: inset highlight (above) + a hairline top edge
+     + a very soft top-to-bottom gradient. No glow, no heavy glass.
+     ------------------------------------------------------------------ */
+  --surface-edge: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 3px);
+  --surface-gradient: linear-gradient(180deg, rgba(255,255,255,0.028) 0%, rgba(255,255,255,0) 46%);
+
+  --glass-bg: rgba(15,42,68,0.60);
+  --glass-bg-strong: rgba(12,32,52,0.78);
+  --glass-border: rgba(255,255,255,0.11);
+  --glass-blur: blur(18px);
+
+  --skeleton-base: rgba(255,255,255,0.045);
+  --skeleton-shine: rgba(255,255,255,0.10);
+  --focus-ring: 0 0 0 3px rgba(63,208,201,0.28);
 
   /* ------------------------------------------------------------------
      SPACING SCALE (4px base)
@@ -214,9 +236,9 @@ h1,h2,h3,h4{ font-family: var(--font-head); font-weight:700; letter-spacing:-0.0
 }
 .config-brand .mark{
   width:40px; height:40px; border-radius:11px;
-  background: linear-gradient(135deg, var(--accent), #24a39d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-shade));
   display:flex; align-items:center; justify-content:center;
-  font-family: var(--font-head); font-weight:800; color:#04302d; font-size:18px;
+  font-family: var(--font-head); font-weight:800; color:var(--on-accent-text); font-size:18px;
 }
 .config-brand .name{ font-family: var(--font-head); font-weight:800; font-size:19px; }
 .config-brand .tag{ font-size:12px; color: var(--text-faint); margin-top:1px; }
@@ -243,7 +265,7 @@ h1,h2,h3,h4{ font-family: var(--font-head); font-weight:700; letter-spacing:-0.0
   white-space:nowrap;
 }
 .btn:active{ transform: scale(0.97); }
-.btn-primary{ background: var(--accent); color:#04302d; }
+.btn-primary{ background: var(--accent); color:var(--on-accent-text); }
 .btn-primary:hover{ background: var(--accent-hover); box-shadow: 0 6px 18px -6px rgba(63,208,201,0.5); }
 .btn-ghost{ background: var(--bg-surface-soft); color: var(--text-primary); border:1px solid var(--border); }
 .btn-ghost:hover{ background: var(--bg-surface-soft-hover); }
@@ -291,9 +313,9 @@ body.sidebar-collapsed .sidebar-toggle svg{ transform: rotate(180deg); }
 body.sidebar-collapsed .sidebar .brand{ justify-content:center; padding:6px 0 26px; }
 .sidebar .brand .mark{
   width:34px; height:34px; border-radius:9px; flex-shrink:0;
-  background: linear-gradient(135deg, var(--accent), #24a39d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-shade));
   display:flex; align-items:center; justify-content:center;
-  font-family: var(--font-head); font-weight:800; color:#04302d; font-size:15px;
+  font-family: var(--font-head); font-weight:800; color:var(--on-accent-text); font-size:15px;
 }
 .sidebar .brand .name{ font-family: var(--font-head); font-weight:800; font-size:16px; white-space:nowrap; }
 .sidebar .brand .tag{ font-size: var(--text-caption-size); color: var(--text-muted); white-space:nowrap; }
@@ -523,7 +545,7 @@ tbody tr:hover .row-actions{ opacity:1; }
 .tb-btn{ position:relative; }
 .tb-badge{
   display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px;
-  background: var(--accent); color:#04302d; border-radius:20px; font-size:10px; font-weight:800; margin-left:4px;
+  background: var(--accent); color:var(--on-accent-text); border-radius:20px; font-size:10px; font-weight:800; margin-left:4px;
 }
 .tb-menu{
   display:none; position:absolute; top:calc(100% + 8px); left:0; min-width:200px; z-index:30;
@@ -755,7 +777,7 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 .file-name{ font-size:11.3px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
 .file-sub{ font-size: var(--text-caption-size); color: var(--text-muted); }
 .file-cat-tag{ position:absolute; top:6px; left:6px; font-size:9.5px; font-weight:700; padding:2px 6px; border-radius:5px; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-.file-del{ position:absolute; top:5px; right:5px; width:20px; height:20px; border-radius:6px; background: rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; color:#fff; opacity:0; transition: opacity .12s; }
+.file-del{ position:absolute; top:5px; right:5px; width:20px; height:20px; border-radius:6px; background: rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; color:var(--text-primary); opacity:0; transition: opacity .12s; }
 .file-card:hover .file-del{ opacity:1; }
 .file-del:hover{ background: var(--danger); }
 .file-card a.file-open{ position:absolute; inset:0; z-index:1; }
@@ -795,7 +817,7 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 }
 #lightbox.show{ display:flex; }
 #lightbox img{ max-width:100%; max-height:100%; border-radius:8px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
-#lightbox .lb-close{ position:absolute; top:24px; right:28px; width:38px; height:38px; border-radius:10px; background: rgba(255,255,255,0.1); color:#fff; display:flex; align-items:center; justify-content:center; border:none; }
+#lightbox .lb-close{ position:absolute; top:24px; right:28px; width:38px; height:38px; border-radius:10px; background: rgba(255,255,255,0.1); color:var(--text-primary); display:flex; align-items:center; justify-content:center; border:none; }
 
 /* confirm dialog reuses modal-sm */
 .confirm-icon{ width:44px; height:44px; border-radius:12px; background: var(--danger-dim); color: var(--danger); display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
@@ -896,14 +918,385 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 }
 
 /* ------------------------------------------------------------------
-   Mobile (<900px): sidebar becomes off-canvas, single-column forms
+   Mobile (<900px): sidebar becomes a true off-canvas drawer (QA fix —
+   previously `display:none` with no reopen affordance, which made
+   navigation unreachable below 900px). Opened via .mobile-nav-toggle
+   in the topbar; closed via backdrop click, ESC, or picking a nav item.
    ------------------------------------------------------------------ */
 @media(max-width:900px){
-  .sidebar{ display:none; }
   .view{ padding:22px 16px 60px; }
   .topbar{ padding:16px; }
   .info-grid{ grid-template-columns:1fr; }
+
+  .mobile-nav-toggle{ display:flex; }
+
+  .sidebar{
+    position:fixed; left:0; top:0; z-index:130;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-floating);
+    transition: transform var(--duration-slow) var(--ease-standard);
+  }
+  body.mobile-nav-open .sidebar{ transform: translateX(0); }
+  .sidebar-toggle{ display:none; } /* collapse/expand is a desktop-only affordance */
+
+  .mobile-nav-backdrop{
+    display:none; position:fixed; inset:0; z-index:120;
+    background: rgba(3,10,18,0.55);
+  }
+  body.mobile-nav-open .mobile-nav-backdrop{ display:block; }
 }
+.mobile-nav-toggle{
+  display:none; align-items:center; justify-content:center; flex-shrink:0;
+  width:38px; height:38px; border-radius:10px;
+  background: var(--bg-surface-soft); border:1px solid var(--border); color: var(--text-primary);
+}
+.mobile-nav-toggle:hover{ background: var(--bg-surface-soft-hover); }
+.mobile-nav-toggle svg{ width:18px; height:18px; }
+
+/* ==========================================================================
+   PHASE 06 — PREMIUM ENTERPRISE DEPTH, GLASS & MOTION SYSTEM
+   Builds on the existing token system; no structural HTML changes required.
+   ========================================================================== */
+
+/* ---- 1. Controlled 3D depth on core surfaces ---------------------------- */
+/* --shadow-* tokens already carry an inset top-highlight (see :root).
+   Here we add a very soft top-to-bottom gradient overlay so panels read
+   as gently curved glass/metal rather than flat fills. */
+.kpi-card, .panel, .list-panel, .modal, .drawer, .tb-menu, .gsearch-panel,
+.file-card, .mini-card, .info-card, .crlog-kpis .kpi-card, .config-card{
+  background-image: var(--surface-gradient);
+  background-repeat: no-repeat;
+  background-position: top left;
+}
+.table-wrap{ position:relative; }
+.list-panel, .panel{ box-shadow: var(--shadow-sm); }
+.kpi-card{ box-shadow: var(--shadow-sm); }
+.kpi-card:hover{ box-shadow: var(--shadow-md); }
+.tb-menu{ box-shadow: var(--shadow-lg); }
+.modal, .drawer{ box-shadow: var(--shadow-floating); }
+.gsearch-panel{ box-shadow: var(--shadow-floating); }
+
+/* ---- 2. Glass — reserved for chrome that floats above content ---------- */
+/* topbar / drawer-head / modal.full head+foot already use backdrop-filter;
+   we extend the same restrained treatment to floating toolbar & menus only. */
+.tb-menu, .gsearch-panel{
+  background-color: var(--glass-bg-strong);
+  border-color: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+.bulk-bar{
+  background-color: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border:1px solid var(--glass-border);
+  box-shadow: var(--shadow-md);
+}
+.tb-search input, .search-box input{ backdrop-filter: none; }
+
+/* ---- 3. Buttons: hover lift / active press / disabled / focus ---------- */
+.btn{ transform: translateY(0); }
+.btn:hover:not(:disabled){ transform: translateY(-1px); }
+.btn:active:not(:disabled){ transform: translateY(0) scale(0.97); }
+.btn:disabled{ transform:none; box-shadow:none; }
+.btn:focus-visible{ outline:none; box-shadow: var(--focus-ring); }
+.btn-primary{ box-shadow: var(--shadow-sm); }
+.btn-primary:hover:not(:disabled){ box-shadow: 0 6px 18px -6px rgba(63,208,201,0.5), var(--shadow-sm); }
+.icon-btn:focus-visible, .modal-close:focus-visible, .drawer-close:focus-visible,
+.sidebar-toggle:focus-visible, .tb-btn:focus-visible, .nav-item:focus-visible{
+  outline:none; box-shadow: var(--focus-ring);
+}
+.field input:focus-visible, .field textarea:focus-visible, .field select:focus-visible{
+  box-shadow: var(--focus-ring);
+}
+
+/* ---- 4. Cards / rows / nav — micro elevation & indicators --------------- */
+.file-card, .mini-card{ transition: var(--transition-hover), box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard); }
+.file-card:hover{ box-shadow: var(--shadow-md); transform: translateY(-1px); border-color: var(--border-light); }
+.mini-card:hover{ box-shadow: var(--shadow-sm); }
+.cr-card{ transition: var(--transition-hover), box-shadow var(--duration-base) var(--ease-standard), transform var(--duration-fast) var(--ease-standard); }
+.cr-card:hover{ box-shadow: var(--shadow-sm); border-color: var(--border-light); }
+
+.nav-item{ position:relative; }
+.nav-item::before{
+  content:""; position:absolute; left:-6px; top:50%; transform:translateY(-50%) scaleY(0);
+  width:3px; height:18px; border-radius:3px; background: var(--accent);
+  transition: transform var(--duration-base) var(--ease-decel);
+}
+.nav-item.active::before{ transform: translateY(-50%) scaleY(1); }
+body.sidebar-collapsed .nav-item::before{ left:-2px; }
+
+/* ---- 5. Micro-interactions: icons, badges, tooltips --------------------- */
+.badge{ transition: background var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard); }
+.icon-btn svg, .nav-item svg, .sidebar-toggle svg, .tb-btn svg{ transition: transform var(--duration-fast) var(--ease-standard); }
+.icon-btn:hover svg{ transform: scale(1.08); }
+.tb-badge{ transition: transform var(--duration-fast) var(--ease-standard); }
+.tb-btn:hover .tb-badge{ transform: scale(1.1); }
+
+/* lightweight tooltip reusing existing [title] attributes — no markup changes needed */
+[title].icon-btn, [title].tb-btn, [title].modal-close, [title].drawer-close, [title].sidebar-toggle, [title].file-del{
+  position:relative;
+}
+[title].icon-btn::after, [title].tb-btn::after, [title].sidebar-toggle::after{
+  content: attr(title);
+  position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(2px);
+  background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border:1px solid var(--glass-border); color: var(--text-primary);
+  font-size:11px; font-weight:600; white-space:nowrap; padding:5px 9px; border-radius:7px;
+  box-shadow: var(--shadow-md); pointer-events:none; opacity:0; z-index:60;
+  transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+[title].icon-btn:hover::after, [title].tb-btn:hover::after, [title].sidebar-toggle:hover::after{
+  opacity:1; transform:translateX(-50%) translateY(0);
+}
+@media(hover:none){
+  [title].icon-btn::after, [title].tb-btn::after, [title].sidebar-toggle::after{ display:none; }
+}
+
+/* ---- 6. Skeleton loading -------------------------------------------------
+   GPU-friendly: animates background-position only (compositor-safe),
+   never runs longer than needed because it's removed once real data renders. */
+@keyframes skeleton-shine{
+  0%{ background-position:-200% 0; }
+  100%{ background-position:200% 0; }
+}
+.skeleton{
+  border-radius:6px; background-color: var(--skeleton-base);
+  background-image: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 50%, var(--skeleton-base) 75%);
+  background-size:200% 100%;
+  animation: skeleton-shine 1.6s ease-in-out infinite;
+  will-change: background-position;
+}
+.skeleton-kpi{ height:88px; border-radius: var(--radius-md); }
+.skeleton-kpi.sm{ height:70px; }
+.skeleton-line{ height:12px; margin-bottom:8px; }
+.skeleton-line.w-60{ width:60%; } .skeleton-line.w-40{ width:40%; } .skeleton-line.w-80{ width:80%; }
+.skeleton-row td{ padding:14px 20px; }
+.skeleton-chip{ height:20px; width:64px; border-radius:20px; display:inline-block; }
+.skeleton-thumb{ aspect-ratio:1/1; border-radius: var(--radius-sm); }
+@media(prefers-reduced-motion: reduce){
+  .skeleton{ animation:none; }
+}
+
+/* ---- 7. Empty & error states --------------------------------------------
+   One-shot entrance (no infinite loop, GPU-friendly transform/opacity only). */
+@keyframes state-in{
+  from{ opacity:0; transform:translateY(4px) scale(.98); }
+  to{ opacity:1; transform:translateY(0) scale(1); }
+}
+.empty-state, .error-state{ animation: state-in var(--duration-slow) var(--ease-decel) both; }
+.empty-state svg{ color: var(--text-muted); }
+.error-state{ text-align:center; padding:60px 20px; color: var(--text-faint); }
+.error-state .err-icon{
+  width:44px; height:44px; border-radius:12px; margin:0 auto 14px; display:flex; align-items:center; justify-content:center;
+  background: var(--danger-dim); color: var(--danger);
+}
+.error-state .err-icon svg{ width:22px; height:22px; }
+.error-state h4{ color: var(--text-dim); font-size:15px; margin-bottom:6px; }
+.error-state p{ font-size:13px; max-width:360px; margin:0 auto 16px; line-height:1.6; }
+.error-state .btn{ margin:0 auto; }
+@media(prefers-reduced-motion: reduce){
+  .empty-state, .error-state{ animation:none; }
+}
+
+/* ---- 8. Responsive hardening: 1440 / 1280 / 1024 / 768 / 480 ------------ */
+/* 1440px — comfortable desktop reference, no extra rule required beyond defaults */
+@media(max-width:1280px){
+  .search-box{ max-width:280px; }
+  .topbar-actions{ gap:8px; }
+}
+@media(max-width:1024px){
+  :root{ --sidebar-w: 208px; }
+  .kpi-value{ font-size:26px; }
+  .search-box{ max-width:220px; }
+  .table-toolbar{ row-gap:8px; }
+}
+@media(max-width:768px){
+  .topbar{ flex-wrap:wrap; row-gap:10px; padding:14px 16px; }
+  .topbar h1{ font-size:18px; }
+  .search-box{ order:3; max-width:none; width:100%; margin-left:0; flex-basis:100%; }
+  .topbar-actions{ margin-left:0; }
+  .view{ padding:18px 14px 48px; }
+  .view-head{ align-items:flex-start; }
+  .kpi-grid, .crlog-kpis{ grid-template-columns:repeat(2,1fr); }
+  .list-panel-head{ flex-wrap:wrap; }
+  .table-toolbar{ width:100%; }
+  .modal{ max-width:100%; margin:0 8px; }
+  .form-grid{ grid-template-columns:1fr; }
+  .modal-foot, .config-actions{ flex-wrap:wrap; }
+  .modal-foot .btn, .config-actions .btn{ flex:1; min-width:120px; }
+}
+@media(max-width:480px){
+  .kpi-grid, .crlog-kpis{ grid-template-columns:1fr; }
+  .view{ padding:14px 10px 40px; }
+  .topbar h1{ font-size:16.5px; }
+  .btn{ padding:10px 14px; font-size:13px; }
+  .modal-head, .modal-body, .modal-foot{ padding-left:16px; padding-right:16px; }
+  .drawer-head, .drawer-body, .drawer-foot{ padding-left:16px !important; padding-right:16px !important; }
+  .config-card{ padding:22px 18px; }
+  .file-grid{ grid-template-columns:repeat(auto-fill, minmax(105px,1fr)); }
+  .bulk-actions{ flex-wrap:wrap; }
+  .row-actions{ opacity:1; } /* no hover on touch — always show actions */
+}
+
+/* ==========================================================================
+   PHASE 07 — DASHBOARD & CR DRAWER, PREMIUM PASS
+   Presentational only: no KPI calculation, status values, schema, or CRUD
+   logic changes. Everything below is layout/visual + safe derived context
+   (percnone-of-total, relative time, timestamps already in the record).
+   ========================================================================== */
+
+/* ---- Dashboard KPI cards: icon slot + optional %-of-total context ------- */
+.kpi-card{ padding:19px 20px 18px; }
+.kpi-card .kpi-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.kpi-card .kpi-icon{
+  position:static; width:34px; height:34px; border-radius:10px; opacity:1;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  background: var(--bg-surface-soft); color: var(--text-secondary);
+}
+.kpi-card .kpi-icon svg{ width:17px; height:17px; }
+.kpi-card.accent .kpi-icon{ background: var(--accent-soft); color: var(--accent); }
+.kpi-card.danger .kpi-icon{ background: var(--danger-dim); color: var(--danger); }
+.kpi-card.warn .kpi-icon{ background: var(--warning-dim); color: var(--accent-2); }
+.kpi-card.success .kpi-icon{ background: var(--success-dim); color: var(--success); }
+.kpi-card .kpi-pct{
+  font-size:11px; font-weight:700; padding:3px 7px; border-radius:20px; flex-shrink:0;
+  background: var(--bg-surface-soft); color: var(--text-secondary); white-space:nowrap;
+}
+.kpi-card .kpi-value{ margin-top:14px; }
+.kpi-card .kpi-label{ margin-top:2px; margin-bottom:0; order:3; }
+.kpi-card .kpi-foot{ min-height:15px; }
+
+/* ---- Dashboard charts: same counts/percentages, calmer premium styling - */
+.chart-block .bar-row{ margin-bottom:13px; }
+.chart-block .bar-track{ height:8px; background: rgba(255,255,255,0.045); }
+.chart-block .bar-fill{
+  position:relative; transition: width .6s var(--ease-decel);
+}
+.chart-block .bar-label{ font-weight:600; color: var(--text-secondary); }
+.chart-block .bar-num{ font-variant-numeric:tabular-nums; color: var(--text-primary); }
+
+/* ---- Dashboard "recent activity": scannable rows with status rail ------- */
+.recent-item{
+  position:relative; padding:11px 8px 11px 16px; gap:12px; border-radius:9px;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+.recent-item:hover{ background: var(--bg-surface-soft); }
+.recent-item::before{
+  content:""; position:absolute; left:2px; top:8px; bottom:8px; width:3px; border-radius:3px;
+  background: var(--rail-color, var(--border-light));
+}
+.recent-item .recent-title{ font-weight:700; }
+.recent-item .recent-meta{ font-variant-numeric:tabular-nums; }
+
+/* ==========================================================================
+   CR DRAWER — visual hierarchy: Header / Summary / Progress / Detail /
+   Related / Attachments / Activity
+   ========================================================================== */
+
+/* ---- Header refinements -------------------------------------------------*/
+.drawer-head h2{ font-family: var(--font-mono); letter-spacing:-0.01em; }
+.drawer-head-actions{ display:flex; gap:8px; flex-shrink:0; }
+
+/* ---- Generic drawer section shell (reused by Summary/Detail/Related/Activity) */
+.dsec{ margin-bottom:26px; }
+.dsec:last-child{ margin-bottom:0; }
+.dsec-head{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.dsec-head .dsec-title{
+  font-size: var(--text-section-title-size); text-transform:uppercase; letter-spacing:.06em;
+  color: var(--text-secondary); font-weight: var(--text-section-title-weight); white-space:nowrap;
+}
+.dsec-head::after{ content:""; flex:1; height:1px; background: var(--panel-border); }
+.dsec-head .dsec-action{ font-size:11.5px; font-weight:700; color: var(--accent); cursor:pointer; white-space:nowrap; }
+.dsec-head .dsec-action:hover{ color: var(--accent-hover); }
+
+/* ---- Summary: quick-scan key/value strip -------------------------------- */
+.summary-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px 24px; }
+.summary-item .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color: var(--text-faint); font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+.summary-item .k svg{ width:12px; height:12px; opacity:.8; }
+.summary-item .v{ font-size:13.5px; font-weight:600; color: var(--text-primary); line-height:1.4; }
+.summary-item .v.empty{ color: var(--text-faint); font-weight:500; font-style:italic; }
+.summary-item .v.overdue{ color: var(--danger); }
+@media(max-width:640px){ .summary-grid{ grid-template-columns:1fr 1fr; } }
+
+/* ---- Status progression stepper ----------------------------------------- */
+.progress-track{ display:flex; align-items:flex-start; overflow-x:auto; padding-bottom:4px; margin-bottom:2px; }
+.progress-step{ display:flex; flex-direction:column; align-items:center; flex:1; min-width:74px; position:relative; }
+.progress-step .dot{
+  width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background: var(--bg-surface-soft); border:2px solid var(--border); color: var(--text-faint);
+  font-size:10px; font-weight:800; z-index:1; transition: var(--transition-hover);
+}
+.progress-step .line{
+  position:absolute; top:11px; left:calc(-50% + 11px); width:calc(100% - 22px); height:2px;
+  background: var(--border); z-index:0;
+}
+.progress-step:first-child .line{ display:none; }
+.progress-step .lbl{ font-size:10.5px; margin-top:8px; color: var(--text-faint); text-align:center; font-weight:600; line-height:1.3; }
+.progress-step.done .dot{ background: var(--success); border-color: var(--success); color:var(--on-accent-text); }
+.progress-step.done .line{ background: var(--success); }
+.progress-step.done .lbl{ color: var(--text-secondary); }
+.progress-step.current .dot{ background: var(--accent); border-color: var(--accent); color:var(--on-accent-text); box-shadow: var(--focus-ring); }
+.progress-step.current .lbl{ color: var(--accent); font-weight:800; }
+.progress-step.rejected .dot{ background: var(--danger); border-color: var(--danger); color:var(--on-danger-text); }
+.progress-step.rejected .lbl{ color: var(--danger); font-weight:800; }
+.progress-track.muted .progress-step .dot{ opacity:.55; }
+.progress-track.muted .progress-step .line{ opacity:.55; }
+.progress-note{
+  margin-top:12px; display:flex; align-items:center; gap:8px; font-size:12.5px; color: var(--text-secondary);
+  background: var(--bg-surface-soft); border:1px solid var(--border); border-radius: var(--radius-sm); padding:9px 12px;
+}
+.progress-note svg{ width:15px; height:15px; flex-shrink:0; color: var(--accent-2); }
+.progress-note.is-danger{ color: var(--danger); }
+.progress-note.is-danger svg{ color: var(--danger); }
+@media(max-width:640px){
+  .progress-track{ overflow-x:auto; }
+  .progress-step{ min-width:64px; }
+}
+
+/* ---- Detail: description / business impact / technical info ------------- */
+.detail-block{ margin-bottom:16px; }
+.detail-block:last-child{ margin-bottom:0; }
+.detail-block .db-label{ font-size:11.5px; font-weight:700; color: var(--text-secondary); margin-bottom:7px; display:flex; align-items:center; gap:7px; }
+.detail-block .db-label svg{ width:14px; height:14px; opacity:.85; }
+.detail-block .db-body{
+  font-size:13.3px; line-height:1.65; color: var(--text-primary); white-space:pre-wrap;
+  background: rgba(255,255,255,0.03); border:1px solid var(--panel-border); border-radius: var(--radius-sm);
+  padding:12px 14px;
+}
+.detail-block .db-body.empty{ color: var(--text-faint); font-style:italic; background:none; border-style:dashed; }
+.detail-links{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+.detail-link{
+  display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color: var(--text-secondary);
+  background: var(--bg-surface-soft); border:1px solid var(--border); border-radius:20px; padding:6px 12px;
+  transition: var(--transition-hover);
+}
+.detail-link:hover{ color: var(--accent); border-color: rgba(63,208,201,0.3); background: var(--accent-soft); }
+.detail-link svg{ width:12px; height:12px; }
+.detail-link.is-empty{ color: var(--text-faint); cursor:default; }
+.detail-link.is-empty:hover{ color: var(--text-faint); border-color: var(--border); background: var(--bg-surface-soft); }
+
+/* ---- Related preview (UAT + Release) inside the Info tab ----------------- */
+.related-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:640px){ .related-grid{ grid-template-columns:1fr; } }
+.related-col-title{ font-size:11.5px; font-weight:700; color: var(--text-faint); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.related-col-title b{ color: var(--text-secondary); font-weight:700; }
+
+/* ---- Activity timeline --------------------------------------------------- */
+.activity-list{ display:flex; flex-direction:column; }
+.activity-item{ display:flex; gap:12px; padding:10px 0; position:relative; }
+.activity-item::before{
+  content:""; position:absolute; left:5px; top:26px; bottom:-2px; width:1.5px; background: var(--panel-border);
+}
+.activity-item:last-child::before{ display:none; }
+.activity-dot{ width:11px; height:11px; border-radius:50%; margin-top:4px; flex-shrink:0; background: var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.activity-item.is-muted .activity-dot{ background: var(--text-faint); box-shadow:0 0 0 3px rgba(255,255,255,0.05); }
+.activity-body .a-title{ font-size:13px; font-weight:600; color: var(--text-primary); }
+.activity-body .a-time{ font-size:11.5px; color: var(--text-faint); margin-top:2px; }
+
+/* ---- Drawer expands with sidebar state / focus mode / mobile ------------ */
+body.focus-mode .drawer-overlay, body.focus-mode .drawer,
+body.focus-mode .modal-overlay.full{ left:0 !important; }
 </style>
 </head>
 <body>
@@ -999,8 +1392,13 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
     </div>
   </aside>
 
+  <div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+
   <div class="main">
     <div class="topbar">
+      <button class="mobile-nav-toggle" id="btnMobileNav" title="Mở menu điều hướng" aria-label="Mở menu điều hướng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
       <div>
         <h1 id="topbarTitle">Dashboard</h1>
         <div class="sub" id="topbarSub">Tổng quan tình trạng Change Request</div>
@@ -1214,13 +1612,13 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 </div>
 
 <!-- ============================== MODALS (injected content by JS) ============================== -->
-<div class="modal-overlay" id="crModalOverlay"></div>
-<div class="modal-overlay" id="tcModalOverlay"></div>
-<div class="modal-overlay" id="relModalOverlay"></div>
-<div class="modal-overlay" id="userModalOverlay"></div>
-<div class="modal-overlay" id="confirmModalOverlay"></div>
+<div class="modal-overlay" id="crModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="tcModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="relModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="userModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="confirmModalOverlay" role="dialog" aria-modal="true"></div>
 
-<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer-overlay" id="drawerOverlay" role="presentation"></div>
 <div class="drawer" id="crDrawer"></div>
 
 <div id="lightbox"><button class="lb-close" id="lbClose">✕</button><img id="lbImg" src="" alt=""></div>
@@ -1299,6 +1697,7 @@ const STATE = {
   crSelection: new Set(), // cr_id values currently selected in CR Log table
   crColumns: null,        // populated by loadCrColumnPrefs()
   crDensity: localStorage.getItem("crDensity") || "comfortable",
+  loadErrors: { cr:null, tc:null, rel:null, admin:null }, // last fetch error per dataset, null = ok
 };
 
 /* Togglable CR Log columns (CR ID + Status + Actions are structural, not toggled) */
@@ -1587,10 +1986,21 @@ function initSidebarToggle(){
   });
 }
 
+function closeMobileNav(){
+  document.body.classList.remove("mobile-nav-open");
+}
+function initMobileNav(){
+  const btn = $("#btnMobileNav");
+  const backdrop = $("#mobileNavBackdrop");
+  if(btn) btn.addEventListener("click", ()=> document.body.classList.toggle("mobile-nav-open"));
+  if(backdrop) backdrop.addEventListener("click", closeMobileNav);
+}
+
 function initShell(){
   initSidebarToggle();
+  initMobileNav();
   $all(".nav-item[data-view]").forEach(item=>{
-    item.addEventListener("click", ()=> setView(item.dataset.view));
+    item.addEventListener("click", ()=> { setView(item.dataset.view); closeMobileNav(); });
   });
 
   $("#btnLogout").addEventListener("click", ()=>{
@@ -1667,7 +2077,7 @@ function initShell(){
       return;
     }
     if(e.key === "Escape"){
-      closeLightbox(); closeDrawer();
+      closeLightbox(); closeDrawer(); closeMobileNav();
       $all(".modal-overlay.show").forEach(m=> m.classList.remove("show"));
       closeAllTbMenus();
       if(document.body.classList.contains("focus-mode")) setFocusMode(false);
@@ -2023,6 +2433,7 @@ function openGsResult(item){
    5. DATA FETCH
 --------------------------------------------------------------------------- */
 async function refreshAll(){
+  showLoadingSkeletons();
   await Promise.all([fetchCrList(), fetchTcList(), fetchRelList()]);
   renderNavCounts();
   renderDashboard();
@@ -2034,19 +2445,69 @@ async function refreshAll(){
 
 async function fetchCrList(){
   const { data, error } = await STATE.sb.from("cr_log").select("*").order("created_at", { ascending:false });
-  if(error){ toast("Lỗi tải CR Log: " + error.message, "err"); STATE.crList = []; return; }
+  if(error){ toast("Lỗi tải CR Log: " + error.message, "err"); STATE.crList = []; STATE.loadErrors.cr = error.message; return; }
+  STATE.loadErrors.cr = null;
   STATE.crList = data || [];
 }
 async function fetchTcList(){
   const { data, error } = await STATE.sb.from("uat_testcase").select("*").order("created_at", { ascending:false });
-  if(error){ toast("Lỗi tải UAT Test Case: " + error.message, "err"); STATE.tcList = []; return; }
+  if(error){ toast("Lỗi tải UAT Test Case: " + error.message, "err"); STATE.tcList = []; STATE.loadErrors.tc = error.message; return; }
+  STATE.loadErrors.tc = null;
   STATE.tcList = data || [];
 }
 async function fetchRelList(){
   const { data, error } = await STATE.sb.from("release_prd").select("*").order("created_at", { ascending:false });
-  if(error){ toast("Lỗi tải Release/PRD: " + error.message, "err"); STATE.relList = []; return; }
+  if(error){ toast("Lỗi tải Release/PRD: " + error.message, "err"); STATE.relList = []; STATE.loadErrors.rel = error.message; return; }
+  STATE.loadErrors.rel = null;
   STATE.relList = data || [];
 }
+
+/* ---------------------------------------------------------------------------
+   SKELETON LOADING — shown the instant a view/table starts fetching, replaced
+   by real markup (or an empty/error state) as soon as the fetch resolves.
+--------------------------------------------------------------------------- */
+function skeletonKpiRow(host, count){
+  if(!host) return;
+  host.innerHTML = Array.from({length:count}).map(()=> `<div class="skeleton skeleton-kpi"></div>`).join("");
+}
+function skeletonTableRows(tbody, colCount, rowCount){
+  if(!tbody) return;
+  tbody.innerHTML = Array.from({length:rowCount}).map(()=> `
+    <tr class="skeleton-row">
+      ${Array.from({length:colCount}).map(()=> `<td><div class="skeleton skeleton-line w-80"></div></td>`).join("")}
+    </tr>`).join("");
+}
+function showLoadingSkeletons(){
+  skeletonKpiRow($("#kpiGrid"), 4);
+  skeletonKpiRow($("#crKpis"), 4);
+  const crTbody = $("#crTableBody");
+  if(crTbody) skeletonTableRows(crTbody, 7, 6);
+  const tcTbody = $("#tcTableBody");
+  if(tcTbody) skeletonTableRows(tcTbody, 7, 5);
+  const relTbody = $("#relTableBody");
+  if(relTbody) skeletonTableRows(relTbody, 7, 5);
+}
+
+/* Generic inline error state with a retry action, used inside table bodies
+   and KPI/grid containers when a fetch fails outright. */
+function errorStateBlock(title, msg, retryAttr){
+  return `<div class="error-state">
+    <div class="err-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg></div>
+    <h4>${esc(title)}</h4>
+    <p>${esc(msg)}</p>
+    <button class="btn btn-ghost btn-sm" data-retry="${retryAttr}">Thử lại</button>
+  </div>`;
+}
+document.addEventListener("click", (e)=>{
+  const btn = e.target.closest("[data-retry]");
+  if(!btn) return;
+  const which = btn.dataset.retry;
+  if(which === "cr"){ fetchCrList().then(()=>{ renderCrTable(); renderDashboard(); }); }
+  else if(which === "tc"){ fetchTcList().then(renderTcTable); }
+  else if(which === "rel"){ fetchRelList().then(renderRelTable); }
+  else if(which === "admin"){ loadAndRenderAdmin(); }
+  else { refreshAll(); }
+});
 async function fetchAttachments(cr_id){
   const { data, error } = await STATE.sb.from("cr_attachments").select("*").eq("cr_id", cr_id).order("uploaded_at", { ascending:false });
   if(error){ toast("Lỗi tải file: " + error.message, "err"); return []; }
@@ -2090,12 +2551,13 @@ function renderDashboard(){
   const overdue = list.filter(isOverdue).length;
   const inflight = list.filter(c=> ["In Progress","UAT","In Review"].includes(c.status)).length;
   const released = list.filter(c=> c.status === "Released").length;
+  const pct = n => total ? Math.round((n/total)*100) : 0;
 
   $("#kpiGrid").innerHTML = `
-    ${kpiCard("Tổng số CR", total, "", "")}
-    ${kpiCard("Đang xử lý", inflight, "In Progress / UAT / In Review", "accent")}
-    ${kpiCard("Trễ hạn", overdue, "Deadline đã qua, chưa Released/Closed", "danger")}
-    ${kpiCard("Đã Released", released, "", "success")}
+    ${kpiCard("Tổng số CR", total, "Toàn bộ Change Request đã ghi nhận", "", KPI_ICONS.total)}
+    ${kpiCard("Đang xử lý", inflight, "In Progress / UAT / In Review", "accent", KPI_ICONS.inflight, pct(inflight))}
+    ${kpiCard("Trễ hạn", overdue, "Deadline đã qua, chưa Released/Closed", "danger", KPI_ICONS.overdue, pct(overdue))}
+    ${kpiCard("Đã Released", released, "Đã hoàn tất release", "success", KPI_ICONS.released, pct(released))}
   `;
 
   $("#statTotalStatus").textContent = total + " CR";
@@ -2105,22 +2567,50 @@ function renderDashboard(){
 
   const recent = [...list].sort((a,b)=> new Date(b.updated_at||b.created_at) - new Date(a.updated_at||a.created_at)).slice(0,6);
   $("#recentList").innerHTML = recent.length ? recent.map(c=>`
-    <div class="recent-item" data-cr="${esc(c.cr_id)}">
+    <div class="recent-item" data-cr="${esc(c.cr_id)}" style="--rail-color:${colorFor('status', c.status)}">
       <span class="recent-id">${esc(c.cr_id)}</span>
       <span class="recent-title">${esc(c.rename_folder || c.old_name || c.app || "(chưa có tiêu đề)")}</span>
       ${badge("status", c.status)}
-      <span class="recent-meta">${fmtDate(c.request_date)}</span>
+      <span class="recent-meta">${relTime(c.updated_at || c.created_at)}</span>
     </div>
   `).join("") : emptyRow("Chưa có Change Request nào");
   $all(".recent-item[data-cr]").forEach(el=> el.addEventListener("click", ()=> openDrawer(el.dataset.cr)));
 }
 
-function kpiCard(label, value, foot, cls){
+function kpiCard(label, value, foot, cls, icon, pct){
   return `<div class="kpi-card ${cls||''}">
-    <div class="kpi-label">${esc(label)}</div>
+    <div class="kpi-top">
+      ${icon? `<div class="kpi-icon">${icon}</div>` : `<div class="kpi-label">${esc(label)}</div>`}
+      ${pct!=null? `<span class="kpi-pct">${pct}%</span>` : ""}
+    </div>
     <div class="kpi-value">${value}</div>
+    ${icon? `<div class="kpi-label">${esc(label)}</div>` : ""}
     ${foot? `<div class="kpi-foot">${esc(foot)}</div>` : ""}
   </div>`;
+}
+
+const KPI_ICONS = {
+  total: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`,
+  inflight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>`,
+  overdue: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+  released: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>`,
+};
+
+/* Relative time — presentational only, used for the recent-activity list and
+   the drawer's Activity timeline. Falls back to a plain date further out. */
+function relTime(d){
+  if(!d) return "";
+  const dt = new Date(d);
+  if(isNaN(dt.getTime())) return fmtDate(d);
+  const diffMs = Date.now() - dt.getTime();
+  const min = Math.floor(diffMs/60000);
+  if(min < 1) return "vừa xong";
+  if(min < 60) return `${min} phút trước`;
+  const hr = Math.floor(min/60);
+  if(hr < 24) return `${hr} giờ trước`;
+  const day = Math.floor(hr/24);
+  if(day < 7) return `${day} ngày trước`;
+  return fmtDate(d);
 }
 
 function barChart(keys, list, field){
@@ -2229,6 +2719,13 @@ function renderCrTable(){
   const footEl = $("#crFootCount");
   if(countEl) countEl.textContent = rows.length;
   if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${STATE.crList.length} Change Request`;
+
+  if(STATE.loadErrors.cr){
+    const colspan = cols.length + 3;
+    tbody.innerHTML = `<tr><td colspan="${colspan}">${errorStateBlock("Không tải được CR Log", STATE.loadErrors.cr, "cr")}</td></tr>`;
+    $("#crMobileList").innerHTML = errorStateBlock("Không tải được CR Log", STATE.loadErrors.cr, "cr");
+    return;
+  }
 
   // drop selections for CRs no longer present in the dataset
   const allIds = new Set(STATE.crList.map(c=>c.cr_id));
@@ -2485,7 +2982,10 @@ function openCrModal(cr){
   overlay.classList.add("show", "full");
   $("#crModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#crModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
-  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  }
   $("#btnSuggestCrId")?.addEventListener("click", ()=>{ $("#f_cr_id").value = nextCrIdSuggestion(); });
   $("#crModalSave").addEventListener("click", ()=> saveCr(overlay, !!cr));
 }
@@ -2543,6 +3043,105 @@ function infoItem(label, value, full){
   return `<div class="info-item ${full?'full block':''}"><div class="k">${esc(label)}</div>${v}</div>`;
 }
 
+/* ---- CR Drawer presentational helpers (no data/schema changes) ---------- */
+function summaryItem(label, value, flagOverdue){
+  const empty = (value===null||value===undefined||value==="");
+  return `<div class="summary-item">
+    <div class="k">${esc(label)}</div>
+    <div class="v ${empty?'empty':''} ${flagOverdue?'overdue':''}">${empty? "Chưa có dữ liệu" : esc(value)}</div>
+  </div>`;
+}
+
+function detailBlock(label, value){
+  const empty = (value===null||value===undefined||value==="");
+  return `<div class="detail-block">
+    <div class="db-label">${esc(label)}</div>
+    <div class="db-body ${empty?'empty':''}">${empty? "Chưa có dữ liệu" : esc(value)}</div>
+  </div>`;
+}
+
+const ICON_LINK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.07 0l1.93-1.93a5 5 0 00-7.07-7.07L10.5 5.43"/><path d="M14 11a5 5 0 00-7.07 0L5 12.93a5 5 0 007.07 7.07L13.5 18.57"/></svg>`;
+function linkChip(label, url){
+  if(!url) return `<span class="detail-link is-empty">${ICON_LINK}${esc(label)}</span>`;
+  return `<a class="detail-link" href="${esc(url)}" target="_blank" rel="noopener">${ICON_LINK}${esc(label)}</a>`;
+}
+
+/* Linear happy-path used purely for the visual stepper. The database keeps
+   its own status values untouched — statuses outside this list (Rejected,
+   Ready to Release, On Hold) are shown as an explicit branch note instead of
+   being forced onto the line. */
+const STATUS_FLOW = ["New","In Review","Approved","In Progress","UAT","Released","Closed"];
+function statusProgressHtml(status){
+  let idx = STATUS_FLOW.indexOf(status);
+  let muted = false, note = null;
+  if(idx === -1){
+    if(status === "Rejected"){
+      idx = 1;
+      note = { danger:true, text:'Change Request đã bị từ chối sau bước "In Review".' };
+    } else if(status === "Ready to Release"){
+      idx = 4;
+      note = { danger:false, text:'Đã hoàn tất UAT, đang chờ release ("Ready to Release").' };
+    } else if(status === "On Hold"){
+      muted = true;
+      note = { danger:false, text:'CR đang ở trạng thái "On Hold" — tạm dừng ngoài luồng chuẩn.' };
+    } else {
+      muted = true;
+      note = { danger:false, text:`Trạng thái "${status}" nằm ngoài luồng chuẩn.` };
+    }
+  }
+  const steps = STATUS_FLOW.map((s,i)=>{
+    let cls = "upcoming";
+    if(!muted){
+      if(i < idx) cls = "done";
+      else if(i === idx) cls = (status==="Rejected") ? "rejected" : "current";
+    }
+    const dotContent = cls==="done" ? "✓" : cls==="rejected" ? "✕" : (i+1);
+    return `<div class="progress-step ${cls}"><div class="line"></div><div class="dot">${dotContent}</div><div class="lbl">${esc(s)}</div></div>`;
+  }).join("");
+  const noteHtml = note ? `<div class="progress-note ${note.danger?'is-danger':''}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+    <span>${esc(note.text)}</span>
+  </div>` : "";
+  return `<div class="progress-track ${muted?'muted':''}">${steps}</div>${noteHtml}`;
+}
+
+/* Minimal activity feed built only from timestamps the record already has
+   (created_at / updated_at) — no fabricated history, no schema change. */
+function activityHtml(cr){
+  const items = [];
+  if(cr.created_at) items.push({ title:"CR được tạo", time:cr.created_at });
+  if(cr.updated_at && cr.updated_at !== cr.created_at) items.push({ title:"Cập nhật lần cuối", time:cr.updated_at });
+  if(!items.length) return `<div class="empty-state" style="padding:20px 10px;"><p>Chưa có dữ liệu hoạt động cho CR này</p></div>`;
+  items.sort((a,b)=> new Date(b.time) - new Date(a.time));
+  return items.map(it=>`
+    <div class="activity-item">
+      <div class="activity-dot"></div>
+      <div class="activity-body">
+        <div class="a-title">${esc(it.title)}</div>
+        <div class="a-time">${fmtDateTime(it.time)} · ${relTime(it.time)}</div>
+      </div>
+    </div>`).join("");
+}
+
+function tcMiniCardHtml(t){
+  return `<div class="mini-card" data-tc="${t.id}">
+    <div class="mc-main">
+      <div class="mc-title">${esc(t.test_case_id || '(chưa đặt tên)')} — ${esc(t.scenario||'')}</div>
+      <div class="mc-sub">${esc(t.testor||'—')} · ${fmtDate(t.testing_date)}</div>
+    </div>
+    ${badge("pass_fail", t.pass_fail)}
+  </div>`;
+}
+function relMiniCardHtml(r){
+  return `<div class="mini-card" data-rel="${r.id}">
+    <div class="mc-main">
+      <div class="mc-title">${esc(r.release_name || r.release_id || '(chưa đặt tên)')}</div>
+      <div class="mc-sub">${fmtDate(r.planned_date)} → ${r.actual_date? fmtDate(r.actual_date): 'chưa release'}</div>
+    </div>
+    ${badge("release_status", r.status)}
+  </div>`;
+}
+
 async function openDrawer(cr_id){
   const cr = STATE.crList.find(c=>c.cr_id===cr_id);
   if(!cr){ toast("Không tìm thấy CR", "err"); return; }
@@ -2568,11 +3167,11 @@ function renderDrawer(cr){
       <div class="drawer-head-top">
         <div>
           <h2>${esc(cr.cr_id)}</h2>
-          <div class="drawer-app">${esc(cr.rename_folder || cr.old_name || cr.app || '')}</div>
+          <div class="drawer-app">${esc(cr.rename_folder || cr.old_name || cr.app || '(chưa có tiêu đề)')}</div>
         </div>
-        <div style="display:flex; gap:8px; flex-shrink:0;">
+        <div class="drawer-head-actions">
           <button class="icon-btn" id="drawerEditBtn" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="drawer-close" id="drawerCloseBtn">✕</button>
+          <button class="drawer-close" id="drawerCloseBtn" title="Đóng">✕</button>
         </div>
       </div>
       <div class="drawer-badges">
@@ -2590,54 +3189,62 @@ function renderDrawer(cr){
     </div>
     <div class="drawer-body">
       <div class="tab-panel active" id="tab-info">
-        <div class="info-section">
-          <div class="info-section-title">Thông tin chung</div>
-          <div class="info-card">
-            <div class="info-grid">
-              ${infoItem("Requester", cr.requester)}
-              ${infoItem("Department", cr.department)}
-              ${infoItem("App", cr.app)}
-              ${infoItem("Owner", cr.owner)}
+
+        <div class="dsec">
+          <div class="dsec-head"><span class="dsec-title">Tóm tắt</span></div>
+          <div class="summary-grid">
+            ${summaryItem("Requester", cr.requester)}
+            ${summaryItem("Department", cr.department)}
+            ${summaryItem("Owner", cr.owner)}
+            ${summaryItem("Request Date", cr.request_date? fmtDate(cr.request_date): "")}
+            ${summaryItem("Deadline", cr.deadline? fmtDate(cr.deadline): "", overdue && !!cr.deadline)}
+            ${summaryItem("App", cr.app)}
+            ${summaryItem("Approved Status", cr.approved_status)}
+            ${summaryItem("Approved Date", cr.approved_date? fmtDate(cr.approved_date): "")}
+          </div>
+        </div>
+
+        <div class="dsec">
+          <div class="dsec-head"><span class="dsec-title">Tiến trình trạng thái</span></div>
+          ${statusProgressHtml(cr.status)}
+        </div>
+
+        <div class="dsec">
+          <div class="dsec-head"><span class="dsec-title">Chi tiết</span></div>
+          ${detailBlock("Mô tả & Business Impact (BRD)", cr.description_brd)}
+          ${detailBlock("Thông tin kỹ thuật (FSD)", cr.description_fsd)}
+          ${(cr.progress || cr.note || cr.loop_mail_header) ? `
+            ${cr.progress? detailBlock("Ghi chú tiến độ", cr.progress) : ""}
+            ${cr.note? detailBlock("Ghi chú khác", cr.note) : ""}
+            ${cr.loop_mail_header? detailBlock("Loop Mail Header", cr.loop_mail_header) : ""}
+          ` : ""}
+          <div class="detail-links">
+            ${linkChip("BRD", cr.brd_link)}
+            ${linkChip("FSD", cr.fsd_link)}
+            ${linkChip("Quotation", cr.quotation_link)}
+            ${cr.old_name? `<span class="detail-link is-empty" title="Old Name From InterK">${esc(cr.old_name)}</span>` : ""}
+          </div>
+        </div>
+
+        <div class="dsec">
+          <div class="dsec-head"><span class="dsec-title">Liên quan</span></div>
+          <div class="related-grid">
+            <div>
+              <div class="related-col-title">Test Case UAT <b id="relatedTcCount"></b></div>
+              <div class="mini-list" id="relatedTcList"></div>
+            </div>
+            <div>
+              <div class="related-col-title">Release / PRD <b id="relatedRelCount"></b></div>
+              <div class="mini-list" id="relatedRelList"></div>
             </div>
           </div>
         </div>
 
-        <div class="info-section">
-          <div class="info-section-title">Tiến độ &amp; phê duyệt</div>
-          <div class="info-card">
-            <div class="info-grid">
-              ${infoItem("Request Date", cr.request_date? fmtDate(cr.request_date): "")}
-              ${infoItem("Deadline", cr.deadline? fmtDate(cr.deadline): "")}
-              ${infoItem("Approved Status", cr.approved_status)}
-              ${infoItem("Approved Date", cr.approved_date? fmtDate(cr.approved_date): "")}
-            </div>
-          </div>
+        <div class="dsec">
+          <div class="dsec-head"><span class="dsec-title">Hoạt động</span></div>
+          <div class="activity-list" id="drawerActivity">${activityHtml(cr)}</div>
         </div>
 
-        <div class="info-section">
-          <div class="info-section-title">Liên kết tài liệu</div>
-          <div class="info-card">
-            <div class="info-grid">
-              ${infoItem("BRD Link", cr.brd_link)}
-              ${infoItem("FSD Link", cr.fsd_link)}
-              ${infoItem("Quotation Link", cr.quotation_link)}
-              ${infoItem("Old Name From InterK", cr.old_name)}
-            </div>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <div class="info-section-title">Nội dung chi tiết</div>
-          <div class="info-card">
-            <div class="info-grid">
-              ${infoItem("Loop Mail Header", cr.loop_mail_header, true)}
-              ${infoItem("Description BRD", cr.description_brd, true)}
-              ${infoItem("Description FSD", cr.description_fsd, true)}
-              ${infoItem("Progress", cr.progress, true)}
-              ${infoItem("Note", cr.note, true)}
-            </div>
-          </div>
-        </div>
       </div>
 
       <div class="tab-panel" id="tab-files">
@@ -2701,7 +3308,7 @@ async function renderDrawerFiles(cr_id){
   if(!grid) return;
   const files = (STATE.attachCache[cr_id]||[]).filter(f=> !f.testcase_id);
   if(!files.length){ grid.innerHTML = `<div style="grid-column:1/-1;">${emptyRow("Chưa có file nào được đính kèm cho CR này")}</div>`; return; }
-  grid.innerHTML = `<div class="loading-row" style="grid-column:1/-1;"><div class="spinner"></div>Đang tải file...</div>`;
+  grid.innerHTML = files.map(()=> `<div class="skeleton skeleton-thumb"></div>`).join("");
   const urls = await Promise.all(files.map(f=> getSignedUrl(f.file_path)));
   grid.innerHTML = files.map((f,i)=> fileCardHtml(f, urls[i])).join("");
   bindFileCardEvents(grid, cr_id);
@@ -2793,34 +3400,18 @@ async function deleteAttachment(id, path, cr_id, testcase_id){
 
 function renderDrawerLinked(cr_id){
   const tcs = STATE.tcList.filter(t=>t.cr_id===cr_id);
-  const tcList = $("#drawerTcList");
-  if(tcList){
-    tcList.innerHTML = tcs.length ? tcs.map(t=>`
-      <div class="mini-card" data-tc="${t.id}">
-        <div class="mc-main">
-          <div class="mc-title">${esc(t.test_case_id || '(chưa đặt tên)')} — ${esc(t.scenario||'')}</div>
-          <div class="mc-sub">${esc(t.testor||'—')} · ${fmtDate(t.testing_date)}</div>
-        </div>
-        ${badge("pass_fail", t.pass_fail)}
-      </div>
-    `).join("") : emptyRow("Chưa có test case nào cho CR này");
-    $all("[data-tc]", tcList).forEach(el=> el.addEventListener("click", ()=> openTcModal(STATE.tcList.find(t=>t.id===el.dataset.tc))));
-  }
-
+  const tcHtml = tcs.length ? tcs.map(tcMiniCardHtml).join("") : emptyRow("Chưa có test case nào cho CR này");
   const rels = STATE.relList.filter(r=>r.cr_id===cr_id);
-  const relList = $("#drawerRelList");
-  if(relList){
-    relList.innerHTML = rels.length ? rels.map(r=>`
-      <div class="mini-card" data-rel="${r.id}">
-        <div class="mc-main">
-          <div class="mc-title">${esc(r.release_name || r.release_id || '(chưa đặt tên)')}</div>
-          <div class="mc-sub">${fmtDate(r.planned_date)} → ${r.actual_date? fmtDate(r.actual_date): 'chưa release'}</div>
-        </div>
-        ${badge("release_status", r.status)}
-      </div>
-    `).join("") : emptyRow("Chưa có release nào cho CR này");
-    $all("[data-rel]", relList).forEach(el=> el.addEventListener("click", ()=> openRelModal(STATE.relList.find(r=>r.id===el.dataset.rel))));
-  }
+  const relHtml = rels.length ? rels.map(relMiniCardHtml).join("") : emptyRow("Chưa có release nào cho CR này");
+
+  ["#drawerTcList", "#relatedTcList"].forEach(sel=>{ const el = $(sel); if(el){ el.innerHTML = tcHtml;
+    $all("[data-tc]", el).forEach(node=> node.addEventListener("click", ()=> openTcModal(STATE.tcList.find(t=>t.id===node.dataset.tc))));
+  }});
+  ["#drawerRelList", "#relatedRelList"].forEach(sel=>{ const el = $(sel); if(el){ el.innerHTML = relHtml;
+    $all("[data-rel]", el).forEach(node=> node.addEventListener("click", ()=> openRelModal(STATE.relList.find(r=>r.id===node.dataset.rel))));
+  }});
+  const tcCountEl = $("#relatedTcCount"); if(tcCountEl) tcCountEl.textContent = tcs.length ? `(${tcs.length})` : "";
+  const relCountEl = $("#relatedRelCount"); if(relCountEl) relCountEl.textContent = rels.length ? `(${rels.length})` : "";
 }
 
 function openLightbox(url){
@@ -2849,6 +3440,10 @@ function renderTcTable(){
   const tbody = $("#tcTableBody");
   const countEl = $("#tcCount");
   if(countEl) countEl.textContent = rows.length;
+  if(STATE.loadErrors.tc){
+    tbody.innerHTML = `<tr><td colspan="7">${errorStateBlock("Không tải được UAT Test Case", STATE.loadErrors.tc, "tc")}</td></tr>`;
+    return;
+  }
   if(!rows.length){
     tbody.innerHTML = `<tr><td colspan="7">${emptyStateBlock("Chưa có Test Case", "Bấm \"Thêm Test Case\" để tạo test case UAT đầu tiên.")}</td></tr>`;
     return;
@@ -3006,7 +3601,10 @@ function openTcModal(t, presetCrId){
   overlay.classList.add("show", "full");
   $("#tcModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#tcModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
-  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  }
 
   $all(".tab-btn", overlay).forEach(btn=>{
     btn.addEventListener("click", ()=>{
@@ -3080,7 +3678,7 @@ async function saveTc(overlay, isEdit){
 async function renderEvidenceGrid(testcase_id){
   const grid = $("#evidenceGrid");
   if(!grid) return;
-  grid.innerHTML = `<div class="loading-row"><div class="spinner"></div>Đang tải evidence...</div>`;
+  grid.innerHTML = Array.from({length:4}).map(()=> `<div class="skeleton skeleton-thumb"></div>`).join("");
   const files = await fetchTcAttachments(testcase_id);
   if(!files.length){ grid.innerHTML = emptyRow("Chưa có ảnh evidence nào cho test case này"); return; }
   const urlMap = {};
@@ -3116,6 +3714,10 @@ function renderRelTable(){
   const tbody = $("#relTableBody");
   const countEl = $("#relCount");
   if(countEl) countEl.textContent = rows.length;
+  if(STATE.loadErrors.rel){
+    tbody.innerHTML = `<tr><td colspan="7">${errorStateBlock("Không tải được Release/PRD", STATE.loadErrors.rel, "rel")}</td></tr>`;
+    return;
+  }
   if(!rows.length){
     tbody.innerHTML = `<tr><td colspan="7">${emptyStateBlock("Chưa có Release", "Bấm \"Thêm Release\" để tạo release package đầu tiên.")}</td></tr>`;
     return;
@@ -3246,7 +3848,10 @@ function openRelModal(r, presetCrId){
   overlay.classList.add("show", "full");
   $("#relModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#relModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
-  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  }
   $("#relModalSave").addEventListener("click", ()=> saveRel(overlay, !!r));
 }
 
@@ -3307,7 +3912,10 @@ function confirmDelete(title, msg, onConfirm, confirmLabel){
     </div>`;
   overlay.classList.add("show");
   $("#confirmCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
-  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  }
   $("#confirmOk").addEventListener("click", async ()=>{
     const btn = $("#confirmOk"); btn.disabled = true; btn.textContent = "Đang xử lý...";
     await onConfirm();
@@ -3321,20 +3929,25 @@ function confirmDelete(title, msg, onConfirm, confirmLabel){
 async function loadAndRenderAdmin(){
   if(STATE.userRole !== "admin"){ return; }
   const tbody = $("#userTableBody");
-  if(tbody) tbody.innerHTML = `<tr><td colspan="5"><div class="loading-row"><div class="spinner"></div>Đang tải danh sách...</div></td></tr>`;
+  if(tbody) skeletonTableRows(tbody, 5, 4);
   await fetchAppUsers();
   renderAdminTable();
 }
 
 async function fetchAppUsers(){
   const { data, error } = await STATE.sb.from("app_users").select("*").order("added_at", { ascending:false });
-  if(error){ toast("Lỗi tải danh sách người dùng: " + error.message, "err"); STATE.userList = []; return; }
+  if(error){ toast("Lỗi tải danh sách người dùng: " + error.message, "err"); STATE.userList = []; STATE.loadErrors.admin = error.message; return; }
+  STATE.loadErrors.admin = null;
   STATE.userList = data || [];
 }
 
 function renderAdminTable(){
   const tbody = $("#userTableBody");
   if(!tbody) return;
+  if(STATE.loadErrors.admin){
+    tbody.innerHTML = `<tr><td colspan="5">${errorStateBlock("Không tải được danh sách người dùng", STATE.loadErrors.admin, "admin")}</td></tr>`;
+    return;
+  }
   if(!STATE.userList.length){
     tbody.innerHTML = `<tr><td colspan="5">${emptyStateBlock("Chưa có ai được cấp quyền", "Bấm \"+ Thêm người dùng\" để cấp quyền cho một email Gmail.")}</td></tr>`;
     return;
@@ -3431,7 +4044,10 @@ function openUserModal(u){
   overlay.classList.add("show");
   $("#userModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#userModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
-  overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  }
   $("#userModalSave").addEventListener("click", ()=> saveUser(overlay, !!u));
 }
 

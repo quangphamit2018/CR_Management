@@ -298,6 +298,13 @@ h1,h2,h3,h4{ font-family: var(--font-head); font-weight:700; letter-spacing:-0.0
 }
 body.sidebar-collapsed .sidebar{ width: var(--sidebar-w-collapsed); padding-left:10px; padding-right:10px; }
 
+/* Nút 3 gạch (hamburger) trên topbar — desktop: ẩn/hiện hoàn toàn sidebar.
+   (Mobile <900px giữ nguyên cơ chế off-canvas drawer sẵn có.) */
+body.sidebar-hidden .sidebar{ display:none; }
+body.sidebar-hidden .modal-overlay.full,
+body.sidebar-hidden .drawer-overlay,
+body.sidebar-hidden .drawer{ left:0; }
+
 .sidebar-toggle{
   position:absolute; top:26px; right:-13px; width:26px; height:26px; border-radius:50%;
   background: var(--bg-sidebar-solid); border:1px solid var(--border); color: var(--text-secondary);
@@ -514,7 +521,70 @@ tbody tr:hover .row-actions{ opacity:1; }
 /* ==========================================================================
    CR LOG — enterprise data-management workspace
    ========================================================================== */
-.view#view-crlog{ display:flex; flex-direction:column; overflow:hidden; padding-bottom:18px; }
+.view#view-crlog{
+  display:flex; flex-direction:column; overflow:hidden; padding-bottom:18px;
+  /* Nền sáng: trắng pha navy/teal chủ đạo — chỉ áp dụng riêng cho CR Log */
+  background: linear-gradient(165deg, #ffffff 0%, #f1f6f9 52%, #e9f3f4 100%);
+}
+
+/* ---- Light-theme overrides, chỉ trong phạm vi #view-crlog ---- */
+#view-crlog .kpi-card{ background:#ffffff; border-color:#dde7ec; }
+#view-crlog .kpi-card:hover{ border-color:#c6d6de; }
+#view-crlog .kpi-card .kpi-label{ color:#5f7690; }
+#view-crlog .kpi-card .kpi-value{ color:#0a1e33; }
+#view-crlog .kpi-card .kpi-foot{ color:#8498ad; }
+#view-crlog .kpi-card.accent .kpi-value{ color:#0e9a94; }
+
+#view-crlog .list-panel{ background:#ffffff; border-color:#dde7ec; }
+#view-crlog .list-panel-head{ border-bottom-color:#e4ebf0; }
+#view-crlog .list-panel-count{ color:#5f7690; }
+#view-crlog .list-panel-count b{ color:#0a1e33; }
+
+#view-crlog .filter-chip{ background:#f2f6f8; border-color:#dde7ec; color:#43586e; }
+#view-crlog .filter-chip:hover{ border-color:#c6d6de; }
+#view-crlog .filter-chip span{ color:#5f7690; }
+#view-crlog .filter-chip select{ color:#0a1e33; }
+#view-crlog .chip-clear{ color:#8498ad; }
+#view-crlog .chip-clear:hover{ background: rgba(208,82,82,0.12); }
+
+#view-crlog .tb-search input{ background:#f2f6f8; border-color:#dde7ec; color:#0a1e33; }
+#view-crlog .tb-search input:focus{ background:#ffffff; }
+#view-crlog .tb-search input::placeholder{ color:#8498ad; }
+
+#view-crlog .btn-ghost{ background:#f2f6f8; border-color:#dde7ec; color:#22394e; }
+#view-crlog .btn-ghost:hover{ background:#e6eef2; }
+
+#view-crlog .tb-menu{ background:#ffffff; border-color:#dde7ec; }
+#view-crlog .tb-menu select{ background:#f2f6f8; border-color:#dde7ec; color:#0a1e33; }
+#view-crlog .tb-menu-item-label{ color:#8498ad; }
+#view-crlog .tb-menu-divider{ background:#e4ebf0; }
+#view-crlog .tb-menu-foot{ color:#8498ad; }
+#view-crlog .tb-checkbox-row, #view-crlog .tb-radio-row{ color:#43586e; }
+#view-crlog .tb-checkbox-row:hover, #view-crlog .tb-radio-row:hover{ background:#f2f6f8; color:#0a1e33; }
+
+#view-crlog .bulk-bar{ background: rgba(63,208,201,0.12); border-bottom-color:#e4ebf0; color:#0a1e33; }
+#view-crlog .bulk-bar b{ color:#0e9a94; }
+
+#view-crlog thead th{ background:#f6fafb; color:#5f7690; border-bottom-color:#e4ebf0; }
+#view-crlog tbody td{ border-bottom-color:#edf2f5; color:#22394e; }
+#view-crlog tbody tr:hover{ background:#f0f7f7; }
+#view-crlog td.cell-id{ color:#0e9a94; }
+#view-crlog td.cell-dim{ color:#5f7690; }
+
+#view-crlog .icon-btn{ background:#f2f6f8; border-color:#dde7ec; color:#5f7690; }
+#view-crlog .icon-btn:hover{ background:#e6eef2; color:#0a1e33; }
+
+#view-crlog .list-panel-foot{ border-top-color:#e4ebf0; color:#5f7690; }
+
+#view-crlog .cr-card{ background:#ffffff; border-color:#dde7ec; }
+#view-crlog .cr-card:active{ background:#f2f6f8; }
+#view-crlog .cr-card-title{ color:#0a1e33; }
+#view-crlog .cr-card-meta{ color:#5f7690; }
+
+#view-crlog .empty-state{ color:#8498ad; }
+#view-crlog .empty-state h4{ color:#43586e; }
+#view-crlog .loading-row{ color:#8498ad; }
+#view-crlog .spinner{ border-color: rgba(10,30,51,0.10); border-top-color:#0e9a94; }
 .crlog-shell{ display:flex; flex-direction:column; height:100%; min-height:0; gap:16px; }
 
 .crlog-kpis{ flex-shrink:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; }
@@ -946,7 +1016,7 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
   body.mobile-nav-open .mobile-nav-backdrop{ display:block; }
 }
 .mobile-nav-toggle{
-  display:none; align-items:center; justify-content:center; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
   width:38px; height:38px; border-radius:10px;
   background: var(--bg-surface-soft); border:1px solid var(--border); color: var(--text-primary);
 }
@@ -1348,9 +1418,6 @@ body.focus-mode .modal-overlay.full{ left:0 !important; }
 <div id="app" class="hidden">
 
   <aside class="sidebar" id="sidebar">
-    <button class="sidebar-toggle" id="sidebarToggle" title="Thu gọn / Mở rộng sidebar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>
-    </button>
     <div class="brand">
       <div class="mark">CR</div>
       <div>
@@ -1403,7 +1470,7 @@ body.focus-mode .modal-overlay.full{ left:0 !important; }
 
   <div class="main">
     <div class="topbar">
-      <button class="mobile-nav-toggle" id="btnMobileNav" title="Mở menu điều hướng" aria-label="Mở menu điều hướng">
+      <button class="mobile-nav-toggle" id="btnMobileNav" title="Ẩn / hiện sidebar" aria-label="Ẩn / hiện sidebar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
       <div>
@@ -2009,31 +2076,35 @@ const VIEW_META = {
   admin:     { title:"Quản trị người dùng", sub:"Cấp quyền truy cập cho tài khoản Gmail", search:false },
 };
 
-function initSidebarToggle(){
-  const btn = $("#sidebarToggle");
-  if(!btn) return;
-  if(localStorage.getItem("sidebarCollapsed") === "1"){
-    document.body.classList.add("sidebar-collapsed");
-  }
-  btn.addEventListener("click", ()=>{
-    const collapsed = document.body.classList.toggle("sidebar-collapsed");
-    localStorage.setItem("sidebarCollapsed", collapsed ? "1" : "0");
-  });
-}
-
 function closeMobileNav(){
   document.body.classList.remove("mobile-nav-open");
 }
-function initMobileNav(){
+
+/* Nút 3 gạch duy nhất trên topbar:
+   - Desktop (>900px): bấm để ẩn hoàn toàn sidebar, bấm lần nữa để hiện lại
+     (trạng thái được lưu vào localStorage).
+   - Mobile (<=900px): giữ nguyên hành vi mở/đóng off-canvas drawer. */
+function initSidebarVisibility(){
   const btn = $("#btnMobileNav");
   const backdrop = $("#mobileNavBackdrop");
-  if(btn) btn.addEventListener("click", ()=> document.body.classList.toggle("mobile-nav-open"));
+  const mqMobile = window.matchMedia("(max-width: 900px)");
+  if(!btn) return;
+  if(!mqMobile.matches && localStorage.getItem("sidebarHidden") === "1"){
+    document.body.classList.add("sidebar-hidden");
+  }
+  btn.addEventListener("click", ()=>{
+    if(mqMobile.matches){
+      document.body.classList.toggle("mobile-nav-open");
+    }else{
+      const hidden = document.body.classList.toggle("sidebar-hidden");
+      localStorage.setItem("sidebarHidden", hidden ? "1" : "0");
+    }
+  });
   if(backdrop) backdrop.addEventListener("click", closeMobileNav);
 }
 
 function initShell(){
-  initSidebarToggle();
-  initMobileNav();
+  initSidebarVisibility();
   $all(".nav-item[data-view]").forEach(item=>{
     item.addEventListener("click", ()=> { setView(item.dataset.view); closeMobileNav(); });
   });

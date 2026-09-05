@@ -352,10 +352,10 @@ body.sidebar-collapsed .nav-item .count{ display:none; }
   overflow:hidden; transition: padding var(--duration-slow) var(--ease-standard);
 }
 .conn-dot{ width:7px; height:7px; border-radius:50%; background: var(--success); box-shadow:0 0 0 3px var(--success-dim); flex-shrink:0; }
-body.sidebar-collapsed .conn-pill{ justify-content:center; padding:8px 0; }
-body.sidebar-collapsed .conn-pill > div:first-child{ justify-content:center; }
-body.sidebar-collapsed #sidebarUserEmail,
-body.sidebar-collapsed #sidebarUserRole{ display:none; }
+/* Collapsed sidebar: the pill only ever showed a bare dot with no email/role
+   (both hidden below), which just looked like a stray unlabeled element —
+   so hide the whole pill instead of the empty shell. */
+body.sidebar-collapsed .conn-pill{ display:none; }
 
 .main{ flex:1; min-width:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
@@ -1033,8 +1033,15 @@ body.sidebar-collapsed .nav-item::before{ left:-2px; }
 .tb-badge{ transition: transform var(--duration-fast) var(--ease-standard); }
 .tb-btn:hover .tb-badge{ transform: scale(1.1); }
 
-/* lightweight tooltip reusing existing [title] attributes — no markup changes needed */
-[title].icon-btn, [title].tb-btn, [title].modal-close, [title].drawer-close, [title].sidebar-toggle, [title].file-del{
+/* lightweight tooltip reusing existing [title] attributes — no markup changes needed
+   NOTE: .sidebar-toggle is intentionally excluded here — it already declares
+   position:absolute (it floats on the sidebar's edge). Including it in this
+   generic reset used to force it back to position:relative (higher
+   specificity than the single .sidebar-toggle class rule), which knocked it
+   out of its floating position and back into normal document flow, landing
+   it on top of the brand logo. position:absolute already gives it a valid
+   positioning context for its own ::after tooltip, so relative isn't needed. */
+[title].icon-btn, [title].tb-btn, [title].modal-close, [title].drawer-close, [title].file-del{
   position:relative;
 }
 [title].icon-btn::after, [title].tb-btn::after, [title].sidebar-toggle::after{
@@ -1421,6 +1428,10 @@ body.focus-mode .modal-overlay.full{ left:0 !important; }
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Thêm Release
         </button>
+        <button class="btn btn-primary view-action hidden" data-for="admin" id="btnAddUser">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Thêm người dùng
+        </button>
       </div>
     </div>
 
@@ -1592,19 +1603,42 @@ body.focus-mode .modal-overlay.full{ left:0 !important; }
 
     <!-- ============ ADMIN VIEW ============ -->
     <section class="view hidden" id="view-admin">
-      <div class="view-head view-head-end">
-        <button class="btn btn-primary" id="btnAddUser">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Thêm người dùng
-        </button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Email</th><th>Vai trò</th><th>Trạng thái</th><th>Ngày thêm</th><th></th>
-          </tr></thead>
-          <tbody id="userTableBody"></tbody>
-        </table>
+      <div class="list-panel">
+        <div class="list-panel-head">
+          <div class="list-panel-count"><b id="userCount">0</b> người dùng</div>
+          <div class="table-toolbar">
+            <div class="tb-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input id="userSearchInput" type="text" placeholder="Tìm theo email...">
+            </div>
+            <div class="filter-chip"><span>Vai trò</span>
+              <select id="filterUserRole">
+                <option value="">Tất cả</option>
+                <option value="admin">Quản trị</option>
+                <option value="editor">Thành viên</option>
+              </select>
+            </div>
+            <div class="filter-chip"><span>Trạng thái</span>
+              <select id="filterUserStatus">
+                <option value="">Tất cả</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="locked">Đã khóa</option>
+              </select>
+            </div>
+            <div class="chip-clear" id="clearUserFilters">Xóa lọc</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Email</th><th>Vai trò</th><th>Trạng thái</th><th>Ngày thêm</th><th></th>
+            </tr></thead>
+            <tbody id="userTableBody"></tbody>
+          </table>
+        </div>
+        <div class="list-panel-foot">
+          <span id="userFootCount">Hiển thị 0 / 0 người dùng</span>
+        </div>
       </div>
     </section>
 
@@ -1687,6 +1721,7 @@ const STATE = {
   filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
   tcFilters: { cr:"", result:"" },
   relFilters: { cr:"", status:"" },
+  userFilters: { q:"", role:"", status:"" },
   editingCrId: null,      // uuid of cr_log row being edited (null = create)
   editingTcId: null,
   editingRelId: null,
@@ -2051,6 +2086,18 @@ function initShell(){
     STATE.relFilters = { cr:"", status:"" };
     $("#filterRelCr").value=""; $("#filterRelStatus").value="";
     renderRelTable();
+  });
+
+  $("#userSearchInput").addEventListener("input", debounce(e=>{
+    STATE.userFilters.q = e.target.value.trim().toLowerCase();
+    renderAdminTable();
+  }, 220));
+  $("#filterUserRole").addEventListener("change", e=>{ STATE.userFilters.role = e.target.value; renderAdminTable(); });
+  $("#filterUserStatus").addEventListener("change", e=>{ STATE.userFilters.status = e.target.value; renderAdminTable(); });
+  $("#clearUserFilters").addEventListener("click", ()=>{
+    STATE.userFilters = { q:"", role:"", status:"" };
+    $("#userSearchInput").value=""; $("#filterUserRole").value=""; $("#filterUserStatus").value="";
+    renderAdminTable();
   });
 
   $("#btnAddCr").addEventListener("click", ()=> openCrModal(null));
@@ -3941,9 +3988,25 @@ async function fetchAppUsers(){
   STATE.userList = data || [];
 }
 
+function filteredUserList(){
+  const f = STATE.userFilters;
+  return STATE.userList.filter(u=>{
+    if(f.q && !(u.email||"").toLowerCase().includes(f.q)) return false;
+    if(f.role && u.role !== f.role && !(f.role==='editor' && u.role!=='admin')) return false;
+    if(f.status === 'active' && !u.active) return false;
+    if(f.status === 'locked' && u.active) return false;
+    return true;
+  });
+}
+
 function renderAdminTable(){
   const tbody = $("#userTableBody");
   if(!tbody) return;
+  const rows = filteredUserList();
+  const countEl = $("#userCount");
+  if(countEl) countEl.textContent = rows.length;
+  const footEl = $("#userFootCount");
+  if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${STATE.userList.length} người dùng`;
   if(STATE.loadErrors.admin){
     tbody.innerHTML = `<tr><td colspan="5">${errorStateBlock("Không tải được danh sách người dùng", STATE.loadErrors.admin, "admin")}</td></tr>`;
     return;
@@ -3952,7 +4015,11 @@ function renderAdminTable(){
     tbody.innerHTML = `<tr><td colspan="5">${emptyStateBlock("Chưa có ai được cấp quyền", "Bấm \"+ Thêm người dùng\" để cấp quyền cho một email Gmail.")}</td></tr>`;
     return;
   }
-  tbody.innerHTML = STATE.userList.map(u=>`
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="5">${emptyStateBlock("Không tìm thấy người dùng", "Thử đổi từ khóa tìm kiếm hoặc bộ lọc.")}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(u=>`
     <tr data-user="${u.id}">
       <td class="cell-title">${esc(u.email)} ${u.email===STATE.userEmail? '<span style="color:var(--text-faint); font-weight:500;">(bạn)</span>':''}</td>
       <td>${badge("role", u.role==='admin'?'Quản trị':'Thành viên')}</td>

@@ -1657,6 +1657,19 @@ body.detail-nav-visible .mobile-nav-toggle{
   box-shadow:0 10px 24px -12px rgba(15,42,68,.55);
 }
 
+/* The topbar has backdrop-filter and the main shell clips its contents.
+   Keep the toggle at the app root so it cannot disappear behind a drawer. */
+#app > .mobile-nav-toggle{
+  position:fixed; top:18px; left:calc(var(--sidebar-w) + 24px); z-index:420;
+  display:flex !important; visibility:visible !important; opacity:1 !important;
+}
+body.sidebar-collapsed #app > .mobile-nav-toggle{ left:calc(var(--sidebar-w-collapsed) + 24px); }
+body.sidebar-hidden #app > .mobile-nav-toggle{ left:24px; }
+.topbar{ padding-left:76px; }
+body.detail-nav-visible #app > .mobile-nav-toggle{
+  background:#fff; color:#12304a; border-color:#c8e5e4;
+}
+
 /* Modal frame: head / tabs / body / foot are four distinct surfaces. */
 .modal-overlay{ padding:clamp(12px,3vw,32px); background:rgba(8,24,42,.58); backdrop-filter:blur(8px); }
 .modal{
@@ -1753,6 +1766,10 @@ body.detail-nav-visible .mobile-nav-toggle{
 
 @media(max-width:900px){
   body.detail-nav-visible .mobile-nav-toggle{ top:12px; left:12px; }
+  #app > .mobile-nav-toggle{ top:12px; left:16px; }
+  body.sidebar-collapsed #app > .mobile-nav-toggle,
+  body.sidebar-hidden #app > .mobile-nav-toggle{ left:16px; }
+  .topbar{ padding-left:66px; }
   .modal-overlay{ padding:0; }
   .modal,.modal.modal-lg{ width:100%; max-width:none; max-height:100vh; height:100%; border-radius:0; border-left:0; border-right:0; }
   .modal-head{ min-height:72px; padding:16px; }
@@ -1869,11 +1886,12 @@ body.detail-nav-visible .mobile-nav-toggle{
 
   <div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
 
+  <button class="mobile-nav-toggle" id="btnMobileNav" title="Mở / đóng menu" aria-label="Mở / đóng menu" aria-expanded="false" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+
   <div class="main">
     <div class="topbar">
-      <button class="mobile-nav-toggle" id="btnMobileNav" title="Mở / đóng menu" aria-label="Mở / đóng menu" aria-expanded="false" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-      </button>
       <div>
         <h1 id="topbarTitle">Dashboard</h1>
         <div class="sub" id="topbarSub">Tổng quan tình trạng Change Request</div>

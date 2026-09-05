@@ -18,7 +18,7 @@
      ------------------------------------------------------------------ */
   --bg-sidebar: linear-gradient(180deg, #071827 0%, #0a2033 100%);
   --bg-sidebar-solid: #081b2c;
-  --bg-topbar: rgba(23,54,82,0.72);
+  --bg-topbar: rgba(15,42,68,0.62);
   --bg-topbar-solid: #0d2438;
   --bg-workspace: linear-gradient(165deg, #163650 0%, #12304a 48%, #0f2942 100%);
 
@@ -103,7 +103,6 @@
   /* legacy aliases */
   --shadow-soft: var(--shadow-md);
   --shadow-lift: var(--shadow-lg);
-  --shadow-topbar: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 24px -18px rgba(3,10,18,0.6);
 
   /* ------------------------------------------------------------------
      SPACING SCALE (4px base)
@@ -272,25 +271,10 @@ h1,h2,h3,h4{ font-family: var(--font-head); font-weight:700; letter-spacing:-0.0
   padding:22px 14px;
   display:flex; flex-direction:column;
   position:sticky; top:0; height:100vh;
-  transition: var(--transition-collapse), transform var(--duration-slow) var(--ease-standard), opacity var(--duration-base) var(--ease-standard);
+  transition: var(--transition-collapse);
   overflow:visible;
-  position:relative;
-  /* depth: faint inner top highlight + soft cast shadow separating it from the workspace */
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset -1px 0 0 rgba(255,255,255,0.03), 10px 0 32px -22px rgba(2,7,13,0.75);
-  z-index:30;
-}
-.sidebar::before{
-  /* subtle top sheen so the darkest surface in the system still reads as material, not flat ink */
-  content:""; position:absolute; top:0; left:0; right:0; height:120px; pointer-events:none;
-  background: linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0) 100%);
 }
 body.sidebar-collapsed .sidebar{ width: var(--sidebar-w-collapsed); padding-left:10px; padding-right:10px; }
-
-/* ---- FOCUS MODE (state 3): sidebar fully hidden, workspace takes the full width ---- */
-body.focus-mode .sidebar{
-  width:0; padding:0; border-right:none; box-shadow:none;
-  opacity:0; overflow:hidden; pointer-events:none;
-}
 
 .sidebar-toggle{
   position:absolute; top:26px; right:-13px; width:26px; height:26px; border-radius:50%;
@@ -302,20 +286,6 @@ body.focus-mode .sidebar{
 .sidebar-toggle:active{ transform: scale(0.92); }
 .sidebar-toggle svg{ width:13px; height:13px; transition: transform var(--duration-slow) var(--ease-standard); }
 body.sidebar-collapsed .sidebar-toggle svg{ transform: rotate(180deg); }
-body.focus-mode .sidebar-toggle{ display:none; }
-
-/* ---- Focus-mode toggle button, lives in the topbar so it's reachable in every sidebar state ---- */
-.focus-toggle{ color: var(--text-secondary); }
-.focus-toggle.is-active{ background: var(--accent-soft); color: var(--accent); border-color: rgba(63,208,201,0.3); }
-.focus-toggle svg{ width:16px; height:16px; }
-
-/* ---- Mobile off-canvas trigger (hidden on desktop/tablet) ---- */
-.mobile-nav-toggle{ display:none; }
-.mobile-nav-overlay{
-  display:none; position:fixed; inset:0; z-index:190;
-  background: rgba(3,9,16,0.55); backdrop-filter: blur(2px);
-  opacity:0; pointer-events:none; transition: opacity var(--duration-base) var(--ease-standard);
-}
 
 .sidebar .brand{ display:flex; align-items:center; gap:10px; padding:6px 8px 26px; overflow:hidden; transition: padding var(--duration-slow) var(--ease-standard); }
 body.sidebar-collapsed .sidebar .brand{ justify-content:center; padding:6px 0 26px; }
@@ -330,16 +300,9 @@ body.sidebar-collapsed .sidebar .brand{ justify-content:center; padding:6px 0 26
 body.sidebar-collapsed .sidebar .brand .name,
 body.sidebar-collapsed .sidebar .brand .tag{ display:none; }
 
-.nav-group{ margin-bottom:2px; }
 .nav-group-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color: var(--text-muted); padding:14px 12px 8px; font-weight:700; white-space:nowrap; overflow:hidden; }
-body.sidebar-collapsed .nav-group-label{
-  /* collapse into a thin divider instead of vanishing outright — keeps groups scannable as icon clusters */
-  height:0; padding:0; margin:14px 10px 10px; font-size:0; color:transparent;
-  border-top:1px solid var(--border); overflow:hidden;
-}
-body.sidebar-collapsed .nav-group:first-child .nav-group-label{ margin-top:2px; }
+body.sidebar-collapsed .nav-group-label{ display:none; }
 .nav-item{
-  position:relative;
   display:flex; align-items:center; gap:11px;
   padding:10px 12px; border-radius:10px; color: var(--text-secondary);
   font-size:13.8px; font-weight:600; cursor:pointer; margin-bottom:2px;
@@ -348,47 +311,17 @@ body.sidebar-collapsed .nav-group:first-child .nav-group-label{ margin-top:2px; 
 }
 .nav-item svg{ width:17px; height:17px; flex-shrink:0; opacity:.85; }
 .nav-item:hover{ background: var(--bg-surface-soft); color: var(--text-primary); }
-.nav-item.active{ background: var(--accent-soft); color: var(--accent); border-color: rgba(63,208,201,0.25); box-shadow: inset 3px 0 0 var(--accent); }
+.nav-item.active{ background: var(--accent-soft); color: var(--accent); border-color: rgba(63,208,201,0.25); }
 .nav-item.active svg{ opacity:1; }
 .nav-item .nav-label{ overflow:hidden; text-overflow:ellipsis; }
 .nav-item .count{
   margin-left:auto; font-size:11px; font-weight:700; color: var(--text-muted);
   background: rgba(255,255,255,0.06); padding:1px 7px; border-radius:20px; flex-shrink:0;
-  transition: var(--transition-hover);
 }
 .nav-item.active .count{ background: rgba(63,208,201,0.2); color: var(--accent); }
-
-/* ---- Collapsed (state 2): icon + active indicator only, label/description/count text hidden ---- */
-body.sidebar-collapsed .nav-item{ justify-content:center; padding:11px 0; gap:0; overflow:visible; }
-body.sidebar-collapsed .nav-item .nav-label{ display:none; }
-body.sidebar-collapsed .nav-item .count{
-  /* collapse the count into a small corner badge on the icon instead of hiding it outright */
-  position:absolute; top:4px; right:10px; margin-left:0;
-  font-size:9px; line-height:1; padding:3px 4px; min-width:14px; text-align:center;
-  background: var(--accent-2); color:#3a2504; box-shadow:0 0 0 2px var(--bg-sidebar-solid);
-}
-body.sidebar-collapsed .nav-item .count:empty,
-body.sidebar-collapsed .nav-item .count[data-zero]{ display:none; }
-body.sidebar-collapsed .nav-item.active .count{ background: var(--accent); color:#04302d; }
-
-/* ---- Tooltips shown on hover while collapsed ---- */
-body.sidebar-collapsed .sidebar [data-tooltip]{ position:relative; }
-body.sidebar-collapsed .sidebar [data-tooltip]::after{
-  content: attr(data-tooltip);
-  position:absolute; left:calc(100% + 14px); top:50%; z-index:50;
-  transform: translateY(-50%) translateX(-6px);
-  background: var(--bg-sidebar-solid); color: var(--text-primary);
-  padding:7px 12px; border-radius:8px; font-size:12.5px; font-weight:600; white-space:nowrap;
-  border:1px solid var(--border); box-shadow: var(--shadow-md);
-  opacity:0; pointer-events:none;
-  transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
-}
-body.sidebar-collapsed .sidebar [data-tooltip]:hover::after{
-  opacity:1; transform: translateY(-50%) translateX(0);
-}
-/* the drawer on mobile always shows full labels, so tooltips are never needed there */
-body.sidebar-collapsed .sidebar .conn-pill[data-tooltip]::after{ left:calc(100% + 10px); top:16px; transform:translateX(-6px); }
-body.sidebar-collapsed .sidebar .conn-pill[data-tooltip]:hover::after{ transform:translateX(0); }
+body.sidebar-collapsed .nav-item{ justify-content:center; padding:11px 0; gap:0; }
+body.sidebar-collapsed .nav-item .nav-label,
+body.sidebar-collapsed .nav-item .count{ display:none; }
 
 .sidebar-foot{ margin-top:auto; padding-top:14px; border-top:1px solid var(--border); }
 .conn-pill{
@@ -397,150 +330,48 @@ body.sidebar-collapsed .sidebar .conn-pill[data-tooltip]:hover::after{ transform
   overflow:hidden; transition: padding var(--duration-slow) var(--ease-standard);
 }
 .conn-dot{ width:7px; height:7px; border-radius:50%; background: var(--success); box-shadow:0 0 0 3px var(--success-dim); flex-shrink:0; }
-body.sidebar-collapsed .conn-pill{ justify-content:center; padding:8px 0; overflow:visible; }
+body.sidebar-collapsed .conn-pill{ justify-content:center; padding:8px 0; }
 body.sidebar-collapsed .conn-pill > div:first-child{ justify-content:center; }
 body.sidebar-collapsed #sidebarUserEmail,
 body.sidebar-collapsed #sidebarUserRole{ display:none; }
 
-.main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.main{ flex:1; min-width:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
 .topbar{
-  display:flex; align-items:center; gap:14px;
-  padding:14px 28px; border-bottom:1px solid var(--border);
-  position:sticky; top:0; background: var(--bg-topbar); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  box-shadow: var(--shadow-topbar);
-  z-index:20;
-  transition: padding var(--duration-base) var(--ease-standard);
+  display:flex; align-items:center; gap:16px; flex-shrink:0;
+  padding:20px 32px; border-bottom:1px solid var(--border);
+  position:sticky; top:0; background: var(--bg-topbar); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  z-index:20; transition: padding var(--duration-base) var(--ease-standard);
 }
-/* ---- left cluster: nav toggles + page title/subtitle ---- */
-.topbar-left{ display:flex; align-items:center; gap:8px; min-width:0; flex-shrink:1; }
-.topbar-titles{ min-width:0; overflow:hidden; padding-left:2px; }
-.topbar-titles h1{ font-size: var(--text-page-title-size); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.topbar-titles .sub{ font-size: var(--text-meta-size); color: var(--text-muted); margin-top:2px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.topbar-divider{ width:1px; height:26px; background: var(--border); flex-shrink:0; margin:0 2px; }
-
-/* legacy alias kept in case other rules still reference it */
 .topbar h1{ font-size: var(--text-page-title-size); }
 .topbar .sub{ font-size: var(--text-meta-size); color: var(--text-muted); margin-top:2px; font-weight: var(--text-meta-weight); }
-
-/* ---- table-local search (relocated CR Log filter input) ---- */
 .search-box{
   flex:1; max-width:380px; position:relative; margin-left:8px;
 }
 .search-box svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:15px; height:15px; color: var(--text-muted); }
 .search-box input{
   width:100%; background: var(--bg-surface-soft); border:1px solid var(--border);
-  border-radius:10px; padding:9px 30px 9px 34px; font-size:13.5px; color: var(--text-primary);
+  border-radius:10px; padding:9px 12px 9px 34px; font-size:13.5px; color: var(--text-primary);
   transition: var(--transition-focus), background var(--duration-fast) var(--ease-standard);
 }
 .search-box input:focus{ background: var(--bg-surface-soft-hover); border-color: var(--accent); }
-.search-box .search-clear{
-  position:absolute; right:6px; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:6px;
-  display:none; align-items:center; justify-content:center; color: var(--text-muted); border:none; background:none; cursor:pointer;
-}
-.search-box .search-clear svg{ position:static; width:12px; height:12px; }
-.search-box .search-clear:hover{ background: var(--bg-surface-soft-active); color: var(--text-primary); }
-.search-box.has-value .search-clear{ display:flex; }
-.table-toolbar .search-box{ flex:0 0 210px; max-width:210px; margin-left:0; order:-1; }
+.topbar-actions{ margin-left:auto; display:flex; gap:10px; align-items:center; }
 
-/* ---- prominent global search trigger → opens the command palette ---- */
-.cmdk-trigger{
-  flex:1; max-width:460px; min-width:0;
-  display:flex; align-items:center; gap:10px;
-  background: var(--bg-surface-soft); border:1px solid var(--border); border-radius:11px;
-  padding:9px 10px; color: var(--text-muted); font-size:13.5px; text-align:left; cursor:pointer;
-  transition: var(--transition-hover), var(--transition-focus);
-}
-.cmdk-trigger:hover{ background: var(--bg-surface-soft-hover); border-color: var(--border-light); color: var(--text-secondary); }
-.cmdk-trigger:focus-visible{ outline:none; border-color: var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
-.cmdk-trigger svg{ width:15px; height:15px; flex-shrink:0; opacity:.85; }
-.cmdk-trigger-label{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.cmdk-kbd{
-  display:flex; align-items:center; gap:2px; font-family: var(--font-mono); font-size:10.5px; font-weight:600;
-  color: var(--text-muted); background: rgba(255,255,255,0.07); border:1px solid var(--border);
-  border-radius:5px; padding:2px 6px; flex-shrink:0;
-}
-
-/* ---- Command palette overlay (Ctrl/Cmd + K) — foundation for Phase 05 ---- */
-.cmdk-overlay{
-  position:fixed; inset:0; z-index:300; background: rgba(4,12,20,0.6); backdrop-filter: blur(4px);
-  display:flex; align-items:flex-start; justify-content:center; padding:min(14vh,120px) 20px 20px;
-  opacity:0; pointer-events:none; transition: opacity var(--duration-base) var(--ease-standard);
-}
-.cmdk-overlay.show{ opacity:1; pointer-events:auto; }
-.cmdk-panel{
-  width:100%; max-width:600px; max-height:64vh; display:flex; flex-direction:column;
-  background: var(--panel-solid); border:1px solid var(--border); border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-floating); transform: translateY(-10px) scale(.98); transition: transform var(--duration-base) var(--ease-standard);
-  overflow:hidden;
-}
-.cmdk-overlay.show .cmdk-panel{ transform: translateY(0) scale(1); }
-.cmdk-input-row{ display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border); flex-shrink:0; }
-.cmdk-input-row svg{ width:17px; height:17px; color: var(--text-muted); flex-shrink:0; }
-.cmdk-input-row input{ flex:1; background:none; border:none; color: var(--text-primary); font-size:15px; min-width:0; }
-.cmdk-input-row input:focus{ outline:none; }
-.cmdk-close{ background:none; border:none; cursor:pointer; padding:0; flex-shrink:0; }
-.cmdk-body{ overflow-y:auto; padding:8px; flex:1; }
-.cmdk-empty{ padding:34px 20px; text-align:center; color: var(--text-muted); font-size:13px; line-height:1.6; }
-.cmdk-group-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color: var(--text-muted); font-weight:700; padding:10px 12px 6px; }
-.cmdk-item{ display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:9px; cursor:pointer; color: var(--text-secondary); transition: var(--transition-hover); }
-.cmdk-item:hover{ background: var(--bg-surface-soft); color: var(--text-primary); }
-.cmdk-item svg{ width:15px; height:15px; flex-shrink:0; opacity:.8; }
-.cmdk-item-main{ min-width:0; flex:1; }
-.cmdk-item-title{ font-size:13.3px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.cmdk-item-sub{ font-size:11.5px; color: var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-.cmdk-foot{ display:flex; gap:16px; padding:10px 18px; border-top:1px solid var(--border); font-size:11px; color: var(--text-muted); flex-shrink:0; }
-.cmdk-foot span{ display:flex; align-items:center; gap:5px; }
-.cmdk-foot kbd{ font-family: var(--font-mono); background: rgba(255,255,255,0.07); border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
-
-/* ---- topbar actions cluster: refresh / notifications / user menu ---- */
-.topbar-actions{ margin-left:auto; display:flex; gap:8px; align-items:center; flex-shrink:0; }
-.icon-menu{ position:relative; }
-.icon-menu .btn-icon{ position:relative; }
-.notif-dot{ position:absolute; top:6px; right:6px; width:7px; height:7px; border-radius:50%; background: var(--danger); box-shadow:0 0 0 2px var(--bg-topbar-solid); }
-
-.dropdown-panel{
-  position:absolute; top:calc(100% + 10px); right:0; width:270px; z-index:250;
-  background: var(--panel-solid); border:1px solid var(--border); border-radius: var(--radius-md);
-  box-shadow: var(--shadow-floating); opacity:0; transform: translateY(-6px); pointer-events:none;
-  transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
-}
-.dropdown-panel.show{ opacity:1; transform:translateY(0); pointer-events:auto; }
-.dropdown-head{ padding:13px 16px; border-bottom:1px solid var(--border); font-size:12.5px; font-weight:700; color: var(--text-secondary); }
-.dropdown-empty{ padding:26px 16px; text-align:center; color: var(--text-muted); font-size:12.5px; line-height:1.6; }
-.dropdown-empty svg{ width:22px; height:22px; margin-bottom:8px; opacity:.6; }
-
-.user-menu-trigger{
-  display:flex; align-items:center; gap:8px; background: var(--bg-surface-soft); border:1px solid var(--border);
-  border-radius:11px; padding:5px 10px 5px 5px; cursor:pointer; transition: var(--transition-hover);
-}
-.user-menu-trigger:hover{ background: var(--bg-surface-soft-hover); }
-.user-avatar{
-  width:28px; height:28px; border-radius:50%; background: linear-gradient(135deg, var(--accent), #24a39d);
-  color:#04302d; font-family: var(--font-head); font-weight:800; font-size:12px;
-  display:flex; align-items:center; justify-content:center; flex-shrink:0;
-}
-.user-menu-meta{ display:flex; flex-direction:column; line-height:1.25; text-align:left; min-width:0; }
-.user-menu-email{ font-size:12.5px; font-weight:600; color: var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px; }
-.user-menu-role{ font-size:10.5px; color: var(--text-muted); }
-.user-menu-trigger > svg{ width:12px; height:12px; color: var(--text-muted); flex-shrink:0; }
-.user-menu-dropdown-head{ padding:14px 16px; border-bottom:1px solid var(--border); }
-.user-menu-dropdown-head .um-email{ font-size:13px; font-weight:600; color: var(--text-primary); word-break:break-all; }
-.user-menu-dropdown-head .um-role{ margin-top:8px; }
-.user-menu-item{
-  display:flex; align-items:center; gap:9px; width:100%; padding:11px 16px; font-size:13px; font-weight:600;
-  color: var(--text-secondary); background:none; border:none; text-align:left; cursor:pointer; transition: var(--transition-hover);
-}
-.user-menu-item:hover{ background: var(--bg-surface-soft); color: var(--text-primary); }
-.user-menu-item.danger{ color: var(--danger); }
-.user-menu-item.danger:hover{ background: var(--danger-dim); }
-.user-menu-item svg{ width:15px; height:15px; }
-
-.view{ padding:28px 32px 60px; }
+/* Every workspace view scrolls independently within the fixed sidebar/topbar frame */
+.view{ padding:28px 32px 60px; flex:1; min-height:0; overflow-y:auto; }
 .view-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
 .view-head.view-head-end{ justify-content:flex-end; }
 .view-head h2{ font-size: var(--text-page-title-size); font-weight: var(--text-page-title-weight); }
 .view-head p{ color: var(--text-muted); font-size: var(--text-meta-size); margin-top:4px; }
+
+/* ==========================================================================
+   FOCUS MODE — hides chrome so the active workspace (CR Log) fills the screen
+   ========================================================================== */
+body.focus-mode .sidebar{ display:none; }
+body.focus-mode .topbar{ padding:10px 20px; }
+body.focus-mode .topbar .sub{ display:none; }
+body.focus-mode .view#view-crlog{ padding:14px 18px 14px; }
+body.focus-mode .crlog-kpis{ display:none; }
 
 /* ==========================================================================
    PANELS / CARDS
@@ -657,6 +488,122 @@ tbody tr:hover .row-actions{ opacity:1; }
 .empty-state{ text-align:center; padding:60px 20px; color: var(--text-faint); }
 .empty-state svg{ width:44px; height:44px; margin-bottom:14px; opacity:.4; }
 .empty-state h4{ color: var(--text-dim); font-size:15px; margin-bottom:6px; }
+
+/* ==========================================================================
+   CR LOG — enterprise data-management workspace
+   ========================================================================== */
+.view#view-crlog{ display:flex; flex-direction:column; overflow:hidden; padding-bottom:18px; }
+.crlog-shell{ display:flex; flex-direction:column; height:100%; min-height:0; gap:16px; }
+
+.crlog-kpis{ flex-shrink:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; }
+.crlog-kpis .kpi-card{ padding:14px 16px; }
+.crlog-kpis .kpi-value{ font-size:24px; }
+
+.crlog-panel{ flex:1; min-height:0; display:flex; flex-direction:column; }
+.crlog-panel .list-panel-head{ flex-shrink:0; }
+.crlog-table-wrap{ flex:1; min-height:0; overflow:auto; position:relative; }
+
+.list-panel-foot{
+  flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 20px; border-top:1px solid var(--border); font-size: var(--text-meta-size); color: var(--text-muted);
+}
+
+/* ---- toolbar search field, matches filter-chip visual weight ---- */
+.tb-search{ position:relative; }
+.tb-search svg{ position:absolute; left:10px; top:50%; transform:translateY(-50%); width:13px; height:13px; color: var(--text-muted); }
+.tb-search input{
+  width:200px; background: var(--bg-surface-soft); border:1px solid var(--border); border-radius:9px;
+  padding:7px 10px 7px 30px; font-size:12.5px; color: var(--text-primary);
+  transition: var(--transition-focus), background var(--duration-fast) var(--ease-standard), width var(--duration-base) var(--ease-standard);
+}
+.tb-search input:focus{ width:240px; background: var(--bg-surface-soft-hover); border-color: var(--accent); }
+
+/* ---- dropdown buttons (More filters / Columns / Density) ---- */
+.tb-dropdown{ position:relative; }
+.tb-btn{ position:relative; }
+.tb-badge{
+  display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px;
+  background: var(--accent); color:#04302d; border-radius:20px; font-size:10px; font-weight:800; margin-left:4px;
+}
+.tb-menu{
+  display:none; position:absolute; top:calc(100% + 8px); left:0; min-width:200px; z-index:30;
+  background: var(--panel-solid); border:1px solid var(--border); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-floating); padding:12px; flex-direction:column; gap:8px;
+}
+.tb-menu.right{ left:auto; right:0; }
+.tb-menu.show{ display:flex; }
+.tb-menu-item-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color: var(--text-muted); font-weight:700; margin-bottom:2px; }
+.tb-menu select{
+  width:100%; background: var(--bg-surface-soft); border:1px solid var(--border); border-radius:8px;
+  padding:8px 10px; color: var(--text-primary); font-size:12.5px;
+}
+.tb-checkbox-row, .tb-radio-row{
+  display:flex; align-items:center; gap:8px; font-size:12.5px; color: var(--text-secondary);
+  padding:5px 2px; cursor:pointer; border-radius:6px; transition: var(--transition-hover);
+}
+.tb-checkbox-row:hover, .tb-radio-row:hover{ background: var(--bg-surface-soft); color: var(--text-primary); }
+.tb-checkbox-row input, .tb-radio-row input{ accent-color: var(--accent); width:14px; height:14px; flex-shrink:0; }
+.tb-menu-divider{ height:1px; background: var(--border); margin:2px 0; }
+.tb-menu-foot{ font-size:11px; color: var(--text-faint); padding-top:2px; }
+
+/* ---- bulk selection bar ---- */
+.bulk-bar{
+  flex-shrink:0; display:flex; align-items:center; gap:14px;
+  padding:10px 20px; background: var(--accent-soft); border-bottom:1px solid var(--border);
+  font-size:12.5px; color: var(--text-primary); font-weight:600;
+}
+.bulk-bar b{ color: var(--accent); }
+.bulk-actions{ display:flex; gap:8px; margin-left:auto; }
+
+/* ---- row selection checkbox column ---- */
+th.col-check, td.cell-check{ width:40px; padding-left:18px; padding-right:6px; }
+.row-check, .select-all-check{ width:16px; height:16px; accent-color: var(--accent); cursor:pointer; vertical-align:middle; }
+
+/* ---- CR ID visual anchor ---- */
+td.cell-id{
+  font-family: var(--font-mono); font-weight:700; color: var(--accent);
+}
+td.cell-id .id-chip{
+  display:inline-block; background: rgba(63,208,201,0.1); border:1px solid rgba(63,208,201,0.18);
+  border-radius:7px; padding:3px 8px; letter-spacing:.02em;
+}
+
+/* ---- overdue deadline pill ---- */
+.deadline-overdue{
+  display:inline-flex; align-items:center; gap:5px; color: var(--danger); font-weight:700;
+}
+.deadline-overdue .dl-warn{
+  display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px;
+  background: var(--danger-dim); border-radius:50%; font-size:10px; flex-shrink:0;
+}
+
+/* ---- density variants ---- */
+#crTable.density-compact thead th{ padding:7px 16px; }
+#crTable.density-compact tbody td{ padding:7px 16px; font-size:12.5px; }
+#crTable.density-comfortable thead th{ padding:12px 20px; }
+#crTable.density-comfortable tbody td{ padding:14px 20px; }
+#crTable.density-spacious thead th{ padding:16px 22px; }
+#crTable.density-spacious tbody td{ padding:22px 22px; }
+
+/* ---- mobile card list (replaces table on narrow screens) ---- */
+.cr-mobile-list{ display:none; flex-direction:column; gap:10px; padding:14px; }
+.cr-card{
+  background: var(--bg-surface-soft); border:1px solid var(--border); border-radius: var(--radius-md);
+  padding:14px 16px; display:flex; flex-direction:column; gap:8px; cursor:pointer;
+  transition: var(--transition-hover);
+}
+.cr-card:active{ background: var(--bg-surface-soft-hover); }
+.cr-card-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.cr-card-title{ font-size:13.5px; font-weight:700; color: var(--text-primary); }
+.cr-card-meta{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color: var(--text-secondary); }
+.cr-card-badges{ display:flex; flex-wrap:wrap; gap:6px; }
+.cr-card-actions{ display:flex; gap:8px; justify-content:flex-end; }
+
+@media(max-width:640px){
+  .crlog-table-wrap table{ display:none; }
+  .cr-mobile-list{ display:flex; }
+  .crlog-kpis{ grid-template-columns:repeat(2,1fr); }
+}
 .empty-state p{ font-size:13px; max-width:340px; margin:0 auto; line-height:1.6; }
 
 .loading-row{ padding:60px; text-align:center; color: var(--text-faint); font-size:13px; }
@@ -859,8 +806,7 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
    ------------------------------------------------------------------ */
 @media(max-width:1280px){
   .view{ padding:24px 24px 60px; }
-  .topbar{ padding:14px 24px; }
-  .cmdk-trigger{ max-width:320px; }
+  .topbar{ padding:18px 24px; }
 }
 
 /* ------------------------------------------------------------------
@@ -868,57 +814,15 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
    ------------------------------------------------------------------ */
 @media(max-width:1024px){
   .kpi-grid{ grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); }
-  .topbar-titles .sub{ display:none; }
-  .topbar-titles h1{ font-size:17px; }
-  .cmdk-trigger{ max-width:220px; }
-  .user-menu-email{ max-width:100px; }
 }
 
 /* ------------------------------------------------------------------
-   Mobile (<900px): sidebar becomes an off-canvas drawer
+   Mobile (<900px): sidebar becomes off-canvas, single-column forms
    ------------------------------------------------------------------ */
 @media(max-width:900px){
-  .sidebar{
-    display:flex; position:fixed; top:0; left:0; bottom:0; height:100vh;
-    width:272px; z-index:200;
-    transform: translateX(-100%);
-    box-shadow: var(--shadow-floating);
-  }
-  body.mobile-nav-open .sidebar{ transform: translateX(0); }
-  /* the drawer always shows full labels — collapsed mode is a desktop/tablet-only density option */
-  body.sidebar-collapsed .sidebar{ width:272px; padding:22px 14px; }
-  body.sidebar-collapsed .sidebar .brand{ justify-content:flex-start; padding:6px 8px 26px; }
-  body.sidebar-collapsed .sidebar .brand .name,
-  body.sidebar-collapsed .sidebar .brand .tag{ display:block; }
-  body.sidebar-collapsed .nav-group-label{ height:auto; padding:14px 12px 8px; margin:0; font-size:10.5px; color: var(--text-muted); background:none; border-top:none; }
-  body.sidebar-collapsed .nav-item{ justify-content:flex-start; padding:10px 12px; gap:11px; }
-  body.sidebar-collapsed .nav-item .nav-label{ display:block; }
-  body.sidebar-collapsed .nav-item .count{ position:static; margin-left:auto; font-size:11px; padding:1px 7px; box-shadow:none; background: rgba(255,255,255,0.06); color:var(--text-muted); }
-  body.sidebar-collapsed .nav-item.active .count{ background: rgba(63,208,201,0.2); color: var(--accent); }
-  body.sidebar-collapsed .sidebar [data-tooltip]::after{ content:none; }
-  body.sidebar-collapsed .conn-pill{ justify-content:flex-start; padding:8px 10px; }
-  body.sidebar-collapsed #sidebarUserEmail,
-  body.sidebar-collapsed #sidebarUserRole{ display:block; }
-  .sidebar-toggle{ display:none; }
-  body.focus-mode .sidebar{ transform: translateX(-100%); opacity:1; width:272px; }
-  body.focus-mode.mobile-nav-open .sidebar{ transform: translateX(0); }
-
-  .mobile-nav-toggle{ display:inline-flex; }
-  .mobile-nav-overlay{ display:block; }
-  body.mobile-nav-open .mobile-nav-overlay{ opacity:1; pointer-events:auto; }
-  .focus-toggle{ display:none; }
-
+  .sidebar{ display:none; }
   .view{ padding:22px 16px 60px; }
-  .topbar{ padding:12px 16px; gap:8px; }
-  .topbar-titles h1{ font-size:16px; }
-  .cmdk-trigger{ max-width:none; width:38px; height:38px; padding:0; justify-content:center; border-radius:10px; flex:0 0 auto; }
-  .cmdk-trigger-label, .cmdk-trigger .cmdk-kbd{ display:none; }
-  .topbar-divider{ display:none; }
-  .topbar-actions{ gap:4px; }
-  .user-menu-meta{ display:none; }
-  .user-menu-trigger{ padding:4px; border-radius:50%; border-color:transparent; background:none; }
-  .user-menu-trigger > svg{ display:none; }
-  .dropdown-panel{ position:fixed; top:auto; bottom:14px; left:14px; right:14px; width:auto; }
+  .topbar{ padding:16px; }
   .info-grid{ grid-template-columns:1fr; }
 }
 </style>
@@ -976,78 +880,56 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
       </div>
     </div>
 
-    <nav style="flex:1; min-height:0;">
-      <div class="nav-group">
-        <div class="nav-group-label">Tổng quan</div>
-        <div class="nav-item active" data-view="dashboard" data-tooltip="Dashboard" title="Dashboard">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
-          <span class="nav-label">Dashboard</span>
-        </div>
-      </div>
+    <div class="nav-group-label">Tổng quan</div>
+    <div class="nav-item active" data-view="dashboard" title="Dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span class="nav-label">Dashboard</span>
+    </div>
 
-      <div class="nav-group">
-        <div class="nav-group-label">Quản lý thay đổi</div>
-        <div class="nav-item" data-view="crlog" data-tooltip="CR Log" title="CR Log">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>
-          <span class="nav-label">CR Log</span>
-          <span class="count" id="navCountCr">0</span>
-        </div>
-        <div class="nav-item" data-view="uat" data-tooltip="UAT Test Case" title="UAT Test Case">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-          <span class="nav-label">UAT Test Case</span>
-          <span class="count" id="navCountUat">0</span>
-        </div>
-        <div class="nav-item" data-view="release" data-tooltip="Release / PRD" title="Release / PRD">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 016.34-11.34.99.99 0 01.11-.1c1.62-.9 4-1.1 5.5.4s1.3 3.88.4 5.5c-.03.04-.07.08-.1.11A22 22 0 0112 15z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
-          <span class="nav-label">Release / PRD</span>
-          <span class="count" id="navCountRel">0</span>
-        </div>
-      </div>
+    <div class="nav-group-label">Quản lý</div>
+    <div class="nav-item" data-view="crlog" title="CR Log">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>
+      <span class="nav-label">CR Log</span>
+      <span class="count" id="navCountCr">0</span>
+    </div>
+    <div class="nav-item" data-view="uat" title="UAT Test Case">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      <span class="nav-label">UAT Test Case</span>
+      <span class="count" id="navCountUat">0</span>
+    </div>
+    <div class="nav-item" data-view="release" title="Release / PRD">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 016.34-11.34.99.99 0 01.11-.1c1.62-.9 4-1.1 5.5.4s1.3 3.88.4 5.5c-.03.04-.07.08-.1.11A22 22 0 0112 15z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+      <span class="nav-label">Release / PRD</span>
+      <span class="count" id="navCountRel">0</span>
+    </div>
 
-      <div class="nav-group hidden" id="navAdminGroup">
-        <div class="nav-group-label">Quản trị</div>
-        <div class="nav-item" data-view="admin" id="navAdmin" data-tooltip="Quản trị người dùng" title="Quản trị người dùng">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          <span class="nav-label">Quản trị người dùng</span>
-        </div>
-      </div>
-    </nav>
+    <div class="nav-item hidden" data-view="admin" id="navAdmin" title="Quản trị người dùng">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <span class="nav-label">Quản trị người dùng</span>
+    </div>
 
     <div class="sidebar-foot">
-      <div class="conn-pill" style="flex-direction:column; align-items:flex-start; gap:2px; position:relative;" data-tooltip="Tài khoản đang đăng nhập">
+      <div class="conn-pill" style="flex-direction:column; align-items:flex-start; gap:2px;">
         <div style="display:flex; align-items:center; gap:8px;"><span class="conn-dot"></span><span id="sidebarUserEmail" style="color:var(--text-dim); font-weight:600;"></span></div>
         <span id="sidebarUserRole" style="padding-left:15px; font-size:10.5px;"></span>
       </div>
-      <div class="nav-item" id="btnLogout" style="margin-bottom:0;" data-tooltip="Đăng xuất" title="Đăng xuất">
+      <div class="nav-item" id="btnLogout" style="margin-bottom:0;" title="Đăng xuất">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Đăng xuất</span>
       </div>
     </div>
   </aside>
 
-  <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
-
   <div class="main">
     <div class="topbar">
-      <div class="topbar-left">
-        <button class="btn btn-ghost btn-icon mobile-nav-toggle" id="btnMobileNav" title="Mở menu điều hướng" aria-label="Mở menu điều hướng">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </button>
-        <button class="btn btn-ghost btn-icon focus-toggle" id="btnFocusMode" title="Chế độ tập trung (ẩn sidebar)" aria-label="Chế độ tập trung">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16"/></svg>
-        </button>
-        <div class="topbar-titles">
-          <h1 id="topbarTitle">Dashboard</h1>
-          <div class="sub" id="topbarSub">Tổng quan tình trạng Change Request</div>
-        </div>
+      <div>
+        <h1 id="topbarTitle">Dashboard</h1>
+        <div class="sub" id="topbarSub">Tổng quan tình trạng Change Request</div>
       </div>
-
-      <button class="cmdk-trigger" id="btnCommandPalette" aria-label="Tìm kiếm (Ctrl K)" title="Tìm kiếm (Ctrl K)">
+      <div class="search-box hidden" id="globalSearchBox">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <span class="cmdk-trigger-label">Search CR, Test Case, Release...</span>
-        <span class="cmdk-kbd">Ctrl K</span>
-      </button>
-
+        <input id="globalSearch" type="text" placeholder="Tìm theo CR ID, tiêu đề, requester...">
+      </div>
       <div class="topbar-actions" id="topbarActions">
         <button class="btn btn-primary view-action hidden" data-for="crlog" id="btnAddCr">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -1061,47 +943,6 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Thêm Release
         </button>
-
-        <div class="topbar-divider"></div>
-
-        <button class="btn btn-ghost btn-icon" id="btnTopbarRefresh" title="Làm mới dữ liệu" aria-label="Làm mới dữ liệu">
-          <svg id="btnTopbarRefreshIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" style="transition:transform .5s ease;"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-        </button>
-
-        <div class="icon-menu" id="notifMenu">
-          <button class="btn btn-ghost btn-icon" id="btnNotifications" title="Thông báo" aria-label="Thông báo">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-            <span class="notif-dot hidden" id="notifDot"></span>
-          </button>
-          <div class="dropdown-panel" id="notifDropdown">
-            <div class="dropdown-head">Thông báo</div>
-            <div class="dropdown-empty">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-              <div>Chưa có thông báo mới</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="icon-menu" id="userMenu">
-          <button class="user-menu-trigger" id="btnUserMenu" aria-label="Tài khoản">
-            <span class="user-avatar" id="userAvatarInitial">?</span>
-            <span class="user-menu-meta">
-              <span class="user-menu-email" id="userMenuEmail"></span>
-              <span class="user-menu-role" id="userMenuRole"></span>
-            </span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="dropdown-panel" id="userMenuDropdown">
-            <div class="user-menu-dropdown-head">
-              <div class="um-email" id="userMenuDropdownEmail"></div>
-              <div class="um-role" id="userMenuDropdownRole"></div>
-            </div>
-            <button class="user-menu-item danger" id="btnUserMenuLogout">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-              Đăng xuất
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1146,34 +987,75 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 
     <!-- ============ CR LOG VIEW ============ -->
     <section class="view hidden" id="view-crlog">
-      <div class="list-panel">
-        <div class="list-panel-head">
-          <div class="list-panel-count"><b id="crCount">0</b> Change Request</div>
-          <div class="table-toolbar">
-            <div class="search-box" id="globalSearchBox">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-              <input id="globalSearch" type="text" placeholder="Tìm theo CR ID, tiêu đề, requester...">
-              <button class="search-clear" id="globalSearchClear" title="Xóa" aria-label="Xóa tìm kiếm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      <div class="crlog-shell">
+        <div class="crlog-kpis" id="crKpis"></div>
+
+        <div class="list-panel crlog-panel">
+          <div class="list-panel-head">
+            <div class="list-panel-count"><b id="crCount">0</b> Change Request</div>
+            <div class="table-toolbar" id="crToolbar">
+              <div class="tb-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input id="crSearchInput" type="text" placeholder="Tìm CR ID, tiêu đề, requester...">
+              </div>
+              <div class="filter-chip"><span>Trạng thái</span>
+                <select id="filterStatus"><option value="">Tất cả</option></select>
+              </div>
+              <div class="filter-chip"><span>Ưu tiên</span>
+                <select id="filterPriority"><option value="">Tất cả</option></select>
+              </div>
+              <div class="filter-chip"><span>Loại</span>
+                <select id="filterCategory"><option value="">Tất cả</option></select>
+              </div>
+
+              <div class="tb-dropdown" data-dd-root="moreFilters">
+                <button class="btn btn-ghost btn-sm tb-btn" data-dd="moreFilters" type="button">Lọc thêm<span class="tb-badge hidden" id="moreFiltersBadge">0</span></button>
+                <div class="tb-menu" id="menuMoreFilters">
+                  <div class="tb-menu-item-label">Requester</div>
+                  <select id="filterRequester"><option value="">Tất cả</option></select>
+                  <div class="tb-menu-divider"></div>
+                  <label class="tb-checkbox-row"><input type="checkbox" id="filterOverdueOnly"> Chỉ hiển thị quá hạn</label>
+                </div>
+              </div>
+
+              <div class="chip-clear" id="clearFilters">Xóa lọc</div>
+
+              <div class="tb-dropdown" data-dd-root="columns">
+                <button class="btn btn-ghost btn-sm tb-btn" data-dd="columns" type="button">Columns</button>
+                <div class="tb-menu right" id="menuColumns"></div>
+              </div>
+
+              <div class="tb-dropdown" data-dd-root="density">
+                <button class="btn btn-ghost btn-sm tb-btn" data-dd="density" type="button">Density</button>
+                <div class="tb-menu right" id="menuDensity">
+                  <label class="tb-radio-row"><input type="radio" name="crDensity" value="compact"> Compact</label>
+                  <label class="tb-radio-row"><input type="radio" name="crDensity" value="comfortable"> Comfortable</label>
+                  <label class="tb-radio-row"><input type="radio" name="crDensity" value="spacious"> Spacious</label>
+                </div>
+              </div>
+
+              <button class="btn btn-ghost btn-sm tb-btn" id="btnFocusMode" type="button" title="Chế độ toàn màn hình">⛶ Focus</button>
             </div>
-            <div class="filter-chip"><span>Trạng thái</span>
-              <select id="filterStatus"><option value="">Tất cả</option></select>
-            </div>
-            <div class="filter-chip"><span>Ưu tiên</span>
-              <select id="filterPriority"><option value="">Tất cả</option></select>
-            </div>
-            <div class="filter-chip"><span>Loại</span>
-              <select id="filterCategory"><option value="">Tất cả</option></select>
-            </div>
-            <div class="chip-clear" id="clearFilters">Xóa lọc</div>
           </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>CR ID</th><th>Tiêu đề / App</th><th>Requester</th><th>Category</th><th>Priority</th><th>Status</th><th>Deadline</th><th></th>
-            </tr></thead>
-            <tbody id="crTableBody"></tbody>
-          </table>
+
+          <div class="bulk-bar hidden" id="crBulkBar">
+            <span><b id="crBulkCount">0</b> đã chọn</span>
+            <div class="bulk-actions">
+              <button class="btn btn-ghost btn-sm" id="crBulkClear">Bỏ chọn</button>
+            </div>
+          </div>
+
+          <div class="table-wrap crlog-table-wrap" id="crTableWrap">
+            <table id="crTable" class="density-comfortable">
+              <thead><tr id="crTheadRow"></tr></thead>
+              <tbody id="crTableBody"></tbody>
+            </table>
+            <div class="cr-mobile-list" id="crMobileList"></div>
+          </div>
+
+          <div class="list-panel-foot">
+            <span id="crFootCount">Hiển thị 0 / 0 Change Request</span>
+          </div>
         </div>
       </div>
     </section>
@@ -1264,25 +1146,6 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 <div id="lightbox"><button class="lb-close" id="lbClose">✕</button><img id="lbImg" src="" alt=""></div>
 <div id="toastHost"></div>
 
-<!-- ============================== COMMAND PALETTE (Ctrl/Cmd + K) ============================== -->
-<div class="cmdk-overlay" id="cmdkOverlay">
-  <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="Tìm kiếm">
-    <div class="cmdk-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="cmdkInput" type="text" placeholder="Search CR, Test Case, Release..." autocomplete="off">
-      <button class="cmdk-close" id="cmdkClose" title="Đóng" aria-label="Đóng"><span class="cmdk-kbd">Esc</span></button>
-    </div>
-    <div class="cmdk-body" id="cmdkResults">
-      <div class="cmdk-empty">Nhập từ khóa để tìm CR, Test Case hoặc Release...</div>
-    </div>
-    <div class="cmdk-foot">
-      <span><kbd>↵</kbd> Mở</span>
-      <span><kbd>Esc</kbd> Đóng</span>
-      <span><kbd>Ctrl</kbd> + <kbd>K</kbd> Mở nhanh</span>
-    </div>
-  </div>
-</div>
-
 <script>
 window.CR_LISTS = {
   status: ["New","In Review","Approved","Rejected","In Progress","UAT","Ready to Release","Released","Closed","On Hold"],
@@ -1326,7 +1189,7 @@ const STATE = {
   relList: [],
   userList: [],
   currentView: "dashboard",
-  filters: { status:"", priority:"", category:"", search:"" },
+  filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
   tcFilters: { cr:"", result:"" },
   relFilters: { cr:"", status:"" },
   editingCrId: null,      // uuid of cr_log row being edited (null = create)
@@ -1336,7 +1199,31 @@ const STATE = {
   drawerCrId: null,       // cr_id (text) currently shown in drawer
   drawerTab: "info",
   attachCache: {},        // cr_id -> [attachments]
+  crSelection: new Set(), // cr_id values currently selected in CR Log table
+  crColumns: null,        // populated by loadCrColumnPrefs()
+  crDensity: localStorage.getItem("crDensity") || "comfortable",
 };
+
+/* Togglable CR Log columns (CR ID + Status + Actions are structural, not toggled) */
+const CR_COLUMNS = [
+  { key:"title",     label:"Tiêu đề / App" },
+  { key:"requester", label:"Requester" },
+  { key:"category",  label:"Category" },
+  { key:"priority",  label:"Priority" },
+  { key:"status",    label:"Status" },
+  { key:"deadline",  label:"Deadline" },
+];
+function defaultCrColumnState(){
+  const o = {}; CR_COLUMNS.forEach(c=> o[c.key] = true); return o;
+}
+function loadCrColumnPrefs(){
+  try{
+    const saved = JSON.parse(localStorage.getItem("crColumns") || "null");
+    if(saved && typeof saved === "object") return Object.assign(defaultCrColumnState(), saved);
+  }catch(e){ /* ignore malformed prefs */ }
+  return defaultCrColumnState();
+}
+STATE.crColumns = loadCrColumnPrefs();
 
 const BUCKET = "cr-attachments";
 const SIGNED_URL_TTL = 3600; // giây — link file có hiệu lực 1 giờ
@@ -1510,9 +1397,7 @@ async function handleAuthState(){
   }
   $("#sidebarUserEmail").textContent = STATE.userEmail;
   $("#sidebarUserRole").textContent = STATE.userRole === "admin" ? "Quản trị viên" : "Thành viên";
-  updateUserMenu();
   $("#navAdmin").classList.toggle("hidden", STATE.userRole !== "admin");
-  $("#navAdminGroup").classList.toggle("hidden", STATE.userRole !== "admin");
   if(STATE.currentView === "admin" && STATE.userRole !== "admin"){ setView("dashboard"); }
 }
 
@@ -1587,9 +1472,9 @@ function subscribeRealtime(){
 --------------------------------------------------------------------------- */
 const VIEW_META = {
   dashboard: { title:"Dashboard", sub:"Tổng quan tình trạng Change Request", search:false },
-  crlog:     { title:"CR Log", sub:"Sổ đăng ký toàn bộ Change Request", search:true },
-  uat:       { title:"UAT Test Case", sub:"Test case UAT cho từng Change Request", search:true },
-  release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:true },
+  crlog:     { title:"CR Log", sub:"Sổ đăng ký toàn bộ Change Request", search:false },
+  uat:       { title:"UAT Test Case", sub:"Test case UAT cho từng Change Request", search:false },
+  release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:false },
   admin:     { title:"Quản trị người dùng", sub:"Cấp quyền truy cập cho tài khoản Gmail", search:false },
 };
 
@@ -1605,35 +1490,8 @@ function initSidebarToggle(){
   });
 }
 
-/* ---- STATE 3: Focus mode — hides the sidebar entirely so the workspace takes the full width ---- */
-function setFocusMode(on){
-  document.body.classList.toggle("focus-mode", on);
-  $("#btnFocusMode").classList.toggle("is-active", on);
-  localStorage.setItem("focusMode", on ? "1" : "0");
-  if(!on) document.body.classList.remove("mobile-nav-open");
-}
-function initFocusMode(){
-  const btn = $("#btnFocusMode");
-  if(!btn) return;
-  setFocusMode(localStorage.getItem("focusMode") === "1");
-  btn.addEventListener("click", ()=> setFocusMode(!document.body.classList.contains("focus-mode")));
-}
-
-/* ---- Mobile off-canvas drawer: same sidebar markup, slides in over the workspace ---- */
-function initMobileNav(){
-  const btn = $("#btnMobileNav");
-  const overlay = $("#mobileNavOverlay");
-  if(!btn || !overlay) return;
-  const close = ()=> document.body.classList.remove("mobile-nav-open");
-  btn.addEventListener("click", ()=> document.body.classList.toggle("mobile-nav-open"));
-  overlay.addEventListener("click", close);
-  $all(".nav-item[data-view]").forEach(item=> item.addEventListener("click", close));
-}
-
 function initShell(){
   initSidebarToggle();
-  initFocusMode();
-  initMobileNav();
   $all(".nav-item[data-view]").forEach(item=>{
     item.addEventListener("click", ()=> setView(item.dataset.view));
   });
@@ -1652,11 +1510,25 @@ function initShell(){
   $("#filterStatus").addEventListener("change", e=>{ STATE.filters.status = e.target.value; renderCrTable(); });
   $("#filterPriority").addEventListener("change", e=>{ STATE.filters.priority = e.target.value; renderCrTable(); });
   $("#filterCategory").addEventListener("change", e=>{ STATE.filters.category = e.target.value; renderCrTable(); });
+  $("#filterRequester").addEventListener("change", e=>{ STATE.filters.requester = e.target.value; updateMoreFiltersBadge(); renderCrTable(); });
+  $("#filterOverdueOnly").addEventListener("change", e=>{ STATE.filters.overdueOnly = e.target.checked; updateMoreFiltersBadge(); renderCrTable(); });
   $("#clearFilters").addEventListener("click", ()=>{
-    STATE.filters = { status:"", priority:"", category:"", search: STATE.filters.search };
+    STATE.filters = { status:"", priority:"", category:"", requester:"", overdueOnly:false, search: STATE.filters.search };
     $("#filterStatus").value=""; $("#filterPriority").value=""; $("#filterCategory").value="";
+    $("#filterRequester").value=""; $("#filterOverdueOnly").checked = false;
+    updateMoreFiltersBadge();
     renderCrTable();
   });
+  $("#crSearchInput").addEventListener("input", debounce(e=>{
+    STATE.filters.search = e.target.value.trim().toLowerCase();
+    renderCrTable();
+  }, 220));
+
+  initCrToolbarDropdowns();
+  initCrColumnsMenu();
+  initCrDensityMenu();
+  initCrSelection();
+  initFocusMode();
 
   $("#filterTcCr").addEventListener("change", e=>{ STATE.tcFilters.cr = e.target.value; renderTcTable(); });
   $("#filterTcResult").addEventListener("change", e=>{ STATE.tcFilters.result = e.target.value; renderTcTable(); });
@@ -1674,21 +1546,6 @@ function initShell(){
     renderRelTable();
   });
 
-  const globalSearchInput = $("#globalSearch");
-  const globalSearchBox = $("#globalSearchBox");
-  globalSearchInput.addEventListener("input", debounce(e=>{
-    STATE.filters.search = e.target.value.trim().toLowerCase();
-    globalSearchBox.classList.toggle("has-value", !!e.target.value);
-    if(STATE.currentView === "crlog") renderCrTable();
-  }, 220));
-  $("#globalSearchClear").addEventListener("click", ()=>{
-    globalSearchInput.value = "";
-    STATE.filters.search = "";
-    globalSearchBox.classList.remove("has-value");
-    if(STATE.currentView === "crlog") renderCrTable();
-    globalSearchInput.focus();
-  });
-
   $("#btnAddCr").addEventListener("click", ()=> openCrModal(null));
   $("#btnAddTc").addEventListener("click", ()=> openTcModal(null));
   $("#btnAddRel").addEventListener("click", ()=> openRelModal(null));
@@ -1699,175 +1556,111 @@ function initShell(){
 
   $("#drawerOverlay").addEventListener("click", closeDrawer);
 
-  initTopbarWidgets();
-
   document.addEventListener("keydown", e=>{
     if(e.key === "Escape"){
-      closeLightbox(); closeDrawer(); closeCmdk();
+      closeLightbox(); closeDrawer();
       $all(".modal-overlay.show").forEach(m=> m.classList.remove("show"));
-      $all(".dropdown-panel.show").forEach(m=> m.classList.remove("show"));
-      document.body.classList.remove("mobile-nav-open");
+      closeAllTbMenus();
+      if(document.body.classList.contains("focus-mode")) setFocusMode(false);
     }
   });
 }
 
 /* ---------------------------------------------------------------------------
-   4b. TOPBAR WIDGETS — refresh / notifications / user menu / command palette
+   4b. CR LOG TOOLBAR — dropdowns, columns, density, selection, focus mode
 --------------------------------------------------------------------------- */
-function updateUserMenu(){
-  const email = STATE.userEmail || "";
-  const roleLabel = STATE.userRole === "admin" ? "Quản trị viên" : "Thành viên";
-  const roleBadgeLabel = STATE.userRole === "admin" ? "Quản trị" : "Thành viên";
-  $("#userMenuEmail").textContent = email;
-  $("#userMenuRole").textContent = roleLabel;
-  $("#userMenuDropdownEmail").textContent = email;
-  $("#userMenuDropdownRole").innerHTML = badge("role", roleBadgeLabel);
-  $("#userAvatarInitial").textContent = email ? email[0].toUpperCase() : "?";
+function closeAllTbMenus(){
+  $all(".tb-menu.show").forEach(m=> m.classList.remove("show"));
+}
+function initCrToolbarDropdowns(){
+  $all("#crToolbar [data-dd]").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const key = btn.dataset.dd;
+      const menu = $("#menu" + key.charAt(0).toUpperCase() + key.slice(1));
+      if(!menu) return;
+      const wasOpen = menu.classList.contains("show");
+      closeAllTbMenus();
+      if(!wasOpen) menu.classList.add("show");
+    });
+  });
+  // clicking inside a menu shouldn't close it (unless it's a select/checkbox change, which is fine)
+  $all(".tb-menu").forEach(menu=> menu.addEventListener("click", e=> e.stopPropagation()));
+  document.addEventListener("click", closeAllTbMenus);
 }
 
-function closeAllDropdowns(except){
-  $all(".dropdown-panel.show").forEach(p=>{ if(p !== except) p.classList.remove("show"); });
+function updateMoreFiltersBadge(){
+  const f = STATE.filters;
+  let n = 0;
+  if(f.requester) n++;
+  if(f.overdueOnly) n++;
+  const badge = $("#moreFiltersBadge");
+  if(!badge) return;
+  badge.textContent = n;
+  badge.classList.toggle("hidden", n === 0);
 }
 
-function initTopbarWidgets(){
-  // ---- Refresh ----
-  const refreshBtn = $("#btnTopbarRefresh");
-  const refreshIcon = $("#btnTopbarRefreshIcon");
-  refreshBtn.addEventListener("click", async ()=>{
-    if(refreshBtn.disabled) return;
-    refreshBtn.disabled = true;
-    refreshIcon.style.transform = "rotate(360deg)";
-    toast("Đang làm mới dữ liệu...", "info");
-    await refreshAll();
-    if(STATE.userRole === "admin" && STATE.currentView === "admin") await loadAndRenderAdmin();
-    setTimeout(()=>{ refreshIcon.style.transform = "rotate(0deg)"; refreshBtn.disabled = false; }, 500);
-  });
-
-  // ---- Notifications (UI shell only — wired up in a later phase) ----
-  const notifBtn = $("#btnNotifications");
-  const notifDropdown = $("#notifDropdown");
-  notifBtn.addEventListener("click", e=>{
-    e.stopPropagation();
-    const willShow = !notifDropdown.classList.contains("show");
-    closeAllDropdowns();
-    notifDropdown.classList.toggle("show", willShow);
-  });
-
-  // ---- User menu ----
-  const userBtn = $("#btnUserMenu");
-  const userDropdown = $("#userMenuDropdown");
-  userBtn.addEventListener("click", e=>{
-    e.stopPropagation();
-    const willShow = !userDropdown.classList.contains("show");
-    closeAllDropdowns();
-    userDropdown.classList.toggle("show", willShow);
-  });
-  $("#btnUserMenuLogout").addEventListener("click", ()=>{
-    closeAllDropdowns();
-    confirmDelete("Đăng xuất?", "Bạn sẽ cần đăng nhập lại bằng Google để tiếp tục sử dụng.", async ()=>{ await logout(); }, "Đăng xuất");
-  });
-
-  document.addEventListener("click", ()=> closeAllDropdowns());
-
-  // ---- Command palette (Ctrl/Cmd + K) ----
-  $("#btnCommandPalette").addEventListener("click", openCmdk);
-  $("#cmdkOverlay").addEventListener("click", e=>{ if(e.target.id === "cmdkOverlay") closeCmdk(); });
-  $("#cmdkClose").addEventListener("click", closeCmdk);
-  $("#cmdkInput").addEventListener("input", debounce(e=> renderCmdkResults(e.target.value.trim().toLowerCase()), 120));
-  document.addEventListener("keydown", e=>{
-    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){
-      e.preventDefault();
-      document.getElementById("cmdkOverlay").classList.contains("show") ? closeCmdk() : openCmdk();
-    }
+function initCrColumnsMenu(){
+  const menu = $("#menuColumns");
+  if(!menu) return;
+  menu.innerHTML = `<div class="tb-menu-item-label">Hiển thị cột</div>` + CR_COLUMNS.map(c=>`
+    <label class="tb-checkbox-row"><input type="checkbox" data-col="${c.key}" ${STATE.crColumns[c.key] ? "checked" : ""}> ${esc(c.label)}</label>
+  `).join("");
+  menu.addEventListener("change", e=>{
+    const cb = e.target.closest("[data-col]");
+    if(!cb) return;
+    // keep at least one column visible
+    const willBeChecked = cb.checked;
+    const visibleCount = Object.values(STATE.crColumns).filter(Boolean).length;
+    if(!willBeChecked && visibleCount <= 1){ cb.checked = true; return; }
+    STATE.crColumns[cb.dataset.col] = willBeChecked;
+    localStorage.setItem("crColumns", JSON.stringify(STATE.crColumns));
+    renderCrTable();
   });
 }
 
-function openCmdk(){
-  closeAllDropdowns();
-  const overlay = $("#cmdkOverlay");
-  overlay.classList.add("show");
-  const input = $("#cmdkInput");
-  input.value = "";
-  renderCmdkResults("");
-  setTimeout(()=> input.focus(), 30);
+function initCrDensityMenu(){
+  const menu = $("#menuDensity");
+  if(!menu) return;
+  const radio = menu.querySelector(`input[value="${STATE.crDensity}"]`);
+  if(radio) radio.checked = true;
+  applyCrDensity();
+  menu.addEventListener("change", e=>{
+    if(e.target.name !== "crDensity") return;
+    STATE.crDensity = e.target.value;
+    localStorage.setItem("crDensity", STATE.crDensity);
+    applyCrDensity();
+  });
 }
-function closeCmdk(){
-  $("#cmdkOverlay").classList.remove("show");
+function applyCrDensity(){
+  const table = $("#crTable");
+  if(!table) return;
+  table.classList.remove("density-compact","density-comfortable","density-spacious");
+  table.classList.add("density-" + STATE.crDensity);
 }
 
-/* Lightweight cross-entity search — a foundation for the full command palette in Phase 05 */
-function renderCmdkResults(q){
-  const body = $("#cmdkResults");
-  if(!q){
-    body.innerHTML = `<div class="cmdk-empty">Nhập từ khóa để tìm CR, Test Case hoặc Release...</div>`;
-    return;
-  }
-  const crMatches = STATE.crList.filter(c=>
-    [c.cr_id, c.old_name, c.rename_folder, c.app, c.requester, c.department, c.owner].join(" ").toLowerCase().includes(q)
-  ).slice(0, 5);
-  const tcMatches = STATE.tcList.filter(t=>
-    [t.cr_id, t.test_case_id, t.scenario, t.testor].join(" ").toLowerCase().includes(q)
-  ).slice(0, 5);
-  const relMatches = STATE.relList.filter(r=>
-    [r.cr_id, r.release_id, r.release_name].join(" ").toLowerCase().includes(q)
-  ).slice(0, 5);
+function initCrSelection(){
+  $("#crBulkClear").addEventListener("click", ()=>{
+    STATE.crSelection.clear();
+    renderCrTable();
+  });
+}
+function updateCrBulkBar(){
+  const bar = $("#crBulkBar");
+  const countEl = $("#crBulkCount");
+  if(!bar || !countEl) return;
+  const n = STATE.crSelection.size;
+  countEl.textContent = n;
+  bar.classList.toggle("hidden", n === 0);
+}
 
-  if(!crMatches.length && !tcMatches.length && !relMatches.length){
-    body.innerHTML = `<div class="cmdk-empty">Không tìm thấy kết quả nào cho "${esc(q)}"</div>`;
-    return;
-  }
-
-  const iconCr = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>`;
-  const iconTc = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`;
-  const iconRel = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15l-3-3a22 22 0 016.34-11.34c1.62-.9 4-1.1 5.5.4s1.3 3.88.4 5.5A22 22 0 0112 15z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/></svg>`;
-
-  let html = "";
-  if(crMatches.length){
-    html += `<div class="cmdk-group-label">Change Request</div>`;
-    html += crMatches.map(c=>`
-      <div class="cmdk-item" data-cmdk-cr="${esc(c.cr_id)}">
-        ${iconCr}
-        <div class="cmdk-item-main">
-          <div class="cmdk-item-title">${esc(c.cr_id)} — ${esc(c.rename_folder || c.old_name || c.app || "Chưa có tiêu đề")}</div>
-          <div class="cmdk-item-sub">${esc(c.requester || "—")} · ${esc(c.status || "—")}</div>
-        </div>
-      </div>`).join("");
-  }
-  if(tcMatches.length){
-    html += `<div class="cmdk-group-label">UAT Test Case</div>`;
-    html += tcMatches.map(t=>`
-      <div class="cmdk-item" data-cmdk-tc="${t.id}">
-        ${iconTc}
-        <div class="cmdk-item-main">
-          <div class="cmdk-item-title">${esc(t.test_case_id || "Test case")} — ${esc(t.scenario || "")}</div>
-          <div class="cmdk-item-sub">CR ${esc(t.cr_id || "—")} · ${esc(t.pass_fail || "—")}</div>
-        </div>
-      </div>`).join("");
-  }
-  if(relMatches.length){
-    html += `<div class="cmdk-group-label">Release / PRD</div>`;
-    html += relMatches.map(r=>`
-      <div class="cmdk-item" data-cmdk-rel="${r.id}">
-        ${iconRel}
-        <div class="cmdk-item-main">
-          <div class="cmdk-item-title">${esc(r.release_id || "Release")} — ${esc(r.release_name || "")}</div>
-          <div class="cmdk-item-sub">CR ${esc(r.cr_id || "—")} · ${esc(r.status || "—")}</div>
-        </div>
-      </div>`).join("");
-  }
-  body.innerHTML = html;
-
-  $all("[data-cmdk-cr]", body).forEach(el=> el.addEventListener("click", ()=>{
-    closeCmdk(); setView("crlog"); openDrawer(el.dataset.cmdkCr);
-  }));
-  $all("[data-cmdk-tc]", body).forEach(el=> el.addEventListener("click", ()=>{
-    const t = STATE.tcList.find(x=> String(x.id) === el.dataset.cmdkTc);
-    closeCmdk(); setView("uat"); if(t) openTcModal(t);
-  }));
-  $all("[data-cmdk-rel]", body).forEach(el=> el.addEventListener("click", ()=>{
-    const r = STATE.relList.find(x=> String(x.id) === el.dataset.cmdkRel);
-    closeCmdk(); setView("release"); if(r) openRelModal(r);
-  }));
+function initFocusMode(){
+  $("#btnFocusMode").addEventListener("click", ()=> setFocusMode(!document.body.classList.contains("focus-mode")));
+}
+function setFocusMode(on){
+  document.body.classList.toggle("focus-mode", on);
+  const btn = $("#btnFocusMode");
+  if(btn) btn.innerHTML = on ? "✕ Thoát Focus" : "⛶ Focus";
 }
 
 function populateSelect(sel, arr, withEmpty){
@@ -1940,7 +1733,6 @@ function renderNavCounts(){
   $("#navCountCr").textContent = STATE.crList.length;
   $("#navCountUat").textContent = STATE.tcList.length;
   $("#navCountRel").textContent = STATE.relList.length;
-  $all(".nav-item .count").forEach(el=> el.toggleAttribute("data-zero", Number(el.textContent)===0));
 }
 
 function populateCrDropdowns(){
@@ -1950,6 +1742,13 @@ function populateCrDropdowns(){
     populateSelect(sel, ids);
     sel.value = cur;
   });
+  const reqSel = $("#filterRequester");
+  if(reqSel){
+    const cur = reqSel.value;
+    const requesters = [...new Set(STATE.crList.map(c=>c.requester).filter(Boolean))].sort();
+    populateSelect(reqSel, requesters);
+    reqSel.value = cur;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -2026,6 +1825,8 @@ function filteredCrList(){
     if(f.status && c.status !== f.status) return false;
     if(f.priority && c.priority !== f.priority) return false;
     if(f.category && c.category !== f.category) return false;
+    if(f.requester && c.requester !== f.requester) return false;
+    if(f.overdueOnly && !isOverdue(c)) return false;
     if(f.search){
       const hay = [c.cr_id, c.old_name, c.rename_folder, c.app, c.requester, c.department, c.owner].join(" ").toLowerCase();
       if(!hay.includes(f.search)) return false;
@@ -2034,25 +1835,91 @@ function filteredCrList(){
   });
 }
 
+function renderCrKpis(){
+  const host = $("#crKpis");
+  if(!host) return;
+  const list = STATE.crList;
+  const total = list.length;
+  const overdue = list.filter(isOverdue).length;
+  const inProgress = list.filter(c=> ["In Progress","In Review","UAT"].includes(c.status)).length;
+  const critical = list.filter(c=> c.priority === "Critical").length;
+  host.innerHTML = `
+    ${kpiCard("Tổng số CR", total, "", "")}
+    ${kpiCard("Quá hạn", overdue, "Deadline đã qua, chưa Released/Closed", "danger")}
+    ${kpiCard("Đang xử lý", inProgress, "In Progress / In Review / UAT", "accent")}
+    ${kpiCard("Critical", critical, "Mức ưu tiên cao nhất", "warn")}
+  `;
+}
+
+function crCellTitle(c){ return c.rename_folder || c.old_name || c.app || "—"; }
+
+function crRowCellHtml(colKey, c, overdue){
+  switch(colKey){
+    case "title": return `<td class="cell-title" title="${esc(c.rename_folder || c.old_name || '')}">${esc(crCellTitle(c))}</td>`;
+    case "requester": return `<td class="cell-dim">${esc(c.requester || '—')}</td>`;
+    case "category": return `<td>${badge("category", c.category)}</td>`;
+    case "priority": return `<td>${badge("priority", c.priority)}</td>`;
+    case "status": return `<td>${badge("status", c.status)}</td>`;
+    case "deadline": return `<td class="cell-dim">${
+        c.deadline
+          ? (overdue
+              ? `<span class="deadline-overdue"><span class="dl-warn">!</span>${fmtDate(c.deadline)}</span>`
+              : fmtDate(c.deadline))
+          : "—"
+      }</td>`;
+    default: return "";
+  }
+}
+
+function renderCrThead(){
+  const tr = $("#crTheadRow");
+  if(!tr) return;
+  const cols = CR_COLUMNS.filter(c=> STATE.crColumns[c.key]);
+  tr.innerHTML =
+    `<th class="col-check"><input type="checkbox" class="select-all-check" id="crSelectAll" title="Chọn tất cả"></th>` +
+    `<th>CR ID</th>` +
+    cols.map(c=> `<th>${esc(c.label)}</th>`).join("") +
+    `<th></th>`;
+  const selectAll = $("#crSelectAll");
+  if(selectAll) selectAll.addEventListener("change", e=>{
+    const rows = filteredCrList();
+    if(e.target.checked) rows.forEach(c=> STATE.crSelection.add(c.cr_id));
+    else rows.forEach(c=> STATE.crSelection.delete(c.cr_id));
+    renderCrTable();
+  });
+}
+
 function renderCrTable(){
+  renderCrKpis();
+  renderCrThead();
   const rows = filteredCrList();
+  const cols = CR_COLUMNS.filter(c=> STATE.crColumns[c.key]);
   const tbody = $("#crTableBody");
   const countEl = $("#crCount");
+  const footEl = $("#crFootCount");
   if(countEl) countEl.textContent = rows.length;
+  if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${STATE.crList.length} Change Request`;
+
+  // drop selections for CRs no longer present in the dataset
+  const allIds = new Set(STATE.crList.map(c=>c.cr_id));
+  STATE.crSelection.forEach(id=>{ if(!allIds.has(id)) STATE.crSelection.delete(id); });
+
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="8">${emptyStateBlock("Chưa có Change Request", "Bấm \"Tạo CR mới\" để bắt đầu ghi nhận Change Request đầu tiên.")}</td></tr>`;
+    const colspan = cols.length + 3;
+    tbody.innerHTML = `<tr><td colspan="${colspan}">${emptyStateBlock("Chưa có Change Request", "Bấm \"Tạo CR mới\" để bắt đầu ghi nhận Change Request đầu tiên.")}</td></tr>`;
+    $("#crMobileList").innerHTML = emptyStateBlock("Chưa có Change Request", "Bấm \"Tạo CR mới\" để bắt đầu ghi nhận Change Request đầu tiên.");
+    updateSelectAllState(rows);
+    updateCrBulkBar();
     return;
   }
+
   tbody.innerHTML = rows.map(c=>{
     const overdue = isOverdue(c);
+    const checked = STATE.crSelection.has(c.cr_id) ? "checked" : "";
     return `<tr data-cr="${esc(c.cr_id)}">
-      <td class="cell-id">${esc(c.cr_id)}</td>
-      <td class="cell-title" title="${esc(c.rename_folder || c.old_name || '')}">${esc(c.rename_folder || c.old_name || c.app || '—')}</td>
-      <td class="cell-dim">${esc(c.requester || '—')}</td>
-      <td>${badge("category", c.category)}</td>
-      <td>${badge("priority", c.priority)}</td>
-      <td>${badge("status", c.status)}</td>
-      <td class="cell-dim" style="${overdue? 'color:var(--danger); font-weight:700;':''}">${c.deadline? fmtDate(c.deadline) : '—'}${overdue? ' ⚠' : ''}</td>
+      <td class="cell-check"><input type="checkbox" class="row-check" data-cr-check="${esc(c.cr_id)}" ${checked}></td>
+      <td class="cell-id"><span class="id-chip">${esc(c.cr_id)}</span></td>
+      ${cols.map(col=> crRowCellHtml(col.key, c, overdue)).join("")}
       <td class="cell-actions">
         <div class="row-actions">
           <button class="icon-btn" data-act="view" title="Xem chi tiết"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -2066,10 +1933,66 @@ function renderCrTable(){
   $all("#crTableBody tr[data-cr]").forEach(tr=>{
     tr.addEventListener("click", (e)=>{
       const actBtn = e.target.closest("[data-act]");
+      const checkEl = e.target.closest("input[type=checkbox]");
       const crId = tr.dataset.cr;
+      if(checkEl) return; // handled by its own change listener
       if(!actBtn){ openDrawer(crId); return; }
       const act = actBtn.dataset.act;
       if(act === "view") openDrawer(crId);
+      if(act === "edit") openCrModal(STATE.crList.find(c=>c.cr_id===crId));
+      if(act === "del") confirmDelete("Xóa Change Request?", `CR "${crId}" cùng toàn bộ test case, release và file đính kèm liên quan sẽ bị xóa vĩnh viễn.`, ()=> deleteCr(crId));
+    });
+  });
+  $all("#crTableBody .row-check").forEach(cb=>{
+    cb.addEventListener("change", ()=>{
+      const id = cb.dataset.crCheck;
+      if(cb.checked) STATE.crSelection.add(id); else STATE.crSelection.delete(id);
+      updateSelectAllState(rows);
+      updateCrBulkBar();
+    });
+  });
+
+  renderCrMobileList(rows);
+  updateSelectAllState(rows);
+  updateCrBulkBar();
+}
+
+function updateSelectAllState(rows){
+  const selectAll = $("#crSelectAll");
+  if(!selectAll) return;
+  const selectedInView = rows.filter(c=> STATE.crSelection.has(c.cr_id)).length;
+  selectAll.checked = rows.length>0 && selectedInView === rows.length;
+  selectAll.indeterminate = selectedInView>0 && selectedInView<rows.length;
+}
+
+function renderCrMobileList(rows){
+  const host = $("#crMobileList");
+  if(!host) return;
+  host.innerHTML = rows.map(c=>{
+    const overdue = isOverdue(c);
+    return `<div class="cr-card" data-cr="${esc(c.cr_id)}">
+      <div class="cr-card-top">
+        <span class="id-chip cell-id">${esc(c.cr_id)}</span>
+        ${badge("status", c.status)}
+      </div>
+      <div class="cr-card-title">${esc(crCellTitle(c))}</div>
+      <div class="cr-card-badges">${badge("category", c.category)}${badge("priority", c.priority)}</div>
+      <div class="cr-card-meta">
+        <span>${esc(c.requester || "—")}</span>
+        <span>${c.deadline ? (overdue? `<span class="deadline-overdue"><span class="dl-warn">!</span>${fmtDate(c.deadline)}</span>` : fmtDate(c.deadline)) : "—"}</span>
+      </div>
+      <div class="cr-card-actions">
+        <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+      </div>
+    </div>`;
+  }).join("");
+  $all("#crMobileList .cr-card").forEach(card=>{
+    card.addEventListener("click", (e)=>{
+      const actBtn = e.target.closest("[data-act]");
+      const crId = card.dataset.cr;
+      if(!actBtn){ openDrawer(crId); return; }
+      const act = actBtn.dataset.act;
       if(act === "edit") openCrModal(STATE.crList.find(c=>c.cr_id===crId));
       if(act === "del") confirmDelete("Xóa Change Request?", `CR "${crId}" cùng toàn bộ test case, release và file đính kèm liên quan sẽ bị xóa vĩnh viễn.`, ()=> deleteCr(crId));
     });

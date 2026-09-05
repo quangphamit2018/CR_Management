@@ -1768,6 +1768,131 @@ tbody tr.detail-selected:hover{ background:
   .summary-grid{ grid-template-columns:1fr; }
   .modal.modal-lg .field{ padding:12px; }
 }
+
+/* ==========================================================================
+   CONTENT WIDTH PASS — use the available workspace more evenly
+   ========================================================================== */
+
+/* Drawer content was capped too early, leaving large empty gutters on
+   desktop. Keep a readable max-width, but let the active panel fill it. */
+.drawer-body{
+  flex:1 1 auto;
+  width:100%;
+  max-width:1320px;
+  min-height:0;
+  padding:clamp(30px,3.2vw,52px) clamp(28px,4.2vw,72px) 96px;
+}
+.drawer-body > .tab-panel,
+.drawer-body > .tab-panel.active{
+  width:100%;
+  max-width:none;
+  min-height:100%;
+}
+.drawer-body > .tab-panel.active{
+  display:block;
+}
+.drawer-body > .tab-panel.active .dsec,
+.drawer-body > .tab-panel.active .section-title,
+.drawer-body > .tab-panel.active .file-drop,
+.drawer-body > .tab-panel.active .file-grid,
+.drawer-body > .tab-panel.active .mini-list{
+  width:100%;
+}
+
+/* Make every active modal tab use the same content column as the form. */
+.modal.modal-lg{
+  max-width:1240px;
+}
+.modal-body{
+  width:100%;
+  flex:1 1 auto;
+  min-height:0;
+  box-sizing:border-box;
+}
+.modal-body > .tab-panel,
+.modal-body > .tab-panel.active{
+  width:100%;
+  max-width:none;
+  min-height:100%;
+}
+.modal-body > .tab-panel.active{
+  display:block;
+}
+.modal-overlay.full .modal.modal-lg > .modal-body{
+  width:100%;
+  max-width:none;
+  padding:clamp(30px,3.4vw,52px) clamp(28px,5vw,84px) 56px;
+}
+.modal-overlay.full .modal.modal-lg > .modal-body > .form-grid,
+.modal-overlay.full .modal.modal-lg > .modal-body > .tab-panel.active{
+  width:100%;
+  max-width:1240px;
+  margin-left:auto;
+  margin-right:auto;
+}
+.modal-overlay.full .modal.modal-lg > .modal-body > .tab-panel.active > .form-grid{
+  width:100%;
+  max-width:none;
+}
+
+@media(max-width:900px){
+  .drawer-body{
+    max-width:none;
+    padding:22px 16px 64px;
+  }
+  .modal-overlay.full .modal.modal-lg > .modal-body{
+    padding:22px 16px 34px;
+  }
+  .modal-overlay.full .modal.modal-lg > .modal-body > .form-grid,
+  .modal-overlay.full .modal.modal-lg > .modal-body > .tab-panel.active{
+    max-width:none;
+  }
+}
+
+/* Attachment cards: edit metadata and delete from every attachment surface. */
+.file-grid{
+  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:16px;
+}
+.file-card{
+  min-width:0;
+  background:#fff;
+  border-color:#dce8eb;
+  box-shadow:0 8px 20px -18px rgba(15,42,68,.55);
+}
+.file-thumb{ height:112px; background:#eef4f6; }
+.file-meta{ padding:11px 12px 13px; }
+.file-name{ font-size:12px; color:#18364f; padding-right:4px; }
+.file-sub{ font-size:11px; color:#7890a2; }
+.file-actions{
+  position:absolute; top:7px; right:7px; z-index:4;
+  display:flex; gap:5px; opacity:0; transform:translateY(-3px);
+  transition:opacity 160ms var(--ease-standard), transform 160ms var(--ease-decel);
+}
+.file-card:hover .file-actions,
+.file-card:focus-within .file-actions{ opacity:1; transform:translateY(0); }
+.file-edit,.file-del{
+  position:static; width:25px; height:25px; opacity:1; border:0; border-radius:7px;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  color:#fff; background:rgba(16,41,68,.72); font-size:13px;
+}
+.file-edit:hover{ background:#0e9a94; }
+.file-del:hover{ background:var(--danger); }
+.file-edit svg{ width:13px; height:13px; }
+.attachment-editor .modal-body{ padding:22px 24px 26px; }
+.attachment-editor .field{ margin-bottom:14px; }
+.attachment-editor .field:last-child{ margin-bottom:0; }
+.attachment-editor .editor-note{
+  margin-top:12px; color:#7890a2; font-size:11.5px; line-height:1.5;
+}
+@media(max-width:900px){
+  .file-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+  .file-thumb{ height:96px; }
+  .file-actions{ opacity:1; transform:none; }
+}
+@media(max-width:480px){
+  .file-grid{ grid-template-columns:1fr; }
+}
 </style>
 </head>
 <body>
@@ -2106,6 +2231,7 @@ tbody tr.detail-selected:hover{ background:
 <div class="modal-overlay" id="relModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="userModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="confirmModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="attachmentModalOverlay" role="dialog" aria-modal="true"></div>
 
 <div class="drawer-overlay" id="drawerOverlay" role="presentation"></div>
 <div class="drawer" id="crDrawer"></div>
@@ -2189,6 +2315,7 @@ const STATE = {
   initialLoadComplete: false,
   refreshing: false,
   attachCache: {},        // cr_id -> [attachments]
+  attachmentIndex: {},    // attachment id -> latest attachment metadata
   crSelection: new Set(), // cr_id values currently selected in CR Log table
   crColumns: null,        // populated by loadCrColumnPrefs()
   crDensity: localStorage.getItem("crDensity") || "comfortable",
@@ -3984,13 +4111,19 @@ async function getSignedUrl(path){
 }
 
 function fileCardHtml(f, url){
+  STATE.attachmentIndex[String(f.id)] = f;
   const kind = fileKind(f.file_name, f.file_type);
   const thumb = kind==="image"
     ? `<img src="${url}" loading="lazy" alt="${esc(f.file_name)}">`
     : FILE_ICON[kind];
   return `<div class="file-card" data-file="${f.id}" data-kind="${kind}" data-url="${url}">
     <span class="file-cat-tag">${esc(f.category||'Other')}</span>
-    <button class="file-del" data-del="${f.id}" data-path="${esc(f.file_path)}" title="Xóa file">✕</button>
+    <div class="file-actions">
+      <button class="file-edit" data-edit="${f.id}" type="button" title="Sửa thông tin file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L8 18l-4 1 1-4L16.5 3.5z"/></svg>
+      </button>
+      <button class="file-del" data-del="${f.id}" data-path="${esc(f.file_path)}" title="Xóa file" type="button">✕</button>
+    </div>
     <div class="file-thumb">${thumb}</div>
     <div class="file-meta">
       <div class="file-name" title="${esc(f.file_name)}">${esc(f.file_name)}</div>
@@ -4008,6 +4141,13 @@ function bindFileCardEvents(container, cr_id, testcase_id){
         openLightbox(card.dataset.url);
       });
     }
+  });
+  $all("[data-edit]", container).forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const file = STATE.attachmentIndex[String(btn.dataset.edit)];
+      if(file) openAttachmentEditor(file);
+    });
   });
   $all("[data-del]", container).forEach(btn=>{
     btn.addEventListener("click", (e)=>{
@@ -4056,6 +4196,102 @@ async function deleteAttachment(id, path, cr_id, testcase_id){
   } else if(cr_id){
     await fetchAttachments(cr_id);
     renderDrawerFiles(cr_id);
+  }
+}
+
+function closeAttachmentEditor(){
+  const overlay = $("#attachmentModalOverlay");
+  if(!overlay) return;
+  overlay.classList.remove("show");
+  overlay.innerHTML = "";
+}
+
+function openAttachmentEditor(file){
+  const overlay = $("#attachmentModalOverlay");
+  if(!overlay || !file) return;
+  const categories = Array.from(new Set([
+    ...CR_LISTS.attachCategory,
+    file.category || "Other"
+  ]));
+  const isEvidence = !!file.testcase_id;
+  overlay.innerHTML = `
+    <div class="modal modal-sm attachment-editor">
+      <div class="modal-head">
+        <div>
+          <h3>Chỉnh sửa tệp đính kèm</h3>
+          <div class="sub">${esc(file.file_name || "Tệp chưa có tên")}</div>
+        </div>
+        <button class="modal-close" id="attachmentModalClose" type="button" title="Đóng">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="attachmentFileName">Tên file hiển thị</label>
+          <input id="attachmentFileName" type="text" value="${esc(file.file_name || "")}" placeholder="Ví dụ: BRD_CR_001_v2.docx">
+        </div>
+        <div class="field">
+          <label for="attachmentCategory">Loại tài liệu</label>
+          <select id="attachmentCategory">
+            ${categories.map(category=>`<option value="${esc(category)}" ${category === (file.category || "Other") ? "selected" : ""}>${esc(category)}</option>`).join("")}
+          </select>
+        </div>
+        ${isEvidence ? `
+          <div class="field">
+            <label for="attachmentEvidenceStep">Bước evidence</label>
+            <input id="attachmentEvidenceStep" type="text" value="${esc(file.evidence_step || "")}" placeholder="Ví dụ: Prepare Data Testing 01">
+          </div>
+        ` : ""}
+        <div class="editor-note">Đổi tên ở đây là đổi tên hiển thị trong ứng dụng; file gốc trong Storage vẫn được giữ nguyên đường dẫn để tránh làm hỏng liên kết.</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" id="attachmentModalCancel" type="button">Hủy</button>
+        <button class="btn btn-primary" id="attachmentModalSave" type="button">Lưu thay đổi</button>
+      </div>
+    </div>`;
+  overlay.classList.add("show");
+  $("#attachmentModalClose").addEventListener("click", closeAttachmentEditor);
+  $("#attachmentModalCancel").addEventListener("click", closeAttachmentEditor);
+  $("#attachmentModalSave").addEventListener("click", ()=> saveAttachmentMeta(file));
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target === overlay) closeAttachmentEditor(); });
+  }
+  window.setTimeout(()=> $("#attachmentFileName")?.focus(), 0);
+}
+
+async function saveAttachmentMeta(file){
+  const nameInput = $("#attachmentFileName");
+  const categoryInput = $("#attachmentCategory");
+  const evidenceStepInput = $("#attachmentEvidenceStep");
+  const fileName = nameInput?.value.trim();
+  if(!fileName){
+    toast("Vui lòng nhập tên file", "err");
+    nameInput?.focus();
+    return;
+  }
+  const btn = $("#attachmentModalSave");
+  if(btn){ btn.disabled = true; btn.textContent = "Đang lưu..."; }
+  const payload = {
+    file_name: fileName,
+    category: categoryInput?.value || file.category || "Other",
+    evidence_step: file.testcase_id
+      ? (evidenceStepInput?.value.trim() || null)
+      : (file.evidence_step || null)
+  };
+  const { error } = await STATE.sb.from("cr_attachments").update(payload).eq("id", file.id);
+  if(error){
+    if(btn){ btn.disabled = false; btn.textContent = "Lưu thay đổi"; }
+    toast("Cập nhật file thất bại: " + error.message, "err");
+    return;
+  }
+  Object.assign(file, payload);
+  STATE.attachmentIndex[String(file.id)] = file;
+  closeAttachmentEditor();
+  toast("Đã cập nhật thông tin file", "ok");
+  if(file.testcase_id){
+    await renderEvidenceGrid(file.testcase_id);
+  }else if(file.cr_id){
+    await fetchAttachments(file.cr_id);
+    await renderDrawerFiles(file.cr_id);
   }
 }
 

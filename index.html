@@ -757,7 +757,7 @@ td.cell-id .id-chip{
 .modal-head .sub{ font-size: var(--text-caption-size); color: var(--text-muted); font-weight:500; margin-top:2px; }
 .modal-close{ width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; background: var(--bg-surface-soft); color: var(--text-secondary); flex-shrink:0; border: none; transition: var(--transition-hover);}
 .modal-close:hover{ background: var(--bg-surface-soft-hover); color: var(--text-primary); }
-.modal-body{ padding:22px 24px; overflow-y:auto; }
+.modal-body{ padding:22px 24px; overflow-y:auto; flex:1 1 auto; min-height:0; }
 .modal-foot{ display:flex; justify-content:flex-end; gap:10px; padding:16px 24px; border-top:1px solid var(--border); flex-shrink:0; }
 
 /* Full-screen detail-page mode for modals (used for CR / Test Case / Release editors) */
@@ -1065,31 +1065,31 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
   }
   body.mobile-nav-open .mobile-nav-backdrop{ display:block; }
 }
+/* ==========================================================================
+   MOBILE / DETAIL NAV TOGGLE — single consolidated source of truth.
+   Always position:fixed with the SAME high-contrast styling in every state
+   (dashboard, table views, drawer open, full-screen modal open) so it never
+   blends into either the dark sidebar/topbar or a light detail surface.
+   (Previously this button had 3 separate, partially conflicting rule blocks
+   spread across the stylesheet — consolidated here on purpose.)
+   ========================================================================== */
 .mobile-nav-toggle{
-  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  position:fixed; top:16px; left:calc(var(--sidebar-w) + 20px); z-index:500;
+  display:flex !important; align-items:center; justify-content:center; flex-shrink:0;
   width:38px; height:38px; border-radius:10px;
-  background: var(--bg-surface-soft); border:1px solid var(--border); color: var(--text-primary);
+  background:#ffffff; border:1.5px solid var(--accent); color:#0e6f6a;
+  box-shadow:0 8px 20px -8px rgba(15,42,68,.55);
+  transition:var(--transition-hover), left var(--duration-slow) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
 }
-.mobile-nav-toggle:hover{ background: var(--bg-surface-soft-hover); }
+.mobile-nav-toggle:hover{ background:#effafa; transform:translateY(-1px); }
+.mobile-nav-toggle:active{ transform:translateY(0) scale(0.94); }
 .mobile-nav-toggle svg{ width:18px; height:18px; }
-/* Keep navigation reachable above every detail surface. The button is moved
-   into the viewport only while a CR/UAT/Release detail is open. */
-body.detail-nav-visible .mobile-nav-toggle{
-  position:fixed;
-  top:16px;
-  left:calc(var(--sidebar-w) + 16px);
-  z-index:260;
-  transition:var(--transition-hover), left var(--duration-slow) var(--ease-standard);
-}
-body.sidebar-collapsed.detail-nav-visible .mobile-nav-toggle{
-  left:calc(var(--sidebar-w-collapsed) + 16px);
-}
-body.sidebar-hidden.detail-nav-visible .mobile-nav-toggle{ left:16px; }
+body.sidebar-collapsed .mobile-nav-toggle{ left:calc(var(--sidebar-w-collapsed) + 20px); }
+body.sidebar-hidden .mobile-nav-toggle{ left:20px; }
 @media(max-width:900px){
-  body.detail-nav-visible .mobile-nav-toggle{
-    top:16px;
-    left:16px;
-  }
+  .mobile-nav-toggle{ top:14px; left:14px; }
+  body.sidebar-collapsed .mobile-nav-toggle,
+  body.sidebar-hidden .mobile-nav-toggle{ left:14px; }
 }
 
 /* ==========================================================================
@@ -1643,32 +1643,11 @@ tbody tr.detail-selected:hover{ background:
    DETAIL SURFACES — shared visual system for drawer and large modals
    ========================================================================== */
 
-/* Keep the menu affordance visible above the full-screen detail surfaces. */
-.topbar .mobile-nav-toggle{
-  position:relative; z-index:35; display:flex !important; visibility:visible !important;
-  opacity:1 !important; pointer-events:auto !important; border-color:rgba(63,208,201,.28);
-  box-shadow:0 8px 18px -14px rgba(15,42,68,.8);
-}
-.topbar .mobile-nav-toggle:focus-visible{
-  box-shadow:0 0 0 3px rgba(63,208,201,.22), 0 8px 18px -14px rgba(15,42,68,.8);
-}
-body.detail-nav-visible .mobile-nav-toggle{
-  z-index:420; background:#fff; color:#12304a; border-color:#c8e5e4;
-  box-shadow:0 10px 24px -12px rgba(15,42,68,.55);
-}
-
-/* The topbar has backdrop-filter and the main shell clips its contents.
-   Keep the toggle at the app root so it cannot disappear behind a drawer. */
-#app > .mobile-nav-toggle{
-  position:fixed; top:18px; left:calc(var(--sidebar-w) + 24px); z-index:420;
-  display:flex !important; visibility:visible !important; opacity:1 !important;
-}
-body.sidebar-collapsed #app > .mobile-nav-toggle{ left:calc(var(--sidebar-w-collapsed) + 24px); }
-body.sidebar-hidden #app > .mobile-nav-toggle{ left:24px; }
+/* Mobile-nav-toggle: fully consolidated near the top of this stylesheet now
+   (single rule set, see "MOBILE / DETAIL NAV TOGGLE"). Nothing to add here —
+   this comment intentionally left so the section numbering below stays
+   unchanged for anyone diffing this file. */
 .topbar{ padding-left:76px; }
-body.detail-nav-visible #app > .mobile-nav-toggle{
-  background:#fff; color:#12304a; border-color:#c8e5e4;
-}
 
 /* Modal frame: head / tabs / body / foot are four distinct surfaces. */
 .modal-overlay{ padding:clamp(12px,3vw,32px); background:rgba(8,24,42,.58); backdrop-filter:blur(8px); }
@@ -1691,6 +1670,7 @@ body.detail-nav-visible #app > .mobile-nav-toggle{
 .modal.modal-lg > .tabs{ min-height:56px; padding:0 24px; background:#fff; border-bottom:1px solid #dfe9ed; }
 .modal.modal-lg > .modal-body{
   padding:24px clamp(20px,3vw,40px) 32px; background:linear-gradient(180deg,#f7fbfc 0%,#f2f8f9 100%);
+  min-height:360px;
 }
 .modal.modal-lg > .modal-body > .form-grid,
 .modal.modal-lg > .modal-body > .tab-panel.active{ width:100%; max-width:940px; margin:0 auto; }
@@ -1765,10 +1745,6 @@ body.detail-nav-visible #app > .mobile-nav-toggle{
 .mini-card:hover{ border-color:#91d9d5; background:#effafa; }
 
 @media(max-width:900px){
-  body.detail-nav-visible .mobile-nav-toggle{ top:12px; left:12px; }
-  #app > .mobile-nav-toggle{ top:12px; left:16px; }
-  body.sidebar-collapsed #app > .mobile-nav-toggle,
-  body.sidebar-hidden #app > .mobile-nav-toggle{ left:16px; }
   .topbar{ padding-left:66px; }
   .modal-overlay{ padding:0; }
   .modal,.modal.modal-lg{ width:100%; max-width:none; max-height:100vh; height:100%; border-radius:0; border-left:0; border-right:0; }

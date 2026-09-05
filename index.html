@@ -1638,6 +1638,143 @@ tbody tr.detail-selected:hover{ background:
 @media(prefers-reduced-motion: reduce){
   .refresh-btn.is-loading svg{ animation:none; }
 }
+
+/* ==========================================================================
+   DETAIL SURFACES — shared visual system for drawer and large modals
+   ========================================================================== */
+
+/* Keep the menu affordance visible above the full-screen detail surfaces. */
+.topbar .mobile-nav-toggle{
+  position:relative; z-index:35; display:flex !important; visibility:visible !important;
+  opacity:1 !important; pointer-events:auto !important; border-color:rgba(63,208,201,.28);
+  box-shadow:0 8px 18px -14px rgba(15,42,68,.8);
+}
+.topbar .mobile-nav-toggle:focus-visible{
+  box-shadow:0 0 0 3px rgba(63,208,201,.22), 0 8px 18px -14px rgba(15,42,68,.8);
+}
+body.detail-nav-visible .mobile-nav-toggle{
+  z-index:420; background:#fff; color:#12304a; border-color:#c8e5e4;
+  box-shadow:0 10px 24px -12px rgba(15,42,68,.55);
+}
+
+/* Modal frame: head / tabs / body / foot are four distinct surfaces. */
+.modal-overlay{ padding:clamp(12px,3vw,32px); background:rgba(8,24,42,.58); backdrop-filter:blur(8px); }
+.modal{
+  overflow:hidden; background:#f7fbfc; border:1px solid #e2e9f0; border-radius:20px;
+  box-shadow:0 30px 80px -30px rgba(4,20,36,.42), 0 8px 24px -16px rgba(4,20,36,.28);
+}
+.modal.modal-lg{ width:min(1040px,100%); max-width:1040px; max-height:min(900px,calc(100vh - 48px)); }
+.modal-head{
+  min-height:78px; padding:18px 24px; background:linear-gradient(135deg,#fff 0%,#f5fbfb 100%);
+  border-bottom:1px solid #dfe9ed; box-shadow:0 1px 0 rgba(255,255,255,.8) inset;
+}
+.modal-head h3{ color:#16344e; font-size:18px; line-height:1.25; letter-spacing:-.025em; }
+.modal-head .sub{ color:#7890a2; font-size:11.5px; line-height:1.45; margin-top:5px; }
+.modal-close{
+  width:36px; height:36px; border:1px solid #dbe7eb; border-radius:11px; background:#f3f8f9;
+  color:#5d7486; font-size:15px; transition:transform 180ms var(--ease-decel),background 180ms var(--ease-standard),color 180ms var(--ease-standard);
+}
+.modal-close:hover{ transform:rotate(4deg) scale(1.04); background:#e8f4f3; color:#0e9a94; }
+.modal.modal-lg > .tabs{ min-height:56px; padding:0 24px; background:#fff; border-bottom:1px solid #dfe9ed; }
+.modal.modal-lg > .modal-body{
+  padding:24px clamp(20px,3vw,40px) 32px; background:linear-gradient(180deg,#f7fbfc 0%,#f2f8f9 100%);
+}
+.modal.modal-lg > .modal-body > .form-grid,
+.modal.modal-lg > .modal-body > .tab-panel.active{ width:100%; max-width:940px; margin:0 auto; }
+.modal.modal-lg > .modal-foot{
+  min-height:72px; padding:14px 24px; background:rgba(255,255,255,.94); border-top:1px solid #dfe9ed;
+  box-shadow:0 -8px 18px -22px rgba(15,42,68,.5);
+}
+.modal.modal-lg .field{
+  padding:13px 14px 14px; border:1px solid #e0eaee; border-radius:13px; background:#fff;
+  box-shadow:0 5px 14px -16px rgba(15,42,68,.5);
+  transition:border-color 160ms var(--ease-standard),box-shadow 160ms var(--ease-standard);
+}
+.modal.modal-lg .field:focus-within{ border-color:#83d6d1; box-shadow:0 0 0 3px rgba(63,208,201,.11),0 8px 18px -18px rgba(15,42,68,.55); }
+.modal.modal-lg .field label{ color:#526d80; font-size:10.5px; letter-spacing:.045em; margin-bottom:7px; }
+.modal.modal-lg .field input,.modal.modal-lg .field select,.modal.modal-lg .field textarea{
+  border-color:#dbe7eb; background:#fbfdfe; color:#18364f; border-radius:9px;
+}
+.modal.modal-lg .field input:focus,.modal.modal-lg .field select:focus,.modal.modal-lg .field textarea:focus{
+  background:#fff; border-color:#49c6bf; box-shadow:0 0 0 3px rgba(63,208,201,.10);
+}
+.modal.modal-lg .file-drop{ border-color:#cfe1e5; background:rgba(255,255,255,.6); border-radius:14px; }
+.modal.modal-lg .file-drop:hover,.modal.modal-lg .file-drop.drag{ border-color:#32b8b1; background:#effafa; }
+
+/* Full editor mode keeps the same hierarchy instead of becoming a flat page. */
+.modal-overlay.full{ z-index:300; background:#edf5f7; }
+.modal-overlay.full .modal{ background:#f2f8f9; border-left:1px solid #d7e4e8; }
+.modal-overlay.full .modal.modal-lg .modal-head{ min-height:84px; padding:20px clamp(20px,4vw,52px); background:rgba(255,255,255,.92); }
+.modal-overlay.full .modal.modal-lg > .tabs{ padding:0 clamp(20px,4vw,52px); background:#fff; }
+.modal-overlay.full .modal.modal-lg > .modal-body{ max-width:none; padding:30px clamp(20px,4vw,52px) 42px; }
+.modal-overlay.full .modal.modal-lg > .modal-body > .form-grid,
+.modal-overlay.full .modal.modal-lg > .modal-body > .tab-panel.active{ max-width:1080px; }
+.modal-overlay.full .modal.modal-lg > .modal-foot{ padding-left:clamp(20px,4vw,52px); padding-right:clamp(20px,4vw,52px); }
+
+/* One tab treatment for every drawer and modal tab set. */
+.tabs{ gap:6px; overflow-x:auto; scrollbar-width:none; }
+.tabs::-webkit-scrollbar{ display:none; }
+.tab-btn{
+  flex:0 0 auto; min-height:56px; padding:13px 14px 12px; color:#879baa; font-size:12.5px;
+  font-weight:700; letter-spacing:.01em; border-bottom:3px solid transparent;
+  transition:color 160ms var(--ease-standard),background 160ms var(--ease-standard),border-color 160ms var(--ease-standard);
+}
+.tab-btn:hover{ color:#1d5870; background:#f5fafb; }
+.tab-btn.active{ color:#0b8d88; border-bottom-color:#2fc0b9; background:linear-gradient(180deg,transparent 62%,rgba(63,208,201,.09)); }
+
+/* CR detail drawer: cards make Summary / Progress / Detail / Related /
+   Activity visibly separate without changing any data or behavior. */
+.drawer{ background:#f4f9fa; border-left:1px solid #d6e4e8; box-shadow:-24px 0 60px -42px rgba(4,20,36,.45); }
+.drawer-head{
+  padding:22px clamp(20px,4vw,52px) 18px; background:rgba(255,255,255,.94);
+  border-bottom:1px solid #dce8eb; box-shadow:0 6px 20px -22px rgba(15,42,68,.55);
+}
+.drawer-head h2{ color:#153852; font-size:20px; line-height:1.2; }
+.drawer-head .drawer-app{ color:#7890a2; margin-top:5px; }
+.drawer-head-actions .icon-btn,.drawer-close{ border:1px solid #dbe7eb; background:#f3f8f9; color:#5c7486; }
+.drawer-head-actions .icon-btn:hover,.drawer-close:hover{ background:#e8f4f3; color:#0e9a94; }
+.drawer .tabs{ padding:0 clamp(20px,4vw,52px); background:#fff; border-bottom:1px solid #dce8eb; }
+.drawer-body{ max-width:1080px; padding:28px clamp(20px,4vw,52px) 80px; }
+.dsec{
+  margin-bottom:18px; padding:20px 22px; border:1px solid #dce8eb; border-radius:16px;
+  background:#fff; box-shadow:0 10px 26px -24px rgba(15,42,68,.55); animation:none;
+}
+.dsec:last-child{ margin-bottom:0; }
+.dsec-head{ margin-bottom:15px; }
+.dsec-head .dsec-title{ color:#527084; font-size:11px; letter-spacing:.095em; }
+.dsec-head::after{ background:#dce8eb; }
+.summary-grid{ gap:10px; }
+.summary-item{ min-height:68px; padding:12px 13px; border:1px solid #e3ecef; border-radius:12px; background:#f8fbfc; }
+.summary-item .k{ color:#8095a4; font-size:9.5px; }
+.summary-item .v{ color:#18364f; font-size:13px; }
+.detail-block .db-body{ background:#f7fafb; border-color:#e0eaee; border-radius:11px; color:#29465d; }
+.mini-card{ border-color:#dfeaec; background:#f8fbfc; border-radius:11px; }
+.mini-card:hover{ border-color:#91d9d5; background:#effafa; }
+
+@media(max-width:900px){
+  body.detail-nav-visible .mobile-nav-toggle{ top:12px; left:12px; }
+  .modal-overlay{ padding:0; }
+  .modal,.modal.modal-lg{ width:100%; max-width:none; max-height:100vh; height:100%; border-radius:0; border-left:0; border-right:0; }
+  .modal-head{ min-height:72px; padding:16px; }
+  .modal.modal-lg > .tabs,.drawer .tabs{ padding:0 16px; }
+  .modal.modal-lg > .modal-body{ padding:20px 16px 28px; }
+  .modal.modal-lg > .modal-foot{ padding:12px 16px; }
+  .modal-overlay.full .modal.modal-lg .modal-head,
+  .modal-overlay.full .modal.modal-lg > .tabs,
+  .modal-overlay.full .modal.modal-lg > .modal-body,
+  .modal-overlay.full .modal.modal-lg > .modal-foot{ padding-left:16px; padding-right:16px; }
+  .drawer-head{ padding:18px 16px 15px; }
+  .drawer-body{ padding:18px 16px 56px; }
+  .dsec{ padding:16px; border-radius:14px; }
+  .summary-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+}
+@media(max-width:480px){
+  .modal-head h3{ font-size:16px; }
+  .modal-head .sub{ max-width:calc(100vw - 90px); }
+  .tab-btn{ padding-left:10px; padding-right:10px; font-size:11.5px; }
+  .summary-grid{ grid-template-columns:1fr; }
+  .modal.modal-lg .field{ padding:12px; }
+}
 </style>
 </head>
 <body>
@@ -1734,7 +1871,7 @@ tbody tr.detail-selected:hover{ background:
 
   <div class="main">
     <div class="topbar">
-      <button class="mobile-nav-toggle" id="btnMobileNav" title="Ẩn / hiện sidebar" aria-label="Ẩn / hiện sidebar">
+      <button class="mobile-nav-toggle" id="btnMobileNav" title="Mở / đóng menu" aria-label="Mở / đóng menu" aria-expanded="false" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
       <div>
@@ -2347,6 +2484,8 @@ const VIEW_META = {
 
 function closeMobileNav(){
   document.body.classList.remove("mobile-nav-open");
+  const btn = $("#btnMobileNav");
+  if(btn) btn.setAttribute("aria-expanded", "false");
 }
 
 /* ---------------------------------------------------------------------------
@@ -2420,6 +2559,9 @@ function initSidebarVisibility(){
   const backdrop = $("#mobileNavBackdrop");
   const mqMobile = window.matchMedia("(max-width: 900px)");
   if(!btn) return;
+  const syncButtonState = ()=>{
+    btn.setAttribute("aria-expanded", document.body.classList.contains("mobile-nav-open") ? "true" : "false");
+  };
   if(!mqMobile.matches && localStorage.getItem("sidebarHidden") === "1"){
     document.body.classList.add("sidebar-hidden");
   }
@@ -2430,8 +2572,10 @@ function initSidebarVisibility(){
       const hidden = document.body.classList.toggle("sidebar-hidden");
       localStorage.setItem("sidebarHidden", hidden ? "1" : "0");
     }
+    syncButtonState();
   });
-  if(backdrop) backdrop.addEventListener("click", closeMobileNav);
+  if(backdrop) backdrop.addEventListener("click", ()=>{ closeMobileNav(); syncButtonState(); });
+  syncButtonState();
 }
 
 function initShell(){
@@ -3799,12 +3943,14 @@ function renderDrawer(cr){
 
   $("#drawerCloseBtn").addEventListener("click", closeDrawer);
   $("#drawerEditBtn").addEventListener("click", ()=> openCrModal(cr));
-  $all(".tab-btn").forEach(btn=>{
+  const drawer = $("#crDrawer");
+  $all(".tab-btn", drawer).forEach(btn=>{
     btn.addEventListener("click", ()=>{
-      $all(".tab-btn").forEach(b=>b.classList.remove("active"));
-      $all(".tab-panel").forEach(p=>p.classList.remove("active"));
+      $all(".tab-btn", drawer).forEach(b=>b.classList.remove("active"));
+      $all(".tab-panel", drawer).forEach(p=>p.classList.remove("active"));
       btn.classList.add("active");
-      $("#tab-"+btn.dataset.tab).classList.add("active");
+      const panel = $("#tab-"+btn.dataset.tab, drawer);
+      if(panel) panel.classList.add("active");
       STATE.drawerTab = btn.dataset.tab;
     });
   });

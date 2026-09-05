@@ -1423,6 +1423,154 @@ body.sidebar-collapsed .nav-item::before{ left:-2px; }
 /* ---- Drawer expands with sidebar state / focus mode / mobile ------------ */
 body.focus-mode .drawer-overlay, body.focus-mode .drawer,
 body.focus-mode .modal-overlay.full{ left:0 !important; }
+
+/* ==========================================================================
+   FINAL POLISH — chrome depth + consistent record-opening interaction
+   Scoped to the sidebar/topbar and record selection/reveal states only.
+   Workspace surfaces, tables, cards and data styling remain unchanged.
+   ========================================================================== */
+.sidebar{
+  isolation:isolate;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 30%),
+    var(--bg-sidebar);
+  border-right-color:rgba(255,255,255,0.13);
+  box-shadow: 14px 0 34px -28px rgba(2,8,15,0.9),
+              inset -1px 0 0 rgba(255,255,255,0.035);
+}
+.sidebar::before{
+  content:"";
+  position:absolute;
+  inset:9px 8px;
+  border:1px solid rgba(255,255,255,0.045);
+  border-radius:16px;
+  pointer-events:none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.055),
+              inset 0 -18px 28px rgba(2,9,17,0.12);
+  z-index:0;
+}
+.sidebar > *{ position:relative; z-index:1; }
+.sidebar .brand .mark{
+  box-shadow: 0 8px 16px -10px rgba(63,208,201,0.9),
+              inset 0 1px 0 rgba(255,255,255,0.38);
+}
+.nav-item{
+  transition: background var(--duration-base) var(--ease-standard),
+              color var(--duration-base) var(--ease-standard),
+              border-color var(--duration-base) var(--ease-standard),
+              box-shadow var(--duration-base) var(--ease-standard),
+              transform var(--duration-base) var(--ease-standard);
+}
+.nav-item:hover{ transform:translateY(-1px); }
+.nav-item:active{ transform:translateY(0); }
+.nav-item.active{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0) 65%),
+    var(--accent-soft);
+  border-color:rgba(63,208,201,0.34);
+  box-shadow: 0 7px 16px -12px rgba(0,0,0,0.9),
+              inset 0 1px 0 rgba(255,255,255,0.12),
+              inset 0 -1px 0 rgba(4,34,39,0.2);
+}
+.nav-item.active::after{
+  content:"";
+  position:absolute;
+  inset:2px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.055);
+  pointer-events:none;
+}
+.sidebar-toggle{
+  border-color:rgba(255,255,255,0.18);
+  box-shadow: 0 7px 16px -9px rgba(0,0,0,0.9),
+              inset 0 1px 0 rgba(255,255,255,0.11);
+}
+.topbar{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0) 72%),
+    var(--bg-topbar);
+  border-bottom-color:rgba(255,255,255,0.13);
+  box-shadow: 0 12px 26px -24px rgba(1,7,13,0.95),
+              inset 0 1px 0 rgba(255,255,255,0.045);
+}
+.topbar .search-box input,
+.topbar .icon-btn,
+.topbar .mobile-nav-toggle{
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
+}
+.topbar .search-box input:hover,
+.topbar .icon-btn:hover,
+.topbar .mobile-nav-toggle:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 14px -12px rgba(0,0,0,0.9),
+             inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.topbar .search-box input:active,
+.topbar .icon-btn:active,
+.topbar .mobile-nav-toggle:active{
+  transform:translateY(0);
+  box-shadow:inset 0 2px 4px rgba(2,10,18,0.22);
+}
+
+/* A selected record gets a stable, non-layout-shifting highlight before
+   its existing drawer/modal mechanism starts opening. */
+tbody tr.detail-selected{
+  background:
+    linear-gradient(90deg, rgba(63,208,201,0.14), rgba(63,208,201,0.035) 42%, transparent 88%);
+  box-shadow:inset 3px 0 0 var(--accent), inset 0 1px 0 rgba(63,208,201,0.16),
+             inset 0 -1px 0 rgba(63,208,201,0.12);
+}
+tbody tr.detail-selected:hover{ background:
+  linear-gradient(90deg, rgba(63,208,201,0.17), rgba(63,208,201,0.05) 42%, transparent 88%); }
+.cr-card.detail-selected{
+  border-color:rgba(14,154,148,0.55);
+  background:linear-gradient(180deg, rgba(63,208,201,0.12), rgba(63,208,201,0.035));
+  box-shadow:0 8px 18px -16px rgba(14,154,148,0.9),
+             inset 3px 0 0 #0e9a94, inset 0 1px 0 rgba(14,154,148,0.16);
+}
+
+/* Surface first, then content: short, calm reveal with no layout jump. */
+@keyframes detail-surface-reveal{
+  from{ opacity:0; transform:translateY(7px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+@keyframes detail-content-reveal{
+  from{ opacity:0; transform:translateY(5px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.drawer.detail-opening .drawer-head,
+.modal-overlay.full.detail-opening .modal-head{
+  animation:detail-surface-reveal 190ms var(--ease-decel) both;
+}
+.drawer.detail-opening .tabs,
+.modal-overlay.full.detail-opening .tabs{
+  animation:detail-content-reveal 190ms 45ms var(--ease-decel) both;
+}
+.drawer.detail-opening .drawer-body,
+.modal-overlay.full.detail-opening .modal-body{
+  animation:detail-content-reveal 220ms 78ms var(--ease-decel) both;
+}
+.drawer.detail-opening .dsec:nth-child(1){ animation:detail-content-reveal 190ms 112ms var(--ease-decel) both; }
+.drawer.detail-opening .dsec:nth-child(2){ animation:detail-content-reveal 190ms 148ms var(--ease-decel) both; }
+.drawer.detail-opening .dsec:nth-child(3){ animation:detail-content-reveal 190ms 184ms var(--ease-decel) both; }
+.drawer.detail-opening .dsec:nth-child(4){ animation:detail-content-reveal 190ms 220ms var(--ease-decel) both; }
+.modal-overlay.full.detail-opening .modal-foot{
+  animation:detail-content-reveal 190ms 130ms var(--ease-decel) both;
+}
+@media(prefers-reduced-motion: reduce){
+  .nav-item:hover,
+  .topbar .search-box input:hover,
+  .topbar .icon-btn:hover,
+  .topbar .mobile-nav-toggle:hover{ transform:none; }
+  .drawer.detail-opening .drawer-head,
+  .drawer.detail-opening .tabs,
+  .drawer.detail-opening .drawer-body,
+  .drawer.detail-opening .dsec,
+  .modal-overlay.full.detail-opening .modal-head,
+  .modal-overlay.full.detail-opening .tabs,
+  .modal-overlay.full.detail-opening .modal-body,
+  .modal-overlay.full.detail-opening .modal-foot{ animation:none; }
+}
 </style>
 </head>
 <body>
@@ -1843,7 +1991,9 @@ const STATE = {
   editingRelId: null,
   editingUserId: null,
   drawerCrId: null,       // cr_id (text) currently shown in drawer
+  drawerOpenSeq: 0,       // invalidates stale attachment renders when switching records quickly
   drawerTab: "info",
+  detailSelection: { cr:null, tc:null, rel:null },
   attachCache: {},        // cr_id -> [attachments]
   crSelection: new Set(), // cr_id values currently selected in CR Log table
   crColumns: null,        // populated by loadCrColumnPrefs()
@@ -2129,6 +2279,47 @@ function closeMobileNav(){
   document.body.classList.remove("mobile-nav-open");
 }
 
+/* ---------------------------------------------------------------------------
+   Record selection + reveal choreography
+   Each tab keeps its existing detail mechanism:
+   CR -> drawer, UAT -> full modal, Release -> full modal.
+--------------------------------------------------------------------------- */
+function detailRowNodes(kind){
+  if(kind === "cr") return $all("#crTableBody tr[data-cr], #crMobileList .cr-card");
+  if(kind === "tc") return $all("#tcTableBody tr[data-tc]");
+  if(kind === "rel") return $all("#relTableBody tr[data-rel]");
+  return [];
+}
+function selectDetailRow(kind, id){
+  if(!id) return;
+  STATE.detailSelection[kind] = String(id);
+  detailRowNodes(kind).forEach(node=>{
+    const nodeId = node.dataset[kind];
+    node.classList.toggle("detail-selected", String(nodeId) === String(id));
+  });
+}
+function clearDetailSelection(kind){
+  if(kind) STATE.detailSelection[kind] = null;
+  const nodes = kind ? detailRowNodes(kind) : $all("tbody tr.detail-selected, .cr-card.detail-selected");
+  nodes.forEach(node=> node.classList.remove("detail-selected"));
+}
+function syncDetailSelection(kind){
+  const id = STATE.detailSelection[kind];
+  if(id) selectDetailRow(kind, id);
+}
+function restartDetailOpening(el){
+  if(!el) return;
+  el.classList.remove("detail-opening");
+  // Force a new animation when replacing an already-open record.
+  void el.offsetWidth;
+  el.classList.add("detail-opening");
+}
+function closeDetailOverlay(overlay, kind){
+  if(!overlay) return;
+  overlay.classList.remove("show", "detail-opening");
+  clearDetailSelection(kind);
+}
+
 /* Nút 3 gạch duy nhất trên topbar:
    - Desktop (>900px): bấm để ẩn hoàn toàn sidebar, bấm lần nữa để hiện lại
      (trạng thái được lưu vào localStorage).
@@ -2245,7 +2436,11 @@ function initShell(){
     }
     if(e.key === "Escape"){
       closeLightbox(); closeDrawer(); closeMobileNav();
-      $all(".modal-overlay.show").forEach(m=> m.classList.remove("show"));
+      if($("#tcModalOverlay").classList.contains("show")) closeDetailOverlay($("#tcModalOverlay"), "tc");
+      if($("#relModalOverlay").classList.contains("show")) closeDetailOverlay($("#relModalOverlay"), "rel");
+      $all(".modal-overlay.show").forEach(m=>{
+        if(m.id !== "tcModalOverlay" && m.id !== "relModalOverlay") m.classList.remove("show");
+      });
       closeAllTbMenus();
       if(document.body.classList.contains("focus-mode")) setFocusMode(false);
     }
@@ -2930,9 +3125,9 @@ function renderCrTable(){
       const checkEl = e.target.closest("input[type=checkbox]");
       const crId = tr.dataset.cr;
       if(checkEl) return; // handled by its own change listener
-      if(!actBtn){ openDrawer(crId); return; }
+      if(!actBtn){ selectDetailRow("cr", crId); openDrawer(crId); return; }
       const act = actBtn.dataset.act;
-      if(act === "view") openDrawer(crId);
+      if(act === "view"){ selectDetailRow("cr", crId); openDrawer(crId); }
       if(act === "edit") openCrModal(STATE.crList.find(c=>c.cr_id===crId));
       if(act === "del") confirmDelete("Xóa Change Request?", `CR "${crId}" cùng toàn bộ test case, release và file đính kèm liên quan sẽ bị xóa vĩnh viễn.`, ()=> deleteCr(crId));
     });
@@ -2949,6 +3144,7 @@ function renderCrTable(){
   renderCrMobileList(rows);
   updateSelectAllState(rows);
   updateCrBulkBar();
+  syncDetailSelection("cr");
 }
 
 function updateSelectAllState(rows){
@@ -2985,7 +3181,7 @@ function renderCrMobileList(rows){
     card.addEventListener("click", (e)=>{
       const actBtn = e.target.closest("[data-act]");
       const crId = card.dataset.cr;
-      if(!actBtn){ openDrawer(crId); return; }
+      if(!actBtn){ selectDetailRow("cr", crId); openDrawer(crId); return; }
       const act = actBtn.dataset.act;
       if(act === "edit") openCrModal(STATE.crList.find(c=>c.cr_id===crId));
       if(act === "del") confirmDelete("Xóa Change Request?", `CR "${crId}" cùng toàn bộ test case, release và file đính kèm liên quan sẽ bị xóa vĩnh viễn.`, ()=> deleteCr(crId));
@@ -3312,19 +3508,25 @@ function relMiniCardHtml(r){
 async function openDrawer(cr_id){
   const cr = STATE.crList.find(c=>c.cr_id===cr_id);
   if(!cr){ toast("Không tìm thấy CR", "err"); return; }
+  const openSeq = ++STATE.drawerOpenSeq;
+  selectDetailRow("cr", cr_id);
   STATE.drawerCrId = cr_id;
   STATE.drawerTab = "info";
   renderDrawer(cr);
   $("#drawerOverlay").classList.add("show");
   $("#crDrawer").classList.add("show");
+  restartDetailOpening($("#crDrawer"));
   await fetchAttachments(cr_id);
+  if(openSeq !== STATE.drawerOpenSeq || STATE.drawerCrId !== cr_id) return;
   renderDrawerFiles(cr_id);
   renderDrawerLinked(cr_id);
 }
 
 function closeDrawer(){
+  STATE.drawerOpenSeq++;
   $("#drawerOverlay").classList.remove("show");
-  $("#crDrawer").classList.remove("show");
+  $("#crDrawer").classList.remove("show", "detail-opening");
+  clearDetailSelection("cr");
 }
 
 function renderDrawer(cr){
@@ -3636,11 +3838,12 @@ function renderTcTable(){
     tr.addEventListener("click", e=>{
       const t = STATE.tcList.find(x=>x.id===tr.dataset.tc);
       const actBtn = e.target.closest("[data-act]");
-      if(!actBtn){ openTcModal(t); return; }
+      if(!actBtn){ selectDetailRow("tc", tr.dataset.tc); openTcModal(t); return; }
       if(actBtn.dataset.act==="edit") openTcModal(t);
       if(actBtn.dataset.act==="del") confirmDelete("Xóa test case?", `Test case "${t.test_case_id||''}" và toàn bộ evidence sẽ bị xóa.`, ()=> deleteTc(t));
     });
   });
+  syncDetailSelection("tc");
 }
 
 async function deleteTc(t){
@@ -3763,14 +3966,16 @@ function tcModalTemplate(t, presetCrId){
 
 function openTcModal(t, presetCrId){
   STATE.editingTcId = t ? t.id : null;
+  if(t) selectDetailRow("tc", t.id);
   const overlay = $("#tcModalOverlay");
   overlay.innerHTML = tcModalTemplate(t, presetCrId);
   overlay.classList.add("show", "full");
-  $("#tcModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
-  $("#tcModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  restartDetailOpening(overlay);
+  $("#tcModalClose").addEventListener("click", ()=> closeDetailOverlay(overlay, "tc"));
+  $("#tcModalCancel").addEventListener("click", ()=> closeDetailOverlay(overlay, "tc"));
   if(!overlay.dataset.dismissBound){
     overlay.dataset.dismissBound = "1";
-    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) closeDetailOverlay(overlay, "tc"); });
   }
 
   $all(".tab-btn", overlay).forEach(btn=>{
@@ -3838,7 +4043,7 @@ async function saveTc(overlay, isEdit){
     // reopen in edit mode so user can immediately attach evidence
     openTcModal(data);
   } else {
-    overlay.classList.remove("show");
+    closeDetailOverlay(overlay, "tc");
   }
 }
 
@@ -3910,11 +4115,12 @@ function renderRelTable(){
     tr.addEventListener("click", e=>{
       const r = STATE.relList.find(x=>x.id===tr.dataset.rel);
       const actBtn = e.target.closest("[data-act]");
-      if(!actBtn){ openRelModal(r); return; }
+      if(!actBtn){ selectDetailRow("rel", tr.dataset.rel); openRelModal(r); return; }
       if(actBtn.dataset.act==="edit") openRelModal(r);
       if(actBtn.dataset.act==="del") confirmDelete("Xóa release?", `Release "${r.release_name||r.release_id||''}" sẽ bị xóa.`, ()=> deleteRel(r));
     });
   });
+  syncDetailSelection("rel");
 }
 
 async function deleteRel(r){
@@ -4010,14 +4216,16 @@ function relModalTemplate(r, presetCrId){
 
 function openRelModal(r, presetCrId){
   STATE.editingRelId = r ? r.id : null;
+  if(r) selectDetailRow("rel", r.id);
   const overlay = $("#relModalOverlay");
   overlay.innerHTML = relModalTemplate(r, presetCrId);
   overlay.classList.add("show", "full");
-  $("#relModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
-  $("#relModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  restartDetailOpening(overlay);
+  $("#relModalClose").addEventListener("click", ()=> closeDetailOverlay(overlay, "rel"));
+  $("#relModalCancel").addEventListener("click", ()=> closeDetailOverlay(overlay, "rel"));
   if(!overlay.dataset.dismissBound){
     overlay.dataset.dismissBound = "1";
-    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) closeDetailOverlay(overlay, "rel"); });
   }
   $("#relModalSave").addEventListener("click", ()=> saveRel(overlay, !!r));
 }
@@ -4052,7 +4260,7 @@ async function saveRel(overlay, isEdit){
   btn.disabled = false; btn.textContent = isEdit? "Lưu thay đổi":"Tạo Release";
   if(error){ toast("Lưu thất bại: " + error.message, "err"); return; }
   toast(isEdit? "Đã cập nhật release" : "Đã tạo release", "ok");
-  overlay.classList.remove("show");
+  closeDetailOverlay(overlay, "rel");
   await refreshAll();
   if(STATE.drawerCrId === payload.cr_id) renderDrawerLinked(payload.cr_id);
 }

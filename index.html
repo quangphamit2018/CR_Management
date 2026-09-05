@@ -351,7 +351,7 @@ body.sidebar-collapsed #sidebarUserRole{ display:none; }
 .search-box svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:15px; height:15px; color: var(--text-muted); }
 .search-box input{
   width:100%; background: var(--bg-surface-soft); border:1px solid var(--border);
-  border-radius:10px; padding:9px 12px 9px 34px; font-size:13.5px; color: var(--text-primary);
+  border-radius:10px; padding:9px 56px 9px 34px; font-size:13.5px; color: var(--text-primary);
   transition: var(--transition-focus), background var(--duration-fast) var(--ease-standard);
 }
 .search-box input:focus{ background: var(--bg-surface-soft-hover); border-color: var(--accent); }
@@ -801,6 +801,85 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 .confirm-icon{ width:44px; height:44px; border-radius:12px; background: var(--danger-dim); color: var(--danger); display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
 .confirm-icon svg{ width:22px; height:22px; }
 
+/* ==========================================================================
+   GLOBAL SEARCH — unified command-palette search across CR / UAT / Release
+   ========================================================================== */
+.search-box{ cursor:pointer; }
+.search-box input{ cursor:pointer; }
+.search-box .kbd-hint{
+  position:absolute; right:9px; top:50%; transform:translateY(-50%);
+  font-size:10.5px; color: var(--text-muted); background: var(--bg-surface-soft); border:1px solid var(--border);
+  border-radius:5px; padding:2px 6px; font-family: var(--font-mono); pointer-events:none;
+}
+
+.gsearch-overlay{
+  position:fixed; inset:0; z-index:550; display:none;
+  align-items:flex-start; justify-content:center; padding:11vh 20px 20px;
+  background: rgba(3,10,18,0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.gsearch-overlay.show{ display:flex; }
+.gsearch-panel{
+  width:100%; max-width:640px; max-height:72vh; display:flex; flex-direction:column;
+  background: var(--panel-solid); border:1px solid var(--border-light); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-floating); overflow:hidden;
+}
+.gsearch-input-row{
+  display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.gsearch-input-row svg{ width:18px; height:18px; color: var(--text-muted); flex-shrink:0; }
+.gsearch-input-row input{
+  flex:1; background:transparent; border:none; color: var(--text-primary); font-size:15.5px; font-family: var(--font-body);
+}
+.gsearch-input-row input:focus{ outline:none; }
+.gsearch-close{
+  width:26px; height:26px; border-radius:7px; background: var(--bg-surface-soft); border:1px solid var(--border);
+  color: var(--text-secondary); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:12px;
+  transition: var(--transition-hover);
+}
+.gsearch-close:hover{ background: var(--bg-surface-soft-hover); color: var(--text-primary); }
+
+.gsearch-results{ flex:1; min-height:0; overflow-y:auto; padding:8px; }
+.gsearch-group{ margin-bottom:6px; }
+.gsearch-group:last-child{ margin-bottom:0; }
+.gsearch-group-label{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color: var(--text-muted);
+  padding:10px 10px 6px;
+}
+.gsearch-item{
+  display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; cursor:pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+.gsearch-item:hover, .gsearch-item.gs-active{ background: var(--bg-surface-soft-hover); }
+.gsearch-item-icon{
+  width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; background: var(--bg-surface-soft); color: var(--accent);
+}
+.gsearch-item-icon svg{ width:16px; height:16px; }
+.gsearch-item-body{ flex:1; min-width:0; }
+.gsearch-item-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.gsearch-item-id{
+  font-family: var(--font-mono); font-weight:700; font-size:12px; color: var(--accent);
+  background: rgba(63,208,201,0.1); border:1px solid rgba(63,208,201,0.18); border-radius:6px; padding:2px 7px;
+}
+.gsearch-item-title{
+  font-size:13.5px; font-weight:600; color: var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gsearch-item-meta{ font-size:11.5px; color: var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.gsearch-empty{ text-align:center; padding:50px 20px; color: var(--text-faint); }
+.gsearch-empty svg{ width:38px; height:38px; margin-bottom:14px; opacity:.4; }
+.gsearch-empty h4{ color: var(--text-dim); font-size:14.5px; margin-bottom:6px; }
+.gsearch-empty p{ font-size:12.5px; }
+
+.gsearch-foot{
+  flex-shrink:0; display:flex; gap:16px; align-items:center; padding:10px 18px; border-top:1px solid var(--border);
+  font-size:11px; color: var(--text-muted);
+}
+.gsearch-foot kbd{
+  font-family: var(--font-mono); background: var(--bg-surface-soft); border:1px solid var(--border);
+  border-radius:5px; padding:1px 6px; margin-right:3px; font-size:10.5px; color: var(--text-secondary);
+}
+
 /* ------------------------------------------------------------------
    Laptop (1024–1280px): tighten workspace padding slightly
    ------------------------------------------------------------------ */
@@ -926,9 +1005,10 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
         <h1 id="topbarTitle">Dashboard</h1>
         <div class="sub" id="topbarSub">Tổng quan tình trạng Change Request</div>
       </div>
-      <div class="search-box hidden" id="globalSearchBox">
+      <div class="search-box" id="globalSearchBox">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input id="globalSearch" type="text" placeholder="Tìm theo CR ID, tiêu đề, requester...">
+        <input id="globalSearch" type="text" placeholder="Tìm CR, UAT, Release..." readonly>
+        <span class="kbd-hint">Ctrl K</span>
       </div>
       <div class="topbar-actions" id="topbarActions">
         <button class="btn btn-primary view-action hidden" data-for="crlog" id="btnAddCr">
@@ -1145,6 +1225,23 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 
 <div id="lightbox"><button class="lb-close" id="lbClose">✕</button><img id="lbImg" src="" alt=""></div>
 <div id="toastHost"></div>
+
+<!-- ============================== GLOBAL SEARCH (command palette) ============================== -->
+<div class="gsearch-overlay" id="gsearchOverlay">
+  <div class="gsearch-panel">
+    <div class="gsearch-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="gsearchInput" type="text" placeholder="Tìm CR ID, App, Requester, Test Case, Release...">
+      <button class="gsearch-close" id="gsearchClose" title="Đóng (Esc)">✕</button>
+    </div>
+    <div class="gsearch-results" id="gsearchResults"></div>
+    <div class="gsearch-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> di chuyển</span>
+      <span><kbd>Enter</kbd> mở</span>
+      <span><kbd>Esc</kbd> đóng</span>
+    </div>
+  </div>
+</div>
 
 <script>
 window.CR_LISTS = {
@@ -1556,7 +1653,19 @@ function initShell(){
 
   $("#drawerOverlay").addEventListener("click", closeDrawer);
 
+  initGlobalSearch();
+
   document.addEventListener("keydown", e=>{
+    // Ctrl+K / Cmd+K opens Global Search from anywhere in the app
+    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){
+      e.preventDefault();
+      openGlobalSearch();
+      return;
+    }
+    if(isGlobalSearchOpen()){
+      handleGlobalSearchKeydown(e);
+      return;
+    }
     if(e.key === "Escape"){
       closeLightbox(); closeDrawer();
       $all(".modal-overlay.show").forEach(m=> m.classList.remove("show"));
@@ -1684,9 +1793,230 @@ function setView(view){
   $("#view-"+view).classList.remove("hidden");
   $("#topbarTitle").textContent = VIEW_META[view].title;
   $("#topbarSub").textContent = VIEW_META[view].sub;
-  $("#globalSearchBox").classList.toggle("hidden", !VIEW_META[view].search || view!=="crlog");
   $all(".view-action").forEach(b=> b.classList.toggle("hidden", b.dataset.for !== view));
   if(view === "admin") loadAndRenderAdmin();
+}
+
+/* ---------------------------------------------------------------------------
+   4d. GLOBAL SEARCH — unified command-palette search across CR / UAT / Release
+   Client-side only: reuses STATE.crList / tcList / relList already loaded
+   in memory. No extra Supabase query is issued while the user types.
+   If a dataset ever grows too large for this to stay instant, the recommended
+   next step is server-side search (e.g. Postgres full-text / trigram index
+   queried via a debounced RPC) — NOT implemented in this phase.
+--------------------------------------------------------------------------- */
+const GS_MAX_PER_GROUP = 8;
+let gsActiveIndex = -1;
+let gsItems = []; // flattened list of currently rendered result descriptors, in DOM order
+
+function isGlobalSearchOpen(){
+  const ov = $("#gsearchOverlay");
+  return !!ov && ov.classList.contains("show");
+}
+
+function openGlobalSearch(){
+  const ov = $("#gsearchOverlay");
+  if(!ov) return;
+  ov.classList.add("show");
+  const input = $("#gsearchInput");
+  input.value = "";
+  renderGlobalSearchResults("");
+  setTimeout(()=> input.focus(), 10);
+}
+
+function closeGlobalSearch(){
+  const ov = $("#gsearchOverlay");
+  if(!ov) return;
+  ov.classList.remove("show");
+  gsActiveIndex = -1;
+  gsItems = [];
+}
+
+function initGlobalSearch(){
+  const box = $("#globalSearchBox");
+  const input = $("#gsearchInput");
+  box.addEventListener("click", openGlobalSearch);
+  $("#gsearchClose").addEventListener("click", closeGlobalSearch);
+  $("#gsearchOverlay").addEventListener("click", e=>{ if(e.target.id === "gsearchOverlay") closeGlobalSearch(); });
+  input.addEventListener("input", debounce(e=>{
+    renderGlobalSearchResults(e.target.value.trim().toLowerCase());
+  }, 250));
+}
+
+function handleGlobalSearchKeydown(e){
+  if(e.key === "Escape"){ e.preventDefault(); closeGlobalSearch(); return; }
+  if(e.key === "ArrowDown"){ e.preventDefault(); moveGsActive(1); return; }
+  if(e.key === "ArrowUp"){ e.preventDefault(); moveGsActive(-1); return; }
+  if(e.key === "Enter"){
+    e.preventDefault();
+    if(gsActiveIndex >= 0 && gsItems[gsActiveIndex]) openGsResult(gsItems[gsActiveIndex]);
+  }
+}
+
+function moveGsActive(delta){
+  if(!gsItems.length) return;
+  gsActiveIndex = (gsActiveIndex + delta + gsItems.length) % gsItems.length;
+  $all(".gsearch-item").forEach((el,i)=> el.classList.toggle("gs-active", i === gsActiveIndex));
+  const activeEl = $all(".gsearch-item")[gsActiveIndex];
+  if(activeEl) activeEl.scrollIntoView({ block:"nearest" });
+}
+
+/* returns matched tier for one record (1=exact id best, 4=weakest text match) or null if no match */
+function gsMatchTier(record, idFields, titleFields, otherFields, q){
+  let tier = null;
+  const consider = (val, exactTier, startsTier, containsTier)=>{
+    if(!val) return;
+    val = String(val).toLowerCase();
+    if(!val) return;
+    if(val === q){ tier = tier===null? exactTier : Math.min(tier, exactTier); }
+    else if(val.startsWith(q)){ tier = tier===null? startsTier : Math.min(tier, startsTier); }
+    else if(val.includes(q)){ tier = tier===null? containsTier : Math.min(tier, containsTier); }
+  };
+  idFields.forEach(f=> consider(record[f], 1, 2, 3));
+  titleFields.forEach(f=> consider(record[f], 2, 2, 3));
+  if(tier === null){
+    for(const f of otherFields){
+      const val = record[f];
+      if(val && String(val).toLowerCase().includes(q)){ tier = 4; break; }
+    }
+  }
+  return tier;
+}
+
+function gsSearchCr(q){
+  const idFields = ["cr_id"];
+  const titleFields = ["app","rename_folder","old_name"];
+  const otherFields = ["requester","department","owner","category","priority","status",
+    "description_brd","description_fsd","progress","note","brd_link","fsd_link","quotation_link","loop_mail_header"];
+  return STATE.crList
+    .map(c=> ({ tier: gsMatchTier(c, idFields, titleFields, otherFields, q), record:c }))
+    .filter(x=> x.tier !== null)
+    .sort((a,b)=> a.tier - b.tier);
+}
+function gsSearchUat(q){
+  const idFields = ["test_case_id","cr_id"];
+  const titleFields = ["scenario"];
+  const otherFields = ["description","expectation","step_by_step","data_test","actual_result",
+    "pass_fail","owner_scenario","testor","owner_confirm","note"];
+  return STATE.tcList
+    .map(t=> ({ tier: gsMatchTier(t, idFields, titleFields, otherFields, q), record:t }))
+    .filter(x=> x.tier !== null)
+    .sort((a,b)=> a.tier - b.tier);
+}
+function gsSearchRel(q){
+  const idFields = ["release_id","cr_id"];
+  const titleFields = ["release_name"];
+  const otherFields = ["environment","status","release_owner","signoff_by","features",
+    "deploy_plan","rollback_plan","note","checklist_golive"];
+  return STATE.relList
+    .map(r=> ({ tier: gsMatchTier(r, idFields, titleFields, otherFields, q), record:r }))
+    .filter(x=> x.tier !== null)
+    .sort((a,b)=> a.tier - b.tier);
+}
+
+const GS_ICONS = {
+  cr: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>`,
+  uat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,
+  rel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>`,
+};
+
+function gsGroupHtml(label, type, matches){
+  if(!matches.length) return "";
+  const shown = matches.slice(0, GS_MAX_PER_GROUP);
+  const items = shown.map(m=>{
+    const r = m.record;
+    if(type === "cr"){
+      return gsItemHtml("cr", r.id, r.cr_id, crCellTitle(r), badge("status", r.status), `${esc(r.requester||"—")} • ${esc(r.department||"—")}`);
+    }
+    if(type === "uat"){
+      return gsItemHtml("uat", r.id, r.test_case_id || r.cr_id || "—", r.scenario || "(chưa có scenario)", badge("pass_fail", r.pass_fail), `CR: ${esc(r.cr_id||"—")} • Testor: ${esc(r.testor||"—")}`);
+    }
+    return gsItemHtml("rel", r.id, r.release_id || r.cr_id || "—", r.release_name || "(chưa có tên release)", badge("release_status", r.status), `CR: ${esc(r.cr_id||"—")} • ${esc(r.environment||"—")}`);
+  }).join("");
+  const moreNote = matches.length > GS_MAX_PER_GROUP ? `<div class="gsearch-item-meta" style="padding:4px 12px 8px;">+${matches.length - GS_MAX_PER_GROUP} kết quả khác — thu hẹp từ khóa để xem thêm</div>` : "";
+  return `<div class="gsearch-group">
+    <div class="gsearch-group-label">${esc(label)} (${matches.length})</div>
+    ${items}
+    ${moreNote}
+  </div>`;
+}
+
+function gsItemHtml(type, id, primary, title, badgeHtml, meta){
+  return `<div class="gsearch-item" data-gs-type="${type}" data-gs-id="${esc(id)}">
+    <div class="gsearch-item-icon">${GS_ICONS[type]}</div>
+    <div class="gsearch-item-body">
+      <div class="gsearch-item-top">
+        <span class="gsearch-item-id">${esc(primary)}</span>
+        <span class="gsearch-item-title">${esc(title)}</span>
+        ${badgeHtml || ""}
+      </div>
+      <div class="gsearch-item-meta">${meta || ""}</div>
+    </div>
+  </div>`;
+}
+
+function renderGlobalSearchResults(q){
+  const host = $("#gsearchResults");
+  if(!host) return;
+  gsActiveIndex = -1;
+
+  if(!q){
+    host.innerHTML = `<div class="gsearch-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <h4>Tìm kiếm trên toàn bộ hệ thống</h4>
+      <p>Nhập CR ID, App, Requester, Scenario, Release... để bắt đầu.</p>
+    </div>`;
+    gsItems = [];
+    return;
+  }
+
+  const crMatches = gsSearchCr(q);
+  const uatMatches = gsSearchUat(q);
+  const relMatches = gsSearchRel(q);
+
+  if(!crMatches.length && !uatMatches.length && !relMatches.length){
+    host.innerHTML = `<div class="gsearch-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <h4>No results</h4>
+      <p>Search across CR, UAT and Release.</p>
+    </div>`;
+    gsItems = [];
+    return;
+  }
+
+  host.innerHTML =
+    gsGroupHtml("CR LOG", "cr", crMatches) +
+    gsGroupHtml("UAT Test Case", "uat", uatMatches) +
+    gsGroupHtml("Release / PRD", "rel", relMatches);
+
+  gsItems = $all(".gsearch-item", host).map(el=> ({ type: el.dataset.gsType, id: el.dataset.gsId }));
+  $all(".gsearch-item", host).forEach(el=>{
+    el.addEventListener("click", ()=> openGsResult({ type: el.dataset.gsType, id: el.dataset.gsId }));
+    el.addEventListener("mouseenter", ()=>{
+      const idx = gsItems.findIndex(it=> it.type===el.dataset.gsType && it.id===el.dataset.gsId);
+      if(idx >= 0){
+        gsActiveIndex = idx;
+        $all(".gsearch-item", host).forEach((n,i)=> n.classList.toggle("gs-active", i===gsActiveIndex));
+      }
+    });
+  });
+}
+
+function openGsResult(item){
+  closeGlobalSearch();
+  if(item.type === "cr"){
+    const rec = STATE.crList.find(c=> c.id === item.id);
+    setView("crlog");
+    if(rec) openDrawer(rec.cr_id);
+  }else if(item.type === "uat"){
+    const rec = STATE.tcList.find(t=> t.id === item.id);
+    setView("uat");
+    if(rec) openTcModal(rec);
+  }else if(item.type === "rel"){
+    const rec = STATE.relList.find(r=> r.id === item.id);
+    setView("release");
+    if(rec) openRelModal(rec);
+  }
 }
 
 /* ---------------------------------------------------------------------------

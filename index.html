@@ -1849,6 +1849,10 @@ tbody tr.detail-selected:hover{ background:
 .modal-overlay.full .modal.modal-lg > .modal-body > .tab-panel.active{ max-width:1080px; }
 .modal-overlay.full .modal.modal-lg > .modal-foot{ padding-left:clamp(20px,4vw,52px); padding-right:clamp(20px,4vw,52px); }
 
+/* Attachment editor opens from inside the full-screen UAT / Release editor.
+   Keep it above the parent detail overlay so it is visible immediately. */
+#attachmentModalOverlay{ z-index:450; }
+
 /* One tab treatment for every drawer and modal tab set. */
 .tabs{ gap:6px; overflow-x:auto; scrollbar-width:none; }
 .tabs::-webkit-scrollbar{ display:none; }

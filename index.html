@@ -3177,6 +3177,70 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
     padding-left:66px !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   TABLE FIT — keep every visible column inside the workspace at 100% zoom.
+   The default table has a deliberately generous 900px minimum width, which
+   makes the last Release/UAT columns fall outside the viewport on laptop
+   widths.  Above the mobile card breakpoint, use a fixed, fluid grid and
+   tighter cells; long values are still available in their row/detail view.
+--------------------------------------------------------------------------- */
+@media (min-width:641px) and (max-width:1600px){
+  #crTable,
+  #tcTable,
+  #relTable{
+    width:100%;
+    min-width:100%;
+    table-layout:fixed;
+  }
+
+  #crTable thead th,
+  #tcTable thead th,
+  #relTable thead th{
+    padding:9px 10px;
+    font-size:9.5px;
+    line-height:1.25;
+    letter-spacing:.035em;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+
+  #crTable tbody td,
+  #tcTable tbody td,
+  #relTable tbody td{
+    min-width:0;
+    padding:10px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  #crTable .cell-title,
+  #tcTable .cell-title,
+  #relTable .cell-title{
+    max-width:none;
+  }
+
+  #crTable .sortable-th .sort-marker,
+  #tcTable .sortable-th .sort-marker,
+  #relTable .sortable-th .sort-marker{
+    min-width:10px;
+    margin-left:3px;
+    font-size:10px;
+  }
+
+  #crTable th:first-child,
+  #tcTable th:first-child,
+  #relTable th:first-child{
+    width:34px;
+  }
+
+  #crTable th:last-child,
+  #tcTable th:last-child,
+  #relTable th:last-child{
+    width:58px;
+  }
+}
 </style>
 </head>
 <body>

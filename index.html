@@ -402,6 +402,8 @@ body.focus-mode .topbar{ padding:10px 20px; }
 body.focus-mode .topbar .sub{ display:none; }
 body.focus-mode .view#view-crlog{ padding:14px 18px 14px; }
 body.focus-mode .crlog-kpis{ display:none; }
+body.focus-mode .view#view-uat{ padding:14px 18px 14px; }
+body.focus-mode .view#view-uat .uat-kpis{ display:none; }
 
 /* ==========================================================================
    PANELS / CARDS
@@ -675,6 +677,56 @@ td.cell-id .id-chip{
 #crTable.density-comfortable tbody td{ padding:14px 20px; }
 #crTable.density-spacious thead th{ padding:16px 22px; }
 #crTable.density-spacious tbody td{ padding:22px 22px; }
+#tcTable.density-compact thead th{ padding:7px 16px; }
+#tcTable.density-compact tbody td{ padding:7px 16px; font-size:12.5px; }
+#tcTable.density-comfortable thead th{ padding:12px 20px; }
+#tcTable.density-comfortable tbody td{ padding:14px 20px; }
+#tcTable.density-spacious thead th{ padding:16px 22px; }
+#tcTable.density-spacious tbody td{ padding:22px 22px; }
+
+/* UAT uses the same workspace grammar as CR Log: KPI strip, command toolbar,
+   selectable rows, density controls and mobile cards. */
+#view-uat .crlog-shell{ gap:16px; }
+#view-uat .crlog-table-wrap{ flex:1; min-height:0; overflow:auto; position:relative; }
+#view-uat .uat-kpis .kpi-card{ padding:14px 16px; }
+#view-uat .uat-kpis .kpi-value{ font-size:24px; }
+#view-uat .cell-result{ min-width:116px; }
+#view-uat .cell-title{ max-width:280px; }
+#view-uat .uat-mobile-list{ display:none; }
+.tc-detail-summary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin:0 0 22px;
+  padding:14px;
+  border:1px solid #dbe9ec;
+  border-radius:12px;
+  background:linear-gradient(135deg,#f7fcfc,#ffffff);
+}
+.tc-summary-item{ min-width:0; }
+.tc-summary-label{
+  display:block;
+  margin-bottom:5px;
+  color:#8496a8;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.tc-summary-value{
+  display:block;
+  overflow:hidden;
+  color:#18364f;
+  font-size:13px;
+  font-weight:750;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+@media(max-width:640px){
+  #view-uat .crlog-table-wrap table{ display:none; }
+  #view-uat .uat-mobile-list{ display:flex; }
+  .tc-detail-summary{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
 
 /* ---- mobile card list (replaces table on narrow screens) ---- */
 .cr-mobile-list{ display:none; flex-direction:column; gap:10px; padding:14px; }
@@ -2750,26 +2802,73 @@ tbody tr.detail-selected:hover{ background:
 
     <!-- ============ UAT VIEW ============ -->
     <section class="view hidden" id="view-uat">
-      <div class="list-panel">
-        <div class="list-panel-head">
-          <div class="list-panel-count"><b id="tcCount">0</b> Test Case</div>
-          <div class="table-toolbar">
-            <div class="filter-chip"><span>CR ID</span>
-              <select id="filterTcCr"><option value="">Tất cả</option></select>
+      <div class="crlog-shell uat-shell">
+        <div class="crlog-kpis uat-kpis" id="tcKpis"></div>
+
+        <div class="list-panel crlog-panel uat-panel">
+          <div class="list-panel-head">
+            <div class="list-panel-count"><b id="tcCount">0</b> Test Case</div>
+            <div class="table-toolbar" id="tcToolbar">
+              <div class="tb-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input id="tcSearchInput" type="text" placeholder="Tìm Test Case, scenario, testor...">
+              </div>
+              <div class="filter-chip"><span>CR ID</span>
+                <select id="filterTcCr"><option value="">Tất cả</option></select>
+              </div>
+              <div class="filter-chip"><span>Kết quả</span>
+                <select id="filterTcResult"><option value="">Tất cả</option></select>
+              </div>
+
+              <div class="tb-dropdown" data-dd-root="tcMoreFilters">
+                <button class="btn btn-ghost btn-sm tb-btn" data-dd="tcMoreFilters" type="button">Lọc thêm<span class="tb-badge hidden" id="tcMoreFiltersBadge">0</span></button>
+                <div class="tb-menu" id="menuTcMoreFilters">
+                  <div class="tb-menu-item-label">Testor</div>
+                  <select id="filterTcTestor"><option value="">Tất cả</option></select>
+                  <div class="tb-menu-divider"></div>
+                  <div class="tb-menu-item-label">Owner Scenario</div>
+                  <select id="filterTcOwner"><option value="">Tất cả</option></select>
+                </div>
+              </div>
+
+              <div class="chip-clear" id="clearTcFilters">Xóa lọc</div>
+
+              <div class="tb-dropdown" data-dd-root="tcColumns">
+                <button class="btn btn-ghost btn-sm tb-btn" data-dd="tcColumns" type="button">Columns</button>
+                <div class="tb-menu right" id="menuTcColumns"></div>
+              </div>
+
+              <div class="tb-dropdown" data-dd-root="tcDensity">
+                <button class="btn btn-ghost btn-sm tb-btn" data-dd="tcDensity" type="button">Density</button>
+                <div class="tb-menu right" id="menuTcDensity">
+                  <label class="tb-radio-row"><input type="radio" name="uatDensity" value="compact"> Compact</label>
+                  <label class="tb-radio-row"><input type="radio" name="uatDensity" value="comfortable"> Comfortable</label>
+                  <label class="tb-radio-row"><input type="radio" name="uatDensity" value="spacious"> Spacious</label>
+                </div>
+              </div>
+
+              <button class="btn btn-ghost btn-sm tb-btn" id="btnUatFocusMode" type="button" title="Chế độ toàn màn hình">⛶ Focus</button>
             </div>
-            <div class="filter-chip"><span>Kết quả</span>
-              <select id="filterTcResult"><option value="">Tất cả</option></select>
-            </div>
-            <div class="chip-clear" id="clearTcFilters">Xóa lọc</div>
           </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>CR ID</th><th>Test Case ID</th><th>Scenario</th><th>Testor</th><th>Ngày test</th><th>Kết quả</th><th></th>
-            </tr></thead>
-            <tbody id="tcTableBody"></tbody>
-          </table>
+
+          <div class="bulk-bar hidden" id="tcBulkBar">
+            <span><b id="tcBulkCount">0</b> đã chọn</span>
+            <div class="bulk-actions">
+              <button class="btn btn-ghost btn-sm" id="tcBulkClear">Bỏ chọn</button>
+            </div>
+          </div>
+
+          <div class="table-wrap crlog-table-wrap" id="tcTableWrap">
+            <table id="tcTable" class="density-comfortable">
+              <thead><tr id="tcTheadRow"></tr></thead>
+              <tbody id="tcTableBody"></tbody>
+            </table>
+            <div class="cr-mobile-list uat-mobile-list" id="tcMobileList"></div>
+          </div>
+
+          <div class="list-panel-foot">
+            <span id="tcFootCount">Hiển thị 0 / 0 Test Case</span>
+          </div>
         </div>
       </div>
     </section>
@@ -2944,7 +3043,7 @@ const STATE = {
   statusList: [],
   currentView: "dashboard",
   filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
-  tcFilters: { cr:"", result:"" },
+  tcFilters: { cr:"", result:"", testor:"", owner:"", search:"" },
   relFilters: { cr:"", status:"" },
   userFilters: { q:"", role:"", status:"" },
   editingCrId: null,      // uuid of cr_log row being edited (null = create)
@@ -2963,6 +3062,9 @@ const STATE = {
   crSelection: new Set(), // cr_id values currently selected in CR Log table
   crColumns: null,        // populated by loadCrColumnPrefs()
   crDensity: localStorage.getItem("crDensity") || "comfortable",
+  tcDensity: localStorage.getItem("uatDensity") || "comfortable",
+  tcColumns: null,
+  tcSelection: new Set(),
   loadErrors: { cr:null, tc:null, rel:null, admin:null, status:null }, // last fetch error per dataset, null = ok
   statusLoadWarned: false,
 };
@@ -2987,6 +3089,28 @@ function loadCrColumnPrefs(){
   return defaultCrColumnState();
 }
 STATE.crColumns = loadCrColumnPrefs();
+
+const TC_COLUMNS = [
+  { key:"test_case_id", label:"Test Case ID" },
+  { key:"scenario", label:"Scenario" },
+  { key:"owner_scenario", label:"Owner Scenario" },
+  { key:"testor", label:"Testor" },
+  { key:"testing_date", label:"Ngày test" },
+  { key:"pass_fail", label:"Kết quả" },
+  { key:"owner_confirm", label:"Owner Confirm" },
+  { key:"confirmed_date", label:"Ngày confirm" },
+];
+function defaultTcColumnState(){
+  const o = {}; TC_COLUMNS.forEach(c=> o[c.key] = true); return o;
+}
+function loadTcColumnPrefs(){
+  try{
+    const saved = JSON.parse(localStorage.getItem("uatColumns") || "null");
+    if(saved && typeof saved === "object") return Object.assign(defaultTcColumnState(), saved);
+  }catch(e){ /* ignore malformed prefs */ }
+  return defaultTcColumnState();
+}
+STATE.tcColumns = loadTcColumnPrefs();
 
 const BUCKET = "cr-attachments";
 const SIGNED_URL_TTL = 3600; // giây — link file có hiệu lực 1 giờ
@@ -3264,7 +3388,7 @@ function closeMobileNav(){
 --------------------------------------------------------------------------- */
 function detailRowNodes(kind){
   if(kind === "cr") return $all("#crTableBody tr[data-cr], #crMobileList .cr-card");
-  if(kind === "tc") return $all("#tcTableBody tr[data-tc]");
+  if(kind === "tc") return $all("#tcTableBody tr[data-tc], #tcMobileList .cr-card");
   if(kind === "rel") return $all("#relTableBody tr[data-rel]");
   return [];
 }
@@ -3391,11 +3515,26 @@ function initShell(){
   initCrSelection();
   initFocusMode();
 
+  initTcToolbarDropdowns();
+  initTcColumnsMenu();
+  initTcDensityMenu();
+  initTcSelection();
+  initUatFocusMode();
+
   $("#filterTcCr").addEventListener("change", e=>{ STATE.tcFilters.cr = e.target.value; renderTcTable(); });
-  $("#filterTcResult").addEventListener("change", e=>{ STATE.tcFilters.result = e.target.value; renderTcTable(); });
+  $("#filterTcResult").addEventListener("change", e=>{ STATE.tcFilters.result = e.target.value; updateTcMoreFiltersBadge(); renderTcTable(); });
+  $("#filterTcTestor").addEventListener("change", e=>{ STATE.tcFilters.testor = e.target.value; updateTcMoreFiltersBadge(); renderTcTable(); });
+  $("#filterTcOwner").addEventListener("change", e=>{ STATE.tcFilters.owner = e.target.value; updateTcMoreFiltersBadge(); renderTcTable(); });
+  $("#tcSearchInput").addEventListener("input", debounce(e=>{
+    STATE.tcFilters.search = e.target.value.trim().toLowerCase();
+    renderTcTable();
+  }, 220));
   $("#clearTcFilters").addEventListener("click", ()=>{
-    STATE.tcFilters = { cr:"", result:"" };
+    STATE.tcFilters = { cr:"", result:"", testor:"", owner:"", search:"" };
+    $("#tcSearchInput").value="";
     $("#filterTcCr").value=""; $("#filterTcResult").value="";
+    $("#filterTcTestor").value=""; $("#filterTcOwner").value="";
+    updateTcMoreFiltersBadge();
     renderTcTable();
   });
 
@@ -3550,10 +3689,90 @@ function updateCrBulkBar(){
 function initFocusMode(){
   $("#btnFocusMode").addEventListener("click", ()=> setFocusMode(!document.body.classList.contains("focus-mode")));
 }
+function initUatFocusMode(){
+  $("#btnUatFocusMode").addEventListener("click", ()=> setFocusMode(!document.body.classList.contains("focus-mode")));
+}
+
+/* UAT toolbar mirrors CR Log but keeps its own saved column and density
+   preferences so a user's CR table setup is never changed accidentally. */
+function initTcToolbarDropdowns(){
+  $all("#tcToolbar [data-dd]").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const key = btn.dataset.dd;
+      const menu = $("#menu" + key.charAt(0).toUpperCase() + key.slice(1));
+      if(!menu) return;
+      const wasOpen = menu.classList.contains("show");
+      closeAllTbMenus();
+      if(!wasOpen) menu.classList.add("show");
+    });
+  });
+  $all("#tcToolbar .tb-menu").forEach(menu=>menu.addEventListener("click", e=>e.stopPropagation()));
+}
+function updateTcMoreFiltersBadge(){
+  const f = STATE.tcFilters;
+  const n = [f.testor, f.owner].filter(Boolean).length;
+  const badge = $("#tcMoreFiltersBadge");
+  if(!badge) return;
+  badge.textContent = n;
+  badge.classList.toggle("hidden", n === 0);
+}
+function initTcColumnsMenu(){
+  const menu = $("#menuTcColumns");
+  if(!menu) return;
+  menu.innerHTML = `<div class="tb-menu-item-label">Hiển thị cột</div>` + TC_COLUMNS.map(c=>`
+    <label class="tb-checkbox-row"><input type="checkbox" data-tc-col="${c.key}" ${STATE.tcColumns[c.key] ? "checked" : ""}> ${esc(c.label)}</label>
+  `).join("");
+  menu.addEventListener("change", e=>{
+    const cb = e.target.closest("[data-tc-col]");
+    if(!cb) return;
+    const visibleCount = Object.values(STATE.tcColumns).filter(Boolean).length;
+    if(!cb.checked && visibleCount <= 1){ cb.checked = true; return; }
+    STATE.tcColumns[cb.dataset.tcCol] = cb.checked;
+    localStorage.setItem("uatColumns", JSON.stringify(STATE.tcColumns));
+    renderTcTable();
+  });
+}
+function initTcDensityMenu(){
+  const menu = $("#menuTcDensity");
+  if(!menu) return;
+  const radio = menu.querySelector(`input[value="${STATE.tcDensity}"]`);
+  if(radio) radio.checked = true;
+  applyTcDensity();
+  menu.addEventListener("change", e=>{
+    if(e.target.name !== "uatDensity") return;
+    STATE.tcDensity = e.target.value;
+    localStorage.setItem("uatDensity", STATE.tcDensity);
+    applyTcDensity();
+  });
+}
+function applyTcDensity(){
+  const table = $("#tcTable");
+  if(!table) return;
+  table.classList.remove("density-compact","density-comfortable","density-spacious");
+  table.classList.add("density-" + STATE.tcDensity);
+}
+function initTcSelection(){
+  $("#tcBulkClear").addEventListener("click", ()=>{
+    STATE.tcSelection.clear();
+    renderTcTable();
+  });
+}
+function updateTcBulkBar(){
+  const bar = $("#tcBulkBar");
+  const countEl = $("#tcBulkCount");
+  if(!bar || !countEl) return;
+  const n = STATE.tcSelection.size;
+  countEl.textContent = n;
+  bar.classList.toggle("hidden", n === 0);
+}
+
 function setFocusMode(on){
   document.body.classList.toggle("focus-mode", on);
   const btn = $("#btnFocusMode");
+  const uatBtn = $("#btnUatFocusMode");
   if(btn) btn.innerHTML = on ? "✕ Thoát Focus" : "⛶ Focus";
+  if(uatBtn) uatBtn.innerHTML = on ? "✕ Thoát Focus" : "⛶ Focus";
 }
 
 function populateSelect(sel, arr, withEmpty){
@@ -4000,6 +4219,16 @@ function populateCrDropdowns(){
     populateSelect(reqSel, requesters);
     reqSel.value = cur;
   }
+  const fillTcPeople = (selector, key)=>{
+    const sel = $(selector);
+    if(!sel) return;
+    const cur = sel.value;
+    const values = [...new Set(STATE.tcList.map(t=>String(t[key]||"").trim()).filter(Boolean))].sort();
+    populateSelect(sel, values);
+    sel.value = cur;
+  };
+  fillTcPeople("#filterTcTestor", "testor");
+  fillTcPeople("#filterTcOwner", "owner_scenario");
 }
 
 /* ---------------------------------------------------------------------------
@@ -5256,31 +5485,110 @@ function filteredTcList(){
   return STATE.tcList.filter(t=>{
     if(f.cr && t.cr_id !== f.cr) return false;
     if(f.result && t.pass_fail !== f.result) return false;
+    if(f.testor && t.testor !== f.testor) return false;
+    if(f.owner && t.owner_scenario !== f.owner) return false;
+    if(f.search){
+      const hay = [
+        t.cr_id, t.test_case_id, t.scenario, t.description, t.expectation,
+        t.step_by_step, t.data_test, t.actual_result, t.owner_scenario,
+        t.testor, t.owner_confirm, t.note
+      ].join(" ").toLowerCase();
+      if(!hay.includes(f.search)) return false;
+    }
     return true;
   });
 }
 
+function renderTcKpis(){
+  const host = $("#tcKpis");
+  if(!host) return;
+  const list = STATE.tcList;
+  const total = list.length;
+  const pass = list.filter(t=>t.pass_fail === "Pass").length;
+  const fail = list.filter(t=>t.pass_fail === "Fail").length;
+  const pending = list.filter(t=>["Not Started","Blocked"].includes(t.pass_fail)).length;
+  const pct = n => total ? Math.round((n / total) * 100) : 0;
+  host.innerHTML = `
+    ${kpiCard("Tổng số Test Case", total, "Toàn bộ kịch bản UAT đã ghi nhận", "")}
+    ${kpiCard("Pass", pass, "Đã đạt kiểm thử", "success", "", pct(pass))}
+    ${kpiCard("Fail", fail, "Cần xử lý / kiểm thử lại", "danger", "", pct(fail))}
+    ${kpiCard("Chưa hoàn tất", pending, "Not Started / Blocked", "warn", "", pct(pending))}
+  `;
+}
+
+function tcRowCellHtml(colKey, t){
+  switch(colKey){
+    case "test_case_id":
+      return `<td class="cell-id"><span class="id-chip">${esc(t.test_case_id || "—")}</span></td>`;
+    case "scenario":
+      return `<td class="cell-title" title="${esc(t.scenario || "")}">${esc(t.scenario || "—")}</td>`;
+    case "owner_scenario":
+      return `<td class="cell-dim">${esc(t.owner_scenario || "—")}</td>`;
+    case "testor":
+      return `<td class="cell-dim">${esc(t.testor || "—")}</td>`;
+    case "testing_date":
+      return `<td class="cell-dim">${t.testing_date ? fmtDate(t.testing_date) : "—"}</td>`;
+    case "pass_fail":
+      return `<td class="cell-result">${badge("pass_fail", t.pass_fail)}</td>`;
+    case "owner_confirm":
+      return `<td class="cell-dim">${esc(t.owner_confirm || "—")}</td>`;
+    case "confirmed_date":
+      return `<td class="cell-dim">${t.confirmed_date ? fmtDate(t.confirmed_date) : "—"}</td>`;
+    default: return "";
+  }
+}
+
+function renderTcThead(){
+  const tr = $("#tcTheadRow");
+  if(!tr) return;
+  const cols = TC_COLUMNS.filter(c=>STATE.tcColumns[c.key]);
+  tr.innerHTML =
+    `<th class="col-check"><input type="checkbox" class="select-all-check" id="tcSelectAll" title="Chọn tất cả"></th>` +
+    `<th>CR ID</th>` +
+    cols.map(c=>`<th>${esc(c.label)}</th>`).join("") +
+    `<th></th>`;
+  const selectAll = $("#tcSelectAll");
+  if(selectAll) selectAll.addEventListener("change", e=>{
+    const rows = filteredTcList();
+    if(e.target.checked) rows.forEach(t=>STATE.tcSelection.add(t.id));
+    else rows.forEach(t=>STATE.tcSelection.delete(t.id));
+    renderTcTable();
+  });
+}
+
 function renderTcTable(){
+  renderTcKpis();
+  renderTcThead();
   const rows = filteredTcList();
   const tbody = $("#tcTableBody");
   const countEl = $("#tcCount");
+  const footEl = $("#tcFootCount");
+  const cols = TC_COLUMNS.filter(c=>STATE.tcColumns[c.key]);
   if(countEl) countEl.textContent = rows.length;
+  if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${STATE.tcList.length} Test Case`;
   if(STATE.loadErrors.tc){
-    tbody.innerHTML = `<tr><td colspan="7">${errorStateBlock("Không tải được UAT Test Case", STATE.loadErrors.tc, "tc")}</td></tr>`;
+    const colspan = cols.length + 3;
+    const error = errorStateBlock("Không tải được UAT Test Case", STATE.loadErrors.tc, "tc");
+    tbody.innerHTML = `<tr><td colspan="${colspan}">${error}</td></tr>`;
+    $("#tcMobileList").innerHTML = error;
     return;
   }
+  const allIds = new Set(STATE.tcList.map(t=>t.id));
+  STATE.tcSelection.forEach(id=>{ if(!allIds.has(id)) STATE.tcSelection.delete(id); });
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="7">${emptyStateBlock("Chưa có Test Case", "Bấm \"Thêm Test Case\" để tạo test case UAT đầu tiên.")}</td></tr>`;
+    const colspan = cols.length + 3;
+    const empty = emptyStateBlock("Chưa có Test Case", "Bấm \"Thêm Test Case\" để tạo test case UAT đầu tiên.");
+    tbody.innerHTML = `<tr><td colspan="${colspan}">${empty}</td></tr>`;
+    $("#tcMobileList").innerHTML = empty;
+    updateTcSelectAllState(rows);
+    updateTcBulkBar();
     return;
   }
   tbody.innerHTML = rows.map(t=>`
-    <tr data-tc="${t.id}">
-      <td class="cell-id">${esc(t.cr_id||'—')}</td>
-      <td class="cell-dim">${esc(t.test_case_id||'—')}</td>
-      <td class="cell-title" title="${esc(t.scenario||'')}">${esc(t.scenario||'—')}</td>
-      <td class="cell-dim">${esc(t.testor||'—')}</td>
-      <td class="cell-dim">${t.testing_date? fmtDate(t.testing_date):'—'}</td>
-      <td>${badge("pass_fail", t.pass_fail)}</td>
+    <tr data-tc="${esc(t.id)}">
+      <td class="cell-check"><input type="checkbox" class="row-check" data-tc-check="${esc(t.id)}" ${STATE.tcSelection.has(t.id) ? "checked" : ""}></td>
+      <td class="cell-id"><span class="id-chip">${esc(t.cr_id||"—")}</span></td>
+      ${cols.map(col=>tcRowCellHtml(col.key, t)).join("")}
       <td class="cell-actions">
         <div class="row-actions">
           <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -5293,13 +5601,65 @@ function renderTcTable(){
   $all("#tcTableBody tr[data-tc]").forEach(tr=>{
     tr.addEventListener("click", e=>{
       const t = STATE.tcList.find(x=>x.id===tr.dataset.tc);
+      if(e.target.closest("input[type=checkbox]")) return;
       const actBtn = e.target.closest("[data-act]");
       if(!actBtn){ selectDetailRow("tc", tr.dataset.tc); openTcModal(t); return; }
       if(actBtn.dataset.act==="edit") openTcModal(t);
       if(actBtn.dataset.act==="del") confirmDelete("Xóa test case?", `Test case "${t.test_case_id||''}" và toàn bộ evidence sẽ bị xóa.`, ()=> deleteTc(t));
     });
   });
+  $all("#tcTableBody .row-check").forEach(cb=>{
+    cb.addEventListener("change", ()=>{
+      if(cb.checked) STATE.tcSelection.add(cb.dataset.tcCheck);
+      else STATE.tcSelection.delete(cb.dataset.tcCheck);
+      updateTcSelectAllState(rows);
+      updateTcBulkBar();
+    });
+  });
+  renderTcMobileList(rows);
+  updateTcSelectAllState(rows);
+  updateTcBulkBar();
   syncDetailSelection("tc");
+}
+
+function updateTcSelectAllState(rows){
+  const selectAll = $("#tcSelectAll");
+  if(!selectAll) return;
+  const selected = rows.filter(t=>STATE.tcSelection.has(t.id)).length;
+  selectAll.checked = rows.length > 0 && selected === rows.length;
+  selectAll.indeterminate = selected > 0 && selected < rows.length;
+}
+
+function renderTcMobileList(rows){
+  const host = $("#tcMobileList");
+  if(!host) return;
+  host.innerHTML = rows.map(t=>`
+    <div class="cr-card" data-tc="${esc(t.id)}">
+      <div class="cr-card-top">
+        <span class="id-chip cell-id">${esc(t.cr_id || "—")}</span>
+        ${badge("pass_fail", t.pass_fail)}
+      </div>
+      <div class="cr-card-title">${esc(t.test_case_id || t.scenario || "—")}</div>
+      <div class="cr-card-meta">
+        <span>${esc(t.scenario || "Chưa có scenario")}</span>
+        <span>${esc(t.testor || "Chưa có testor")}</span>
+        <span>${t.testing_date ? fmtDate(t.testing_date) : "Chưa test"}</span>
+      </div>
+      <div class="cr-card-actions">
+        <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7A2 2 0 015 20V6h14z"/></svg></button>
+      </div>
+    </div>
+  `).join("");
+  $all("#tcMobileList .cr-card[data-tc]").forEach(card=>{
+    card.addEventListener("click", e=>{
+      const t = STATE.tcList.find(x=>x.id===card.dataset.tc);
+      const act = e.target.closest("[data-act]");
+      if(!act){ selectDetailRow("tc", card.dataset.tc); openTcModal(t); return; }
+      if(act.dataset.act==="edit") openTcModal(t);
+      if(act.dataset.act==="del") confirmDelete("Xóa test case?", `Test case "${t.test_case_id||''}" và toàn bộ evidence sẽ bị xóa.`, ()=> deleteTc(t));
+    });
+  });
 }
 
 async function deleteTc(t){
@@ -5329,6 +5689,24 @@ function tcModalTemplate(t, presetCrId){
     </div>
     <div class="modal-body">
       <div class="tab-panel active" id="tctab-info">
+        <div class="tc-detail-summary">
+          <div class="tc-summary-item">
+            <span class="tc-summary-label">CR liên kết</span>
+            <strong class="tc-summary-value">${esc(v.cr_id || presetCrId || "Chưa chọn")}</strong>
+          </div>
+          <div class="tc-summary-item">
+            <span class="tc-summary-label">Test Case ID</span>
+            <strong class="tc-summary-value">${esc(v.test_case_id || "Chưa đặt mã")}</strong>
+          </div>
+          <div class="tc-summary-item">
+            <span class="tc-summary-label">Kết quả</span>
+            <strong class="tc-summary-value">${v.pass_fail ? badge("pass_fail", v.pass_fail) : "Chưa bắt đầu"}</strong>
+          </div>
+          <div class="tc-summary-item">
+            <span class="tc-summary-label">Evidence</span>
+            <strong class="tc-summary-value">${isEdit ? "Quản lý ở tab Evidence" : "Lưu test case trước"}</strong>
+          </div>
+        </div>
         <div class="form-grid">
           <div class="field">
             <label>CR ID *</label>

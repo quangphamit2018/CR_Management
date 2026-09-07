@@ -2651,6 +2651,329 @@ tbody tr.detail-selected:hover{ background:
 }
 
 /* ==========================================================================
+   UAT TEST CASE DETAIL — same information architecture as CR Log
+   --------------------------------------------------------------------------
+   The data model and field IDs stay unchanged. This layer gives the editable
+   UAT detail the same hierarchy as CR Log: context header, summary, grouped
+   sections, calm field cards and a dedicated evidence workspace.
+   ========================================================================== */
+#tcModalOverlay .modal.modal-lg{
+  background:#f2f8f9;
+  border-left:1px solid #d7e4e8;
+}
+#tcModalOverlay .modal.modal-lg .modal-head{
+  position:relative;
+  overflow:hidden;
+  min-height:98px;
+  padding:18px clamp(20px,4vw,52px);
+  background:
+    radial-gradient(circle at 4% -45%,rgba(47,192,185,.16),transparent 34%),
+    linear-gradient(135deg,#ffffff 0%,#f4fbfb 100%);
+  border-bottom:1px solid #dce8eb;
+  box-shadow:0 6px 20px -22px rgba(15,42,68,.55);
+}
+#tcModalOverlay .modal.modal-lg .modal-head::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:4px;
+  background:linear-gradient(180deg,#2fc0b9 0%,#0e9a94 100%);
+}
+.tc-modal-head-copy{ min-width:0; }
+.tc-modal-kicker{
+  margin-bottom:6px;
+  color:#0e9a94;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.13em;
+  line-height:1.2;
+  text-transform:uppercase;
+}
+#tcModalOverlay .modal-head h3{
+  color:#153852;
+  font-size:clamp(18px,2vw,23px);
+  line-height:1.2;
+  letter-spacing:-.035em;
+}
+#tcModalOverlay .modal-head .sub{
+  margin-top:4px;
+  color:#7890a2;
+  font-size:11.5px;
+}
+.tc-modal-context{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px 18px;
+  margin-top:10px;
+  color:#6f8797;
+  font-size:10.5px;
+}
+.tc-modal-context span{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+}
+.tc-modal-context b{ color:#557386; font-weight:800; }
+.tc-modal-context .badge{ font-size:9.5px; padding:3px 7px; }
+#tcModalOverlay .modal.modal-lg > .modal-body{
+  background:linear-gradient(180deg,#f4f9fa 0%,#edf5f6 100%);
+}
+#tcModalOverlay .modal.modal-lg > .tabs{
+  background:#fff;
+  border-bottom:1px solid #dce8eb;
+}
+#tcModalOverlay .modal.modal-lg > .modal-foot{
+  background:rgba(255,255,255,.94);
+  border-top:1px solid #dce8eb;
+  box-shadow:0 -8px 18px -22px rgba(15,42,68,.5);
+}
+
+/* Summary strip mirrors the CR drawer's quick-scan block. */
+#tcModalOverlay .tc-detail-summary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin:0 0 22px;
+  padding:18px;
+  border:1px solid #dce8eb;
+  border-radius:14px;
+  background:#fbfdfe;
+  box-shadow:0 9px 22px -23px rgba(15,42,68,.58);
+}
+#tcModalOverlay .tc-summary-item{
+  min-width:0;
+  min-height:68px;
+  padding:12px 14px;
+  border:1px solid #e0eaee;
+  border-radius:11px;
+  background:#fff;
+}
+#tcModalOverlay .tc-summary-label{
+  display:block;
+  margin-bottom:7px;
+  color:#8196a4;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.055em;
+  line-height:1.25;
+  text-transform:uppercase;
+}
+#tcModalOverlay .tc-summary-value{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  color:#18364f;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.45;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Editable fields use the same grouped-card grammar as CR_Log fields. */
+.tc-form-groups{ display:flex; flex-direction:column; gap:20px; }
+.tc-form-group{
+  padding:18px;
+  border:1px solid #dce8eb;
+  border-radius:14px;
+  background:#fbfdfe;
+  box-shadow:0 9px 22px -23px rgba(15,42,68,.58);
+}
+.tc-form-group-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 13px;
+  color:#3f6478;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.tc-form-group-title::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:#dce8eb;
+}
+.tc-form-group .form-grid{ gap:12px 16px; }
+.tc-form-group .field{
+  min-width:0;
+  margin:0;
+  padding:12px 14px 14px;
+  border:1px solid #e0eaee;
+  border-radius:11px;
+  background:#fff;
+  box-shadow:0 5px 14px -16px rgba(15,42,68,.5);
+}
+.tc-form-group .field label{
+  margin-bottom:7px;
+  color:#8196a4;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.055em;
+  line-height:1.25;
+  text-transform:uppercase;
+}
+.tc-form-group .field input,
+.tc-form-group .field textarea,
+.tc-form-group .field select{
+  min-height:40px;
+  border-color:#dbe7eb;
+  border-radius:9px;
+  background:#fbfdfe;
+  color:#18364f;
+  font-size:12.5px;
+}
+.tc-form-group .field textarea{
+  min-height:78px;
+  line-height:1.6;
+  resize:vertical;
+}
+.tc-form-group .field textarea.tall{ min-height:138px; }
+.tc-form-group .field input:focus,
+.tc-form-group .field textarea:focus,
+.tc-form-group .field select:focus{
+  background:#fff;
+  border-color:#49c6bf;
+  box-shadow:0 0 0 3px rgba(63,208,201,.10);
+}
+
+/* Evidence gets the same section hierarchy instead of a loose upload row. */
+.tc-evidence-shell{ width:100%; }
+.tc-evidence-hero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+  padding:20px 22px;
+  border:1px solid #d9e8eb;
+  border-radius:15px;
+  background:linear-gradient(135deg,#fff 0%,#f2fbfa 100%);
+  box-shadow:0 14px 28px -26px rgba(15,42,68,.5);
+}
+.tc-evidence-hero h4{
+  margin-bottom:6px;
+  color:#153852;
+  font-size:18px;
+  letter-spacing:-.025em;
+}
+.tc-evidence-hero p{
+  max-width:680px;
+  color:#6d8494;
+  font-size:12px;
+  line-height:1.6;
+}
+.tc-evidence-count{
+  flex:0 0 auto;
+  padding:7px 10px;
+  border-radius:999px;
+  color:#0e817c;
+  background:#e8f7f5;
+  font-size:10.5px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.tc-evidence-upload{
+  display:grid;
+  grid-template-columns:minmax(220px,280px) minmax(0,1fr);
+  gap:14px;
+  align-items:stretch;
+  margin:18px 0 24px;
+}
+.tc-evidence-step{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  padding:16px 17px;
+  border:1px solid #dbe8eb;
+  border-radius:14px;
+  background:#fff;
+}
+.tc-evidence-step label{
+  color:#6e8798;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.tc-evidence-step select,
+.tc-evidence-step input{
+  width:100%;
+  min-height:40px;
+  padding:0 11px;
+  border:1px solid #d8e6ea;
+  border-radius:9px;
+  background:#f8fbfc;
+  color:#18364f;
+  font-size:12px;
+}
+.tc-evidence-step input{ padding:10px 11px; }
+.tc-evidence-upload .file-drop{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  min-height:112px;
+  margin:0;
+  padding:17px 22px;
+  border:1.5px dashed #b9d9dc;
+  border-radius:14px;
+  background:linear-gradient(135deg,#fbfefe,#f1fbfa);
+  text-align:left;
+}
+.tc-evidence-upload .file-drop svg{
+  width:34px;
+  height:34px;
+  flex:0 0 auto;
+  margin:0;
+  color:#0e9a94;
+}
+.tc-evidence-upload .file-drop p{ margin:0 0 4px; }
+.tc-evidence-upload .file-drop .hint{ margin:0; }
+.tc-evidence-list-head{
+  display:flex;
+  align-items:flex-end;
+  gap:12px;
+  margin:4px 0 12px;
+  padding-bottom:12px;
+  border-bottom:1px solid #dfeaec;
+}
+.tc-evidence-list-head h4{ color:#18364f; font-size:14px; }
+.tc-evidence-list-head p{ margin-top:3px; color:#8498a7; font-size:11.5px; }
+.tc-evidence-grid .evidence-group{ margin-bottom:20px; }
+.tc-evidence-grid .evidence-group-title{
+  color:#3f6478;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.tc-evidence-grid .file-grid{
+  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:16px;
+}
+@media(max-width:760px){
+  #tcModalOverlay .tc-detail-summary{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .tc-evidence-hero{ flex-direction:column; gap:12px; }
+  .tc-evidence-upload{ grid-template-columns:1fr; }
+}
+@media(max-width:640px){
+  #tcModalOverlay .modal.modal-lg .modal-head{ padding:16px; }
+  #tcModalOverlay .tc-detail-summary{ grid-template-columns:1fr; padding:14px; }
+  .tc-form-group{ padding:14px; }
+  .tc-form-group .form-grid{ grid-template-columns:1fr; gap:10px; }
+  .tc-form-group .field.span-2{ grid-column:auto; }
+  .tc-evidence-hero{ padding:18px; }
+  .tc-evidence-upload .file-drop{ align-items:flex-start; padding:16px; }
+  .tc-evidence-grid .file-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+}
+@media(max-width:420px){
+  .tc-evidence-grid .file-grid{ grid-template-columns:1fr; }
+}
+
+/* ==========================================================================
    MOBILE NAV TOGGLE — one geometry, one alignment, every screen
    --------------------------------------------------------------------------
    The launcher stays outside .main so it remains available above a detail
@@ -5992,14 +6315,25 @@ function tcModalTemplate(t, presetCrId){
   const v = t || {};
   const isEdit = !!t;
   const crOptions = STATE.crList.map(c=>c.cr_id);
+  const linkedCr = v.cr_id || presetCrId || "Chưa chọn";
+  const testCaseId = v.test_case_id || "Chưa đặt mã";
+  const resultLabel = v.pass_fail || "Not Started";
   return `
   <div class="modal modal-lg">
     <div class="modal-head">
-      <div><h3>${isEdit? "Sửa Test Case" : "Thêm Test Case UAT"}</h3>
-        <div class="sub">${isEdit? esc(v.test_case_id||v.cr_id) : "Tương ứng sheet UAT_Testcase"}</div></div>
+      <div class="tc-modal-head-copy">
+        <div class="tc-modal-kicker">UAT TEST CASE</div>
+        <h3>${isEdit? "Sửa Test Case" : "Thêm Test Case UAT"}</h3>
+        <div class="sub">${isEdit? esc(v.test_case_id||v.cr_id) : "Tương ứng sheet UAT_Testcase"}</div>
+        <div class="tc-modal-context">
+          <span><b>CR liên kết</b> ${esc(linkedCr)}</span>
+          <span><b>Test Case ID</b> ${esc(testCaseId)}</span>
+          <span><b>Kết quả</b> ${badge("pass_fail", resultLabel)}</span>
+        </div>
+      </div>
       <button class="modal-close" id="tcModalClose">✕</button>
     </div>
-    <div class="tabs" style="padding:0 24px;">
+    <div class="tabs">
       <button class="tab-btn active" data-tctab="info">Thông tin</button>
       <button class="tab-btn" data-tctab="evidence" ${isEdit?'':'style="opacity:.4; pointer-events:none;"'}>Evidence ${isEdit?'':'(lưu trước)'}</button>
     </div>
@@ -6023,87 +6357,129 @@ function tcModalTemplate(t, presetCrId){
             <strong class="tc-summary-value">${isEdit ? "Quản lý ở tab Evidence" : "Lưu test case trước"}</strong>
           </div>
         </div>
-        <div class="form-grid">
-          <div class="field">
-            <label>CR ID *</label>
-            <select id="t_cr_id">${optionsHtml(crOptions, v.cr_id || presetCrId)}</select>
-          </div>
-          <div class="field">
-            <label>Test Case ID</label>
-            <input id="t_test_case_id" type="text" value="${esc(v.test_case_id||'')}" placeholder="UAT_CR_001_01">
-          </div>
-          <div class="field span-2">
-            <label>Scenario</label>
-            <input id="t_scenario" type="text" value="${esc(v.scenario||'')}">
-          </div>
-          <div class="field span-2">
-            <label>Description</label>
-            <textarea id="t_description">${esc(v.description||'')}</textarea>
-          </div>
-          <div class="field span-2">
-            <label>Expectation</label>
-            <textarea id="t_expectation">${esc(v.expectation||'')}</textarea>
-          </div>
-          <div class="field span-2">
-            <label>Step by Step</label>
-            <textarea id="t_step_by_step" class="tall">${esc(v.step_by_step||'')}</textarea>
-          </div>
-          <div class="field span-2">
-            <label>Data test</label>
-            <textarea id="t_data_test">${esc(v.data_test||'')}</textarea>
-          </div>
-          <div class="field span-2">
-            <label>Actual Result</label>
-            <textarea id="t_actual_result">${esc(v.actual_result||'')}</textarea>
-          </div>
-          <div class="field">
-            <label>Kết quả (Pass/Fail)</label>
-            <select id="t_pass_fail">${optionsHtml(CR_LISTS.uatResult, v.pass_fail || "Not Started")}</select>
-          </div>
-          <div class="field">
-            <label>Owner Scenario</label>
-            <input id="t_owner_scenario" type="text" value="${esc(v.owner_scenario||'')}">
-          </div>
-          <div class="field">
-            <label>Testor</label>
-            <input id="t_testor" type="text" value="${esc(v.testor||'')}">
-          </div>
-          <div class="field">
-            <label>Testing Date</label>
-            <input id="t_testing_date" type="date" value="${v.testing_date||''}">
-          </div>
-          <div class="field">
-            <label>Owner Confirm (Business)</label>
-            <input id="t_owner_confirm" type="text" value="${esc(v.owner_confirm||'')}">
-          </div>
-          <div class="field">
-            <label>Confirmed Date</label>
-            <input id="t_confirmed_date" type="date" value="${v.confirmed_date||''}">
-          </div>
-          <div class="field span-2">
-            <label>Note</label>
-            <textarea id="t_note">${esc(v.note||'')}</textarea>
-          </div>
+        <div class="tc-form-groups">
+          <section class="tc-form-group">
+            <div class="tc-form-group-title">Định danh & liên kết</div>
+            <div class="form-grid">
+              <div class="field">
+                <label>CR ID *</label>
+                <select id="t_cr_id">${optionsHtml(crOptions, v.cr_id || presetCrId)}</select>
+              </div>
+              <div class="field">
+                <label>Test Case ID</label>
+                <input id="t_test_case_id" type="text" value="${esc(v.test_case_id||'')}" placeholder="UAT_CR_001_01">
+              </div>
+            </div>
+          </section>
+
+          <section class="tc-form-group">
+            <div class="tc-form-group-title">Kịch bản kiểm thử</div>
+            <div class="form-grid">
+              <div class="field span-2">
+                <label>Scenario</label>
+                <input id="t_scenario" type="text" value="${esc(v.scenario||'')}">
+              </div>
+              <div class="field span-2">
+                <label>Description</label>
+                <textarea id="t_description">${esc(v.description||'')}</textarea>
+              </div>
+              <div class="field span-2">
+                <label>Expectation</label>
+                <textarea id="t_expectation">${esc(v.expectation||'')}</textarea>
+              </div>
+              <div class="field span-2">
+                <label>Step by Step</label>
+                <textarea id="t_step_by_step" class="tall">${esc(v.step_by_step||'')}</textarea>
+              </div>
+              <div class="field span-2">
+                <label>Data test</label>
+                <textarea id="t_data_test">${esc(v.data_test||'')}</textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="tc-form-group">
+            <div class="tc-form-group-title">Kết quả & thực thi</div>
+            <div class="form-grid">
+              <div class="field span-2">
+                <label>Actual Result</label>
+                <textarea id="t_actual_result">${esc(v.actual_result||'')}</textarea>
+              </div>
+              <div class="field">
+                <label>Kết quả (Pass/Fail)</label>
+                <select id="t_pass_fail">${optionsHtml(CR_LISTS.uatResult, v.pass_fail || "Not Started")}</select>
+              </div>
+              <div class="field">
+                <label>Owner Scenario</label>
+                <input id="t_owner_scenario" type="text" value="${esc(v.owner_scenario||'')}">
+              </div>
+              <div class="field">
+                <label>Testor</label>
+                <input id="t_testor" type="text" value="${esc(v.testor||'')}">
+              </div>
+              <div class="field">
+                <label>Testing Date</label>
+                <input id="t_testing_date" type="date" value="${v.testing_date||''}">
+              </div>
+            </div>
+          </section>
+
+          <section class="tc-form-group">
+            <div class="tc-form-group-title">Xác nhận & ghi chú</div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Owner Confirm (Business)</label>
+                <input id="t_owner_confirm" type="text" value="${esc(v.owner_confirm||'')}">
+              </div>
+              <div class="field">
+                <label>Confirmed Date</label>
+                <input id="t_confirmed_date" type="date" value="${v.confirmed_date||''}">
+              </div>
+              <div class="field span-2">
+                <label>Note</label>
+                <textarea id="t_note">${esc(v.note||'')}</textarea>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
       <div class="tab-panel" id="tctab-evidence">
         ${isEdit ? `
-          <div class="file-cat-row">
-            <select id="evidenceStepSelect">
-              <option value="">— Chọn bước (hoặc tự nhập bên dưới) —</option>
-              ${CR_LISTS.evidenceSteps.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("")}
-            </select>
+          <div class="tc-evidence-shell">
+            <div class="tc-evidence-hero">
+              <div>
+                <div class="tc-modal-kicker">TEST EVIDENCE</div>
+                <h4>Quản lý bằng chứng kiểm thử</h4>
+                <p>Gắn ảnh hoặc tài liệu vào đúng bước kiểm thử để đội ngũ dễ đối chiếu kết quả.</p>
+              </div>
+              <div class="tc-evidence-count" id="evidenceCount">Đang tải...</div>
+            </div>
+            <div class="tc-evidence-upload">
+              <div class="tc-evidence-step">
+                <label>Bước kiểm thử</label>
+                <select id="evidenceStepSelect">
+                  <option value="">— Chọn bước (hoặc tự nhập bên dưới) —</option>
+                  ${CR_LISTS.evidenceSteps.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("")}
+                </select>
+                <input id="evidenceStepCustom" type="text" placeholder="Hoặc nhập tên bước tùy chỉnh...">
+              </div>
+              <div class="file-drop" id="evidenceDrop">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+                <div>
+                  <p><b>Bấm để chọn evidence</b> hoặc kéo thả vào đây</p>
+                  <div class="hint">Ảnh chụp màn hình kết quả test — có thể chọn nhiều ảnh</div>
+                </div>
+                <input type="file" id="evidenceInput" multiple accept="image/*,.pdf" hidden>
+              </div>
+            </div>
+            <div class="tc-evidence-list-head">
+              <div>
+                <h4>Evidence đã tải lên</h4>
+                <p>Được nhóm theo từng bước kiểm thử</p>
+              </div>
+            </div>
+            <div id="evidenceGrid" class="tc-evidence-grid"></div>
           </div>
-          <div class="field" style="margin-bottom:12px;">
-            <input id="evidenceStepCustom" type="text" placeholder="Hoặc nhập tên bước tùy chỉnh...">
-          </div>
-          <div class="file-drop" id="evidenceDrop">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
-            <p><b>Bấm để chọn ảnh evidence</b> hoặc kéo thả vào đây</p>
-            <div class="hint">Ảnh chụp màn hình kết quả test — có thể chọn nhiều ảnh</div>
-            <input type="file" id="evidenceInput" multiple accept="image/*,.pdf" hidden>
-          </div>
-          <div id="evidenceGrid"></div>
         ` : `<div style="padding:30px 0;">${emptyRow("Lưu test case trước, sau đó bạn có thể tải ảnh evidence lên.")}</div>`}
       </div>
     </div>
@@ -6204,8 +6580,11 @@ async function saveTc(overlay, isEdit){
 async function renderEvidenceGrid(testcase_id){
   const grid = $("#evidenceGrid");
   if(!grid) return;
+  const count = $("#evidenceCount");
+  if(count) count.textContent = "Đang tải...";
   grid.innerHTML = Array.from({length:4}).map(()=> `<div class="skeleton skeleton-thumb"></div>`).join("");
   const files = await fetchTcAttachments(testcase_id);
+  if(count) count.textContent = `${files.length} tệp`;
   if(!files.length){ grid.innerHTML = emptyRow("Chưa có ảnh evidence nào cho test case này"); return; }
   const urlMap = {};
   await Promise.all(files.map(async f=>{ urlMap[f.id] = await getSignedUrl(f.file_path); }));

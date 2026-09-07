@@ -2651,23 +2651,51 @@ tbody tr.detail-selected:hover{ background:
 }
 
 /* ==========================================================================
-   MOBILE NAV TOGGLE — collision-proof clearance
+   MOBILE NAV TOGGLE — one geometry, one alignment, every screen
    --------------------------------------------------------------------------
-   The launcher is intentionally outside .main so it remains available while
-   a detail drawer/full-screen editor is open. Because it is fixed, the detail
-   header must reserve its horizontal footprint instead of letting the button
-   sit on top of the CR number/title.
+   The launcher stays outside .main so it remains available above a detail
+   drawer/full-screen editor. It must nevertheless occupy the same 38px slot
+   as the topbar button in every state: no "Menu" pill, no shifting title,
+   and no detail header text hidden underneath it.
    ========================================================================== */
+.mobile-nav-toggle-label{
+  display:none !important;
+}
+
+body.detail-nav-visible .mobile-nav-toggle{
+  top:16px;
+  width:38px;
+  min-width:38px;
+  height:38px;
+  padding:0;
+  gap:0;
+  border-radius:10px;
+  background:#ffffff;
+  border:1.5px solid #0b7f7a;
+  color:#0b7f7a;
+  box-shadow:0 8px 20px -8px rgba(15,42,68,.55);
+}
+body.detail-nav-visible .mobile-nav-toggle:hover{
+  background:#effafa;
+  border-color:#086b68;
+  color:#086b68;
+}
+
+/* The title begins after exactly the same 38px button + 18px breathing room
+   used by the regular topbar (76px desktop / 66px mobile). */
 body.detail-nav-visible .drawer-head,
 body.detail-nav-visible .modal-overlay.full .modal-head{
-  padding-left:calc(clamp(20px, 4vw, 52px) + 88px) !important;
+  padding-left:76px !important;
 }
 
 @media(max-width:900px){
-  /* The compact "Menu" pill is wider than the regular hamburger icon. */
+  body.detail-nav-visible .mobile-nav-toggle{
+    top:14px;
+    left:14px;
+  }
   body.detail-nav-visible .drawer-head,
   body.detail-nav-visible .modal-overlay.full .modal-head{
-    padding-left:108px !important;
+    padding-left:66px !important;
   }
 }
 </style>
@@ -2766,7 +2794,6 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 
   <button class="mobile-nav-toggle" id="btnMobileNav" title="Mở / đóng menu" aria-label="Mở / đóng menu" aria-expanded="false" type="button">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-    <span class="mobile-nav-toggle-label">Menu</span>
   </button>
 
   <div class="main">

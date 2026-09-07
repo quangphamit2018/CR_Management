@@ -2157,6 +2157,361 @@ tbody tr.detail-selected:hover{ background:
   .crlog-field-grid{ grid-template-columns:1fr; gap:10px; }
   .crlog-field.is-long{ grid-column:auto; }
 }
+
+/* ==========================================================================
+   UAT + RELEASE WORKSPACES
+   These two drawer tabs are operational workspaces, not plain related-item
+   lists. The existing IDs are preserved so the data and click handlers remain
+   unchanged.
+   ========================================================================== */
+.drawer .tabs .tab-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+}
+.drawer .tab-count{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:19px;
+  height:19px;
+  padding:0 5px;
+  border-radius:999px;
+  color:#0b817c;
+  background:#e7f7f5;
+  font-size:10px;
+  font-weight:800;
+  line-height:1;
+}
+.workflow-panel{
+  width:100%;
+  min-height:100%;
+  color:#18364f;
+}
+.workflow-hero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:24px;
+  padding:25px 28px 23px;
+  border:1px solid #d7e7ea;
+  border-radius:19px;
+  background:
+    radial-gradient(circle at 96% 4%,rgba(47,192,185,.16),transparent 35%),
+    linear-gradient(135deg,#ffffff 0%,#f1fbfa 100%);
+  box-shadow:0 18px 34px -30px rgba(15,42,68,.55);
+}
+.workflow-hero-copy{ min-width:0; }
+.workflow-eyebrow{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-bottom:8px;
+  color:#0e9a94;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.13em;
+  line-height:1.2;
+  text-transform:uppercase;
+}
+.workflow-eyebrow::before{
+  content:"";
+  width:18px;
+  height:2px;
+  border-radius:2px;
+  background:#2fc0b9;
+}
+.workflow-hero h3{
+  margin:0 0 7px;
+  color:#153852;
+  font-size:clamp(19px,2vw,24px);
+  font-weight:800;
+  letter-spacing:-.035em;
+}
+.workflow-hero p{
+  max-width:700px;
+  margin:0;
+  color:#6d8494;
+  font-size:12px;
+  line-height:1.65;
+}
+.workflow-hero-action{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  white-space:nowrap;
+  box-shadow:0 8px 16px -12px rgba(14,154,148,.7);
+}
+.workflow-hero-action svg{ width:15px; height:15px; }
+.workflow-kpis{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin:17px 0 24px;
+}
+.workflow-kpi{
+  position:relative;
+  min-height:88px;
+  padding:15px 16px;
+  overflow:hidden;
+  border:1px solid #dbe8eb;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 10px 23px -24px rgba(15,42,68,.6);
+}
+.workflow-kpi::after{
+  content:"";
+  position:absolute;
+  right:-19px;
+  bottom:-30px;
+  width:76px;
+  height:76px;
+  border-radius:50%;
+  background:#effafa;
+}
+.workflow-kpi-value{
+  position:relative;
+  z-index:1;
+  display:block;
+  color:#153852;
+  font-size:24px;
+  font-weight:850;
+  letter-spacing:-.05em;
+}
+.workflow-kpi-label{
+  position:relative;
+  z-index:1;
+  display:block;
+  margin-top:5px;
+  color:#7c93a1;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.06em;
+  line-height:1.3;
+  text-transform:uppercase;
+}
+.workflow-kpi.is-success .workflow-kpi-value{ color:#1d9b67; }
+.workflow-kpi.is-danger .workflow-kpi-value{ color:#d65c69; }
+.workflow-kpi.is-warm .workflow-kpi-value{ color:#c8862b; }
+.workflow-section-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:12px;
+}
+.workflow-section-title{
+  margin:0;
+  color:#18364f;
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:-.015em;
+}
+.workflow-section-sub{
+  margin-top:4px;
+  color:#8599a6;
+  font-size:11.5px;
+  line-height:1.45;
+}
+.workflow-legend{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:7px;
+}
+.workflow-legend-item{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 8px;
+  border:1px solid #e0ebed;
+  border-radius:999px;
+  color:#78909e;
+  background:#fbfdfd;
+  font-size:10px;
+  font-weight:750;
+  white-space:nowrap;
+}
+.workflow-legend-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#9aabb6;
+}
+.workflow-legend-dot.success{ background:#39b982; }
+.workflow-legend-dot.danger{ background:#e16b77; }
+.workflow-legend-dot.progress{ background:#5793e9; }
+.workflow-legend-dot.planned{ background:#9aaec5; }
+.workflow-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.workflow-list .empty-state{
+  padding:58px 20px;
+  border:1px dashed #d6e5e8;
+  border-radius:15px;
+  background:#fbfefe;
+}
+.workflow-record{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-width:0;
+  padding:14px 16px 14px 14px;
+  border:1px solid #dce8eb;
+  border-radius:14px;
+  background:#fff;
+  cursor:pointer;
+  transition:transform 160ms var(--ease-decel),border-color 160ms var(--ease-standard),box-shadow 160ms var(--ease-standard),background 160ms var(--ease-standard);
+}
+.workflow-record:hover{
+  transform:translateY(-2px);
+  border-color:#9fd7d4;
+  background:#fbfefe;
+  box-shadow:0 15px 26px -23px rgba(15,42,68,.65);
+}
+.workflow-record-index{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  color:#0e9a94;
+  background:#eaf8f7;
+  font-size:11px;
+  font-weight:850;
+}
+.workflow-record-main{
+  flex:1 1 auto;
+  min-width:0;
+}
+.workflow-record-top{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  margin-bottom:5px;
+}
+.workflow-record-id{
+  min-width:0;
+  overflow:hidden;
+  color:#0f7790;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.055em;
+  text-overflow:ellipsis;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.workflow-record-title{
+  overflow:hidden;
+  color:#18364f;
+  font-size:12.5px;
+  font-weight:750;
+  line-height:1.45;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.workflow-record-meta{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:5px 17px;
+  margin-top:6px;
+  color:#8499a7;
+  font-size:10.5px;
+  line-height:1.35;
+}
+.workflow-record-meta span{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+.workflow-record-meta b{
+  color:#547184;
+  font-weight:800;
+}
+.workflow-record-status{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.workflow-record-arrow{
+  color:#a2b3bd;
+  font-size:18px;
+  font-weight:300;
+  line-height:1;
+  transition:color 160ms ease,transform 160ms ease;
+}
+.workflow-record:hover .workflow-record-arrow{
+  color:#0e9a94;
+  transform:translateX(3px);
+}
+.workflow-list .badge{ white-space:nowrap; }
+.workflow-panel-release .workflow-record-index{
+  color:#4b79c9;
+  background:#eef4ff;
+}
+.workflow-panel-release .workflow-hero{
+  background:
+    radial-gradient(circle at 96% 4%,rgba(91,141,239,.15),transparent 35%),
+    linear-gradient(135deg,#ffffff 0%,#f3f7ff 100%);
+}
+.workflow-panel-release .workflow-eyebrow{ color:#4a78c7; }
+.workflow-panel-release .workflow-eyebrow::before{ background:#5b8def; }
+.workflow-panel-release .workflow-hero-action{
+  background:#477ad2;
+  border-color:#477ad2;
+}
+.workflow-panel-release .workflow-kpi::after{ background:#f0f4ff; }
+.workflow-panel-release .workflow-kpi.is-success .workflow-kpi-value{ color:#26996d; }
+.workflow-panel-release .workflow-record-id{ color:#4b72b2; }
+.related-grid .workflow-record{
+  padding:11px 12px 11px 10px;
+  gap:9px;
+  border-radius:11px;
+}
+.related-grid .workflow-record-index{
+  width:27px;
+  height:27px;
+  border-radius:8px;
+  font-size:9px;
+}
+.related-grid .workflow-record-title{ font-size:11px; }
+.related-grid .workflow-record-meta{ display:none; }
+.related-grid .workflow-record-status{ gap:0; }
+.related-grid .workflow-record-arrow{ display:none; }
+@media(max-width:900px){
+  .workflow-hero{ padding:21px 20px; }
+  .workflow-kpis{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:640px){
+  .workflow-hero{ flex-direction:column; gap:16px; }
+  .workflow-hero-action{ width:100%; justify-content:center; }
+  .workflow-section-head{ align-items:flex-start; flex-direction:column; gap:10px; }
+  .workflow-legend{ justify-content:flex-start; }
+  .workflow-record{ align-items:flex-start; padding:12px; }
+  .workflow-record-status{ margin-left:auto; }
+  .workflow-record-title{ white-space:normal; }
+  .workflow-record-meta{ gap:4px 11px; }
+}
+@media(max-width:420px){
+  .workflow-kpis{ gap:8px; }
+  .workflow-kpi{ min-height:76px; padding:12px; }
+  .workflow-kpi-value{ font-size:21px; }
+  .workflow-kpi-label{ font-size:9px; }
+  .workflow-record-index{ display:none; }
+  .workflow-record{ gap:8px; }
+  .workflow-record-status .badge{ font-size:9px; }
+}
 </style>
 </head>
 <body>
@@ -4309,21 +4664,36 @@ function activityHtml(cr){
 }
 
 function tcMiniCardHtml(t){
-  return `<div class="mini-card" data-tc="${t.id}">
-    <div class="mc-main">
-      <div class="mc-title">${esc(t.test_case_id || '(chưa đặt tên)')} — ${esc(t.scenario||'')}</div>
-      <div class="mc-sub">${esc(t.testor||'—')} · ${fmtDate(t.testing_date)}</div>
+  return `<div class="workflow-record" data-tc="${t.id}">
+    <div class="workflow-record-index">TC</div>
+    <div class="workflow-record-main">
+      <div class="workflow-record-top">
+        <span class="workflow-record-id">${esc(t.test_case_id || 'TEST CASE')}</span>
+      </div>
+      <div class="workflow-record-title">${esc(t.scenario || '(Chưa có scenario)')}</div>
+      <div class="workflow-record-meta">
+        <span><b>Testor</b> ${esc(t.testor || '—')}</span>
+        <span><b>Ngày test</b> ${t.testing_date ? fmtDate(t.testing_date) : 'Chưa cập nhật'}</span>
+      </div>
     </div>
-    ${badge("pass_fail", t.pass_fail)}
+    <div class="workflow-record-status">${badge("pass_fail", t.pass_fail)}<span class="workflow-record-arrow">›</span></div>
   </div>`;
 }
 function relMiniCardHtml(r){
-  return `<div class="mini-card" data-rel="${r.id}">
-    <div class="mc-main">
-      <div class="mc-title">${esc(r.release_name || r.release_id || '(chưa đặt tên)')}</div>
-      <div class="mc-sub">${fmtDate(r.planned_date)} → ${r.actual_date? fmtDate(r.actual_date): 'chưa release'}</div>
+  return `<div class="workflow-record" data-rel="${r.id}">
+    <div class="workflow-record-index">REL</div>
+    <div class="workflow-record-main">
+      <div class="workflow-record-top">
+        <span class="workflow-record-id">${esc(r.release_id || 'RELEASE')}</span>
+      </div>
+      <div class="workflow-record-title">${esc(r.release_name || '(Chưa đặt tên release)')}</div>
+      <div class="workflow-record-meta">
+        <span><b>Dự kiến</b> ${r.planned_date ? fmtDate(r.planned_date) : 'Chưa cập nhật'}</span>
+        <span><b>Thực tế</b> ${r.actual_date ? fmtDate(r.actual_date) : 'Chưa release'}</span>
+        <span><b>Owner</b> ${esc(r.release_owner || '—')}</span>
+      </div>
     </div>
-    ${badge("release_status", r.status)}
+    <div class="workflow-record-status">${badge("release_status", r.status)}<span class="workflow-record-arrow">›</span></div>
   </div>`;
 }
 
@@ -4397,8 +4767,8 @@ function renderDrawer(cr){
     <div class="tabs">
       <button class="tab-btn active" data-tab="info">Thông tin</button>
       <button class="tab-btn" data-tab="files">Tệp đính kèm</button>
-      <button class="tab-btn" data-tab="tc">Test Case UAT</button>
-      <button class="tab-btn" data-tab="rel">Release / PRD</button>
+      <button class="tab-btn" data-tab="tc">Test Case UAT <span class="tab-count" id="drawerTcTabCount">0</span></button>
+      <button class="tab-btn" data-tab="rel">Release / PRD <span class="tab-count" id="drawerRelTabCount">0</span></button>
     </div>
     <div class="drawer-body">
       <div class="tab-panel active" id="tab-info">
@@ -4499,17 +4869,95 @@ function renderDrawer(cr){
       </div>
 
       <div class="tab-panel" id="tab-tc">
-        <div class="section-title"><h4>Test case liên quan</h4>
-          <button class="btn btn-ghost btn-sm" id="drawerAddTc">+ Thêm test case</button>
+        <div class="workflow-panel workflow-panel-uat">
+          <div class="workflow-hero">
+            <div class="workflow-hero-copy">
+              <div class="workflow-eyebrow">QUALITY ASSURANCE</div>
+              <h3>Kiểm thử nghiệm thu UAT</h3>
+              <p>Theo dõi toàn bộ kịch bản kiểm thử của Change Request, kết quả thực thi và người phụ trách trong một luồng làm việc thống nhất.</p>
+            </div>
+            <button class="btn btn-primary workflow-hero-action" id="drawerAddTc">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Thêm Test Case
+            </button>
+          </div>
+          <div class="workflow-kpis">
+            <div class="workflow-kpi">
+              <span class="workflow-kpi-value" id="drawerTcTotal">0</span>
+              <span class="workflow-kpi-label">Tổng test case</span>
+            </div>
+            <div class="workflow-kpi is-success">
+              <span class="workflow-kpi-value" id="drawerTcPass">0</span>
+              <span class="workflow-kpi-label">Đạt yêu cầu</span>
+            </div>
+            <div class="workflow-kpi is-danger">
+              <span class="workflow-kpi-value" id="drawerTcFail">0</span>
+              <span class="workflow-kpi-label">Không đạt</span>
+            </div>
+            <div class="workflow-kpi is-warm">
+              <span class="workflow-kpi-value" id="drawerTcPending">0</span>
+              <span class="workflow-kpi-label">Chưa có kết quả</span>
+            </div>
+          </div>
+          <div class="workflow-section-head">
+            <div>
+              <h4 class="workflow-section-title">Danh sách kịch bản kiểm thử</h4>
+              <p class="workflow-section-sub">Chọn một dòng để mở đầy đủ thông tin, chỉnh sửa hoặc quản lý evidence.</p>
+            </div>
+            <div class="workflow-legend">
+              <span class="workflow-legend-item"><i class="workflow-legend-dot success"></i>Pass</span>
+              <span class="workflow-legend-item"><i class="workflow-legend-dot danger"></i>Fail</span>
+              <span class="workflow-legend-item"><i class="workflow-legend-dot"></i>Pending</span>
+            </div>
+          </div>
+          <div class="mini-list workflow-list" id="drawerTcList"></div>
         </div>
-        <div class="mini-list" id="drawerTcList"></div>
       </div>
 
       <div class="tab-panel" id="tab-rel">
-        <div class="section-title"><h4>Release liên quan</h4>
-          <button class="btn btn-ghost btn-sm" id="drawerAddRel">+ Thêm release</button>
+        <div class="workflow-panel workflow-panel-release">
+          <div class="workflow-hero">
+            <div class="workflow-hero-copy">
+              <div class="workflow-eyebrow">DELIVERY CONTROL</div>
+              <h3>Release &amp; PRD readiness</h3>
+              <p>Quản lý kế hoạch phát hành, môi trường triển khai và tình trạng bàn giao của Change Request trước khi đưa vào production.</p>
+            </div>
+            <button class="btn btn-primary workflow-hero-action" id="drawerAddRel">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Thêm Release
+            </button>
+          </div>
+          <div class="workflow-kpis">
+            <div class="workflow-kpi">
+              <span class="workflow-kpi-value" id="drawerRelTotal">0</span>
+              <span class="workflow-kpi-label">Tổng release</span>
+            </div>
+            <div class="workflow-kpi is-success">
+              <span class="workflow-kpi-value" id="drawerRelDone">0</span>
+              <span class="workflow-kpi-label">Đã hoàn tất</span>
+            </div>
+            <div class="workflow-kpi">
+              <span class="workflow-kpi-value" id="drawerRelActive">0</span>
+              <span class="workflow-kpi-label">Đang triển khai</span>
+            </div>
+            <div class="workflow-kpi is-warm">
+              <span class="workflow-kpi-value" id="drawerRelPlanned">0</span>
+              <span class="workflow-kpi-label">Đã lên kế hoạch</span>
+            </div>
+          </div>
+          <div class="workflow-section-head">
+            <div>
+              <h4 class="workflow-section-title">Release roadmap</h4>
+              <p class="workflow-section-sub">Theo dõi mốc dự kiến, ngày phát hành thực tế và người phụ trách release.</p>
+            </div>
+            <div class="workflow-legend">
+              <span class="workflow-legend-item"><i class="workflow-legend-dot success"></i>Completed</span>
+              <span class="workflow-legend-item"><i class="workflow-legend-dot progress"></i>In Progress</span>
+              <span class="workflow-legend-item"><i class="workflow-legend-dot planned"></i>Planned</span>
+            </div>
+          </div>
+          <div class="mini-list workflow-list" id="drawerRelList"></div>
         </div>
-        <div class="mini-list" id="drawerRelList"></div>
       </div>
     </div>
   `;
@@ -4771,6 +5219,24 @@ function renderDrawerLinked(cr_id){
   }});
   const tcCountEl = $("#relatedTcCount"); if(tcCountEl) tcCountEl.textContent = tcs.length ? `(${tcs.length})` : "";
   const relCountEl = $("#relatedRelCount"); if(relCountEl) relCountEl.textContent = rels.length ? `(${rels.length})` : "";
+
+  const tcPass = tcs.filter(t=> String(t.pass_fail||"").toLowerCase() === "pass").length;
+  const tcFail = tcs.filter(t=> String(t.pass_fail||"").toLowerCase() === "fail").length;
+  const setText = (selector, value)=>{ const el = $(selector); if(el) el.textContent = value; };
+  setText("#drawerTcTotal", tcs.length);
+  setText("#drawerTcPass", tcPass);
+  setText("#drawerTcFail", tcFail);
+  setText("#drawerTcPending", Math.max(0, tcs.length - tcPass - tcFail));
+  setText("#drawerTcTabCount", tcs.length);
+
+  const relCompleted = rels.filter(r=> String(r.status||"").toLowerCase() === "completed").length;
+  const relActive = rels.filter(r=> String(r.status||"").toLowerCase() === "in progress").length;
+  const relPlanned = rels.filter(r=> String(r.status||"").toLowerCase() === "planned").length;
+  setText("#drawerRelTotal", rels.length);
+  setText("#drawerRelDone", relCompleted);
+  setText("#drawerRelActive", relActive);
+  setText("#drawerRelPlanned", relPlanned);
+  setText("#drawerRelTabCount", rels.length);
 }
 
 function openLightbox(url){

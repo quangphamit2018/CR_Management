@@ -3238,7 +3238,34 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   #crTable th:last-child,
   #tcTable th:last-child,
   #relTable th:last-child{
-    width:58px;
+    width:68px;
+  }
+
+  #crTable td:last-child,
+  #tcTable td:last-child,
+  #relTable td:last-child{
+    width:68px;
+    min-width:68px;
+    max-width:68px;
+    overflow:visible;
+    padding-left:4px;
+    padding-right:4px;
+  }
+
+  /* On compact desktop widths the action column must stay discoverable;
+     hiding it until hover makes it look as if it was clipped away. */
+  #crTable .row-actions,
+  #tcTable .row-actions,
+  #relTable .row-actions{
+    opacity:1;
+    gap:3px;
+  }
+
+  #crTable .row-actions .icon-btn,
+  #tcTable .row-actions .icon-btn,
+  #relTable .row-actions .icon-btn{
+    width:25px;
+    height:25px;
   }
 }
 </style>

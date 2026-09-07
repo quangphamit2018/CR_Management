@@ -1893,6 +1893,168 @@ tbody tr.detail-selected:hover{ background:
 @media(max-width:480px){
   .file-grid{ grid-template-columns:1fr; }
 }
+
+/* ==========================================================================
+   CR LOG DETAIL — full Excel-compatible record presentation
+   --------------------------------------------------------------------------
+   The drawer keeps the existing interaction/data flow, but the CR_Log
+   fields are rendered one-by-one so no value is hidden behind a badge or
+   shortened link label. Long Excel cells keep their line breaks and use the
+   whole content width.
+   ========================================================================== */
+.drawer-head{
+  position:sticky;
+  top:0;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 4% -45%, rgba(47,192,185,.16), transparent 34%),
+    linear-gradient(135deg,#ffffff 0%,#f4fbfb 100%);
+}
+.drawer-head::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:4px;
+  background:linear-gradient(180deg,#2fc0b9 0%,#0e9a94 100%);
+}
+.drawer-head-top{ align-items:center; }
+.drawer-head h2{ font-size:clamp(20px,1.8vw,25px); letter-spacing:-.035em; }
+.drawer-head .drawer-app{
+  max-width:min(760px,72vw);
+  overflow-wrap:anywhere;
+  font-size:12px;
+  font-weight:600;
+  color:#557386;
+}
+.drawer-head-context{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px 18px;
+  margin-top:13px;
+  color:#6f8797;
+  font-size:11.5px;
+}
+.drawer-head-context span{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+}
+.drawer-head-context b{
+  color:#35566b;
+  font-weight:800;
+}
+.drawer .tabs{
+  position:relative;
+  z-index:3;
+  min-height:62px;
+  box-shadow:0 5px 18px -18px rgba(15,42,68,.65);
+}
+.drawer .tabs .tab-btn{
+  min-height:62px;
+  padding-left:18px;
+  padding-right:18px;
+}
+.drawer-body{
+  background:
+    linear-gradient(180deg,#f4f9fa 0%,#edf5f6 100%);
+}
+.crlog-detail-groups{
+  display:flex;
+  flex-direction:column;
+  gap:22px;
+}
+.crlog-field-group{
+  padding:18px;
+  border:1px solid #dce8eb;
+  border-radius:14px;
+  background:#fbfdfe;
+  box-shadow:0 9px 22px -23px rgba(15,42,68,.58);
+}
+.crlog-field-group-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 13px;
+  color:#3f6478;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.crlog-field-group-title::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:#dce8eb;
+}
+.crlog-field-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.crlog-field{
+  min-width:0;
+  min-height:68px;
+  padding:12px 14px;
+  border:1px solid #e0eaee;
+  border-radius:11px;
+  background:#fff;
+}
+.crlog-field.is-long{ grid-column:1/-1; }
+.crlog-field-label{
+  margin-bottom:7px;
+  color:#8196a4;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.055em;
+  line-height:1.25;
+  text-transform:uppercase;
+}
+.crlog-field-value{
+  color:#18364f;
+  font-size:13px;
+  font-weight:600;
+  line-height:1.55;
+  overflow-wrap:anywhere;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.crlog-field.is-long .crlog-field-value{
+  min-height:46px;
+  padding:11px 12px;
+  border:1px solid #e5eef1;
+  border-radius:9px;
+  background:#f8fbfc;
+  font-weight:500;
+  line-height:1.68;
+}
+.crlog-field-value.empty{
+  color:#9aabb6;
+  font-style:italic;
+  font-weight:500;
+}
+.crlog-field-value a{
+  color:#087f7a;
+  text-decoration:none;
+  overflow-wrap:anywhere;
+}
+.crlog-field-value a:hover{ text-decoration:underline; }
+.crlog-field-value .field-link-icon{
+  display:inline-block;
+  margin-right:5px;
+  color:#2aaea8;
+  font-size:11px;
+}
+@media(max-width:900px){
+  .drawer-head-context{ gap:7px 13px; }
+  .crlog-field-group{ padding:14px; }
+}
+@media(max-width:640px){
+  .drawer .tabs .tab-btn{ padding-left:12px; padding-right:12px; }
+  .crlog-field-grid{ grid-template-columns:1fr; gap:10px; }
+  .crlog-field.is-long{ grid-column:auto; }
+}
 </style>
 </head>
 <body>
@@ -3823,6 +3985,78 @@ function detailBlock(label, value){
   </div>`;
 }
 
+function crLogNo(cr){
+  const explicit = cr && (cr.no ?? cr.cr_no ?? cr.serial_no ?? cr.number);
+  if(explicit !== null && explicit !== undefined && explicit !== "") return explicit;
+  const match = /^CR_(\d+)$/i.exec(String(cr?.cr_id || ""));
+  return match ? Number(match[1]) : "";
+}
+
+function crLogField(label, value, options={}){
+  const empty = value===null || value===undefined || value==="";
+  const raw = empty ? "" : String(value);
+  const isUrl = /^https?:\/\//i.test(raw);
+  const valueHtml = empty
+    ? "Chưa có dữ liệu"
+    : isUrl
+      ? `<a href="${esc(raw)}" target="_blank" rel="noopener"><span class="field-link-icon">↗</span>${esc(raw)}</a>`
+      : esc(raw);
+  return `<div class="crlog-field ${options.long?'is-long':''}">
+    <div class="crlog-field-label">${esc(label)}</div>
+    <div class="crlog-field-value ${empty?'empty':''}">${valueHtml}</div>
+  </div>`;
+}
+
+function crLogFieldGroups(cr){
+  const date = key => cr[key] ? fmtDate(cr[key]) : "";
+  return `
+    <div class="crlog-detail-groups">
+      <div class="crlog-field-group">
+        <div class="crlog-field-group-title">Định danh & tên hiển thị</div>
+        <div class="crlog-field-grid">
+          ${crLogField("No", crLogNo(cr))}
+          ${crLogField("CR ID", cr.cr_id)}
+          ${crLogField("Old Name From InterK", cr.old_name, {long:true})}
+          ${crLogField("Rename Folder", cr.rename_folder, {long:true})}
+          ${crLogField("App", cr.app)}
+        </div>
+      </div>
+      <div class="crlog-field-group">
+        <div class="crlog-field-group-title">Thông tin yêu cầu</div>
+        <div class="crlog-field-grid">
+          ${crLogField("Requester", cr.requester)}
+          ${crLogField("Department", cr.department)}
+          ${crLogField("Request Date", date("request_date"))}
+          ${crLogField("Category", cr.category)}
+          ${crLogField("Priority", cr.priority)}
+        </div>
+      </div>
+      <div class="crlog-field-group">
+        <div class="crlog-field-group-title">Trạng thái & phê duyệt</div>
+        <div class="crlog-field-grid">
+          ${crLogField("Status", cr.status)}
+          ${crLogField("BRD Link", cr.brd_link)}
+          ${crLogField("FSD Link", cr.fsd_link)}
+          ${crLogField("Quotation Link", cr.quotation_link)}
+          ${crLogField("Owner", cr.owner)}
+          ${crLogField("Approved Date", date("approved_date"))}
+          ${crLogField("Approved Status", cr.approved_status)}
+          ${crLogField("Deadline", date("deadline"))}
+        </div>
+      </div>
+      <div class="crlog-field-group">
+        <div class="crlog-field-group-title">Nội dung & cập nhật</div>
+        <div class="crlog-field-grid">
+          ${crLogField("Loop Mail Header", cr.loop_mail_header, {long:true})}
+          ${crLogField("Description BRD", cr.description_brd, {long:true})}
+          ${crLogField("Description FSD", cr.description_fsd, {long:true})}
+          ${crLogField("Progress", cr.progress, {long:true})}
+          ${crLogField("Note", cr.note, {long:true})}
+        </div>
+      </div>
+    </div>`;
+}
+
 const ICON_LINK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.07 0l1.93-1.93a5 5 0 00-7.07-7.07L10.5 5.43"/><path d="M14 11a5 5 0 00-7.07 0L5 12.93a5 5 0 007.07 7.07L13.5 18.57"/></svg>`;
 function linkChip(label, url){
   if(!url) return `<span class="detail-link is-empty">${ICON_LINK}${esc(label)}</span>`;
@@ -3954,6 +4188,11 @@ function renderDrawer(cr){
         <div>
           <h2>${esc(cr.cr_id)}</h2>
           <div class="drawer-app">${esc(cr.rename_folder || cr.old_name || cr.app || '(chưa có tiêu đề)')}</div>
+           <div class="drawer-head-context">
+             <span><b>App</b> ${esc(cr.app || "—")}</span>
+             <span><b>Requester</b> ${esc(cr.requester || "—")}</span>
+             <span><b>Request Date</b> ${esc(cr.request_date ? fmtDate(cr.request_date) : "—")}</span>
+           </div>
         </div>
         <div class="drawer-head-actions">
           <button class="icon-btn" id="drawerEditBtn" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -3996,20 +4235,10 @@ function renderDrawer(cr){
         </div>
 
         <div class="dsec">
-          <div class="dsec-head"><span class="dsec-title">Chi tiết</span></div>
-          ${detailBlock("Mô tả & Business Impact (BRD)", cr.description_brd)}
-          ${detailBlock("Thông tin kỹ thuật (FSD)", cr.description_fsd)}
-          ${(cr.progress || cr.note || cr.loop_mail_header) ? `
-            ${cr.progress? detailBlock("Ghi chú tiến độ", cr.progress) : ""}
-            ${cr.note? detailBlock("Ghi chú khác", cr.note) : ""}
-            ${cr.loop_mail_header? detailBlock("Loop Mail Header", cr.loop_mail_header) : ""}
-          ` : ""}
-          <div class="detail-links">
-            ${linkChip("BRD", cr.brd_link)}
-            ${linkChip("FSD", cr.fsd_link)}
-            ${linkChip("Quotation", cr.quotation_link)}
-            ${cr.old_name? `<span class="detail-link is-empty" title="Old Name From InterK">${esc(cr.old_name)}</span>` : ""}
+          <div class="dsec-head">
+            <span class="dsec-title">Chi tiết đầy đủ theo CR_Log</span>
           </div>
+          ${crLogFieldGroups(cr)}
         </div>
 
         <div class="dsec">

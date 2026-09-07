@@ -785,8 +785,16 @@ body.sidebar-collapsed .modal-overlay.full{ left: var(--sidebar-w-collapsed); }
 @media(max-width:640px){ .form-grid{ grid-template-columns:1fr; } }
 .field textarea{ resize:vertical; min-height:64px; line-height:1.5; }
 .field textarea.tall{ min-height:110px; }
+.field textarea.auto-grow{ resize:none; overflow-y:hidden; }
 .field-row-btn{ display:flex; gap:8px; }
 .field-row-btn input{ flex:1; }
+
+.status-create{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.status-create input{
+  width:220px; background:var(--bg-surface-soft); border:1px solid var(--border);
+  border-radius:9px; padding:8px 10px; color:var(--text-primary); font-size:12.5px;
+}
+.status-create input:focus{ outline:none; border-color:var(--accent); background:var(--bg-surface-soft-hover); }
 
 .tabs{ display:flex; gap:4px; border-bottom:1px solid var(--panel-border); padding:0 24px; flex-shrink:0; }
 .tab-btn{
@@ -2382,6 +2390,30 @@ tbody tr.detail-selected:hover{ background:
           <span id="userFootCount">Hiển thị 0 / 0 người dùng</span>
         </div>
       </div>
+
+      <div class="list-panel" style="margin-top:16px;">
+        <div class="list-panel-head">
+          <div class="list-panel-count"><b id="statusCount">0</b> status</div>
+          <div class="status-create">
+            <input id="statusNameInput" type="text" maxlength="80" placeholder="Ví dụ: Pending Review">
+            <button class="btn btn-primary btn-sm" id="btnAddStatus" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              Thêm status
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Status</th><th>Thứ tự</th><th></th>
+            </tr></thead>
+            <tbody id="statusTableBody"></tbody>
+          </table>
+        </div>
+        <div class="list-panel-foot">
+          <span id="statusFootCount">Hiển thị 0 / 0 status</span>
+        </div>
+      </div>
     </section>
 
   </div>
@@ -2460,6 +2492,7 @@ const STATE = {
   tcList: [],
   relList: [],
   userList: [],
+  statusList: [],
   currentView: "dashboard",
   filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
   tcFilters: { cr:"", result:"" },
@@ -2481,7 +2514,8 @@ const STATE = {
   crSelection: new Set(), // cr_id values currently selected in CR Log table
   crColumns: null,        // populated by loadCrColumnPrefs()
   crDensity: localStorage.getItem("crDensity") || "comfortable",
-  loadErrors: { cr:null, tc:null, rel:null, admin:null }, // last fetch error per dataset, null = ok
+  loadErrors: { cr:null, tc:null, rel:null, admin:null, status:null }, // last fetch error per dataset, null = ok
+  statusLoadWarned: false,
 };
 
 /* Togglable CR Log columns (CR ID + Status + Actions are structural, not toggled) */
@@ -2736,6 +2770,9 @@ function subscribeRealtime(){
   STATE.sb.channel("realtime-release_prd")
     .on("postgres_changes", { event:"*", schema:"public", table:"release_prd" }, debouncedRefresh)
     .subscribe();
+  STATE.sb.channel("realtime-cr_statuses")
+    .on("postgres_changes", { event:"*", schema:"public", table:"cr_statuses" }, debouncedRefresh)
+    .subscribe();
   STATE.sb.channel("realtime-cr_attachments")
     .on("postgres_changes", { event:"*", schema:"public", table:"cr_attachments" }, ()=>{
       if(STATE.drawerCrId){
@@ -2762,7 +2799,7 @@ const VIEW_META = {
   crlog:     { title:"CR Log", sub:"Sổ đăng ký toàn bộ Change Request", search:false },
   uat:       { title:"UAT Test Case", sub:"Test case UAT cho từng Change Request", search:false },
   release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:false },
-  admin:     { title:"Quản trị người dùng", sub:"Cấp quyền truy cập cho tài khoản Gmail", search:false },
+  admin:     { title:"Quản trị", sub:"Quản lý người dùng và danh mục Status", search:false },
 };
 
 function closeMobileNav(){
@@ -2871,6 +2908,10 @@ function initShell(){
     confirmDelete("Đăng xuất?", "Bạn sẽ cần đăng nhập lại bằng Google để tiếp tục sử dụng.", async ()=>{ await logout(); }, "Đăng xuất");
   });
   $("#btnAddUser").addEventListener("click", ()=> openUserModal(null));
+  $("#btnAddStatus").addEventListener("click", addStatus);
+  $("#statusNameInput").addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); addStatus(); }
+  });
 
   populateSelect($("#filterStatus"), CR_LISTS.status);
   populateSelect($("#filterPriority"), CR_LISTS.priority);
@@ -3075,6 +3116,30 @@ function populateSelect(sel, arr, withEmpty){
     const o = document.createElement("option");
     o.value = v; o.textContent = v;
     sel.appendChild(o);
+  });
+}
+
+function populateStatusControls(){
+  const filter = $("#filterStatus");
+  if(!filter) return;
+  const current = filter.value;
+  populateSelect(filter, CR_LISTS.status);
+  filter.value = CR_LISTS.status.includes(current) ? current : "";
+}
+
+function autoGrowTextarea(textarea){
+  if(!textarea) return;
+  textarea.style.height = "auto";
+  const minHeight = parseFloat(getComputedStyle(textarea).minHeight) || 0;
+  textarea.style.height = Math.max(textarea.scrollHeight, minHeight) + "px";
+}
+
+function initAutoGrow(root){
+  if(!root) return;
+  $all("textarea", root).forEach(textarea=>{
+    textarea.classList.add("auto-grow");
+    textarea.addEventListener("input", ()=> autoGrowTextarea(textarea));
+    requestAnimationFrame(()=> autoGrowTextarea(textarea));
   });
 }
 
@@ -3337,7 +3402,7 @@ async function refreshAll(){
   setRefreshLoading(true);
   if(initialLoad) showLoadingSkeletons();
   try{
-    await Promise.all([fetchCrList(), fetchTcList(), fetchRelList()]);
+    await Promise.all([fetchStatusList(), fetchCrList(), fetchTcList(), fetchRelList()]);
     renderNavCounts();
     renderDashboard();
     renderCrTable();
@@ -3368,6 +3433,28 @@ async function fetchRelList(){
   if(error){ toast("Lỗi tải Release/PRD: " + error.message, "err"); STATE.relList = []; STATE.loadErrors.rel = error.message; return; }
   STATE.loadErrors.rel = null;
   STATE.relList = data || [];
+}
+
+async function fetchStatusList(){
+  const { data, error } = await STATE.sb
+    .from("cr_statuses")
+    .select("id,name,sort_order,created_at")
+    .order("sort_order", { ascending:true })
+    .order("name", { ascending:true });
+  if(error){
+    STATE.statusList = [];
+    STATE.loadErrors.status = error.message;
+    if(!STATE.statusLoadWarned){
+      toast("Không tải được danh mục Status: " + error.message, "err");
+      STATE.statusLoadWarned = true;
+    }
+    return;
+  }
+  STATE.loadErrors.status = null;
+  STATE.statusLoadWarned = false;
+  STATE.statusList = (data || []).filter(s=>s && String(s.name||"").trim());
+  CR_LISTS.status = STATE.statusList.map(s=>s.name);
+  populateStatusControls();
 }
 
 /* ---------------------------------------------------------------------------
@@ -3842,7 +3929,7 @@ function crModalTemplate(cr){
         </div>
         <div class="field">
           <label>Status</label>
-          <select id="f_status">${optionsHtml(CR_LISTS.status, v.status||'New')}</select>
+          <select id="f_status">${optionsHtml(CR_LISTS.status, v.status || CR_LISTS.status[0] || "")}</select>
         </div>
         <div class="field">
           <label>Approved Status</label>
@@ -3897,13 +3984,15 @@ function crModalTemplate(cr){
   </div>`;
 }
 function optionsHtml(arr, selected){
-  return `<option value="">— chọn —</option>` + arr.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join("");
+  const values = selected && !arr.includes(selected) ? [selected, ...arr] : arr;
+  return `<option value="">— chọn —</option>` + values.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join("");
 }
 
 function openCrModal(cr){
   STATE.editingCrId = cr ? cr.id : null;
   const overlay = $("#crModalOverlay");
   overlay.innerHTML = crModalTemplate(cr);
+  initAutoGrow(overlay);
   overlay.classList.add("show", "full");
   $("#crModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#crModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
@@ -3916,6 +4005,11 @@ function openCrModal(cr){
 }
 
 async function saveCr(overlay, isEdit){
+  const selectedStatus = $("#f_status").value;
+  if(!selectedStatus){
+    toast("Vui lòng chọn Status. Admin cần tạo ít nhất một Status trước.", "err");
+    return;
+  }
   const payload = {
     cr_id: $("#f_cr_id").value.trim(),
     old_name: $("#f_old_name").value.trim(),
@@ -3928,7 +4022,7 @@ async function saveCr(overlay, isEdit){
     priority: $("#f_priority").value,
     description_brd: $("#f_description_brd").value,
     description_fsd: $("#f_description_fsd").value,
-    status: $("#f_status").value || "New",
+    status: selectedStatus,
     brd_link: $("#f_brd_link").value.trim(),
     fsd_link: $("#f_fsd_link").value.trim(),
     quotation_link: $("#f_quotation_link").value.trim(),
@@ -4727,6 +4821,7 @@ function openTcModal(t, presetCrId){
   STATE.detailCloseSeq.tc++;
   const overlay = $("#tcModalOverlay");
   overlay.innerHTML = tcModalTemplate(t, presetCrId);
+  initAutoGrow(overlay);
   overlay.classList.remove("detail-closing");
   overlay.classList.add("show", "full");
   syncDetailNavVisibility();
@@ -4980,6 +5075,7 @@ function openRelModal(r, presetCrId){
   STATE.detailCloseSeq.rel++;
   const overlay = $("#relModalOverlay");
   overlay.innerHTML = relModalTemplate(r, presetCrId);
+  initAutoGrow(overlay);
   overlay.classList.remove("detail-closing");
   overlay.classList.add("show", "full");
   syncDetailNavVisibility();
@@ -5068,8 +5164,11 @@ async function loadAndRenderAdmin(){
   if(STATE.userRole !== "admin"){ return; }
   const tbody = $("#userTableBody");
   if(tbody) skeletonTableRows(tbody, 5, 4);
-  await fetchAppUsers();
+  const statusBody = $("#statusTableBody");
+  if(statusBody) skeletonTableRows(statusBody, 3, 3);
+  await Promise.all([fetchAppUsers(), fetchStatusList()]);
   renderAdminTable();
+  renderAdminStatusTable();
 }
 
 async function fetchAppUsers(){
@@ -5155,6 +5254,98 @@ async function deleteUser(u){
   if(error){ toast("Gỡ quyền thất bại: " + error.message, "err"); return; }
   toast(`Đã gỡ quyền của ${u.email}`, "ok");
   await loadAndRenderAdmin();
+}
+
+function renderAdminStatusTable(){
+  const tbody = $("#statusTableBody");
+  if(!tbody) return;
+  const rows = STATE.statusList;
+  const countEl = $("#statusCount");
+  if(countEl) countEl.textContent = rows.length;
+  const footEl = $("#statusFootCount");
+  if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${rows.length} status`;
+
+  if(STATE.loadErrors.status){
+    tbody.innerHTML = `<tr><td colspan="3">${errorStateBlock("Không tải được danh mục Status", STATE.loadErrors.status, "admin")}</td></tr>`;
+    return;
+  }
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="3">${emptyStateBlock("Chưa có Status", "Thêm Status đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map((s, index)=>`
+    <tr data-status-id="${esc(s.id)}">
+      <td class="cell-title">${esc(s.name)}</td>
+      <td class="cell-dim">${s.sort_order ?? index}</td>
+      <td class="cell-actions">
+        <div class="row-actions" style="opacity:1;">
+          <button class="icon-btn danger" data-status-act="delete" title="Xóa Status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  $all("#statusTableBody tr[data-status-id]").forEach(tr=>{
+    const status = rows.find(s=>String(s.id) === String(tr.dataset.statusId));
+    const button = $("[data-status-act='delete']", tr);
+    if(button && status){
+      button.addEventListener("click", e=>{
+        e.stopPropagation();
+        const warning = `Status "${status.name}" sẽ bị xóa khỏi danh mục. Các CR đã lưu vẫn giữ nguyên giá trị cũ.`;
+        confirmDelete("Xóa Status?", warning, ()=> deleteStatus(status));
+      });
+    }
+  });
+}
+
+async function addStatus(){
+  if(STATE.userRole !== "admin") return;
+  const input = $("#statusNameInput");
+  const name = (input?.value || "").trim().replace(/\s+/g, " ");
+  if(!name){ toast("Vui lòng nhập tên Status", "err"); input?.focus(); return; }
+  if(STATE.statusList.some(s=>String(s.name).toLowerCase() === name.toLowerCase())){
+    toast("Status này đã tồn tại", "err");
+    input?.focus();
+    return;
+  }
+  const nextOrder = STATE.statusList.reduce((max, s)=>Math.max(max, Number(s.sort_order) || 0), -1) + 1;
+  const { error } = await STATE.sb.from("cr_statuses").insert({
+    name,
+    sort_order: nextOrder,
+    created_by: STATE.session?.user?.id || null
+  });
+  if(error){
+    toast(String(error.message||"").toLowerCase().includes("duplicate")
+      ? "Status này đã tồn tại"
+      : "Thêm Status thất bại: " + error.message, "err");
+    return;
+  }
+  if(input) input.value = "";
+  toast(`Đã thêm Status "${name}"`, "ok");
+  await fetchStatusList();
+  renderAdminStatusTable();
+}
+
+async function deleteStatus(status){
+  if(STATE.userRole !== "admin") return;
+  if(STATE.statusList.length <= 1){
+    toast("Cần giữ lại ít nhất một Status để tạo Change Request.", "err");
+    return;
+  }
+  const { error } = await STATE.sb.from("cr_statuses").delete().eq("id", status.id);
+  if(error){ toast("Xóa Status thất bại: " + error.message, "err"); return; }
+  if(STATE.filters.status === status.name){
+    STATE.filters.status = "";
+    if($("#filterStatus")) $("#filterStatus").value = "";
+  }
+  toast(`Đã xóa Status "${status.name}"`, "ok");
+  await fetchStatusList();
+  renderAdminStatusTable();
+  renderDashboard();
+  renderCrTable();
 }
 
 function userModalTemplate(u){

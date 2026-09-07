@@ -3267,6 +3267,61 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
     width:25px;
     height:25px;
   }
+
+  /* Release has the most columns. Keep the action rail visible while the
+     data area remains scrollable on narrower desktop screens. */
+  #relTable.density-compact thead th,
+  #relTable.density-comfortable thead th,
+  #relTable.density-spacious thead th{
+    padding:7px 6px;
+  }
+
+  #relTable.density-compact tbody td,
+  #relTable.density-comfortable tbody td,
+  #relTable.density-spacious tbody td{
+    padding:8px 6px;
+    line-height:1.25;
+  }
+
+  #relTable th:last-child,
+  #relTable td.cell-actions{
+    position:sticky;
+    right:0;
+    z-index:6;
+    width:68px;
+    min-width:68px;
+    max-width:68px;
+  }
+
+  #relTable th:last-child{
+    background:#f6fafb;
+    box-shadow:-8px 0 12px -12px rgba(15,42,68,.7);
+  }
+
+  #relTable td.cell-actions{
+    background:#ffffff;
+    box-shadow:-8px 0 12px -12px rgba(15,42,68,.55);
+  }
+
+  #relTable tbody tr:hover td.cell-actions{
+    background:#f0f7f7;
+  }
+
+  #relTable td.cell-actions .row-actions{
+    opacity:1;
+    gap:3px;
+  }
+
+  #relTable td.cell-actions .icon-btn{
+    width:25px;
+    height:25px;
+  }
+
+  #relTable tbody td > .badge{
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
 }
 </style>
 </head>

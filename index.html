@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CR Control — Quản lý Change Request</title>
+<title>Quản lý Change Request</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -404,6 +404,8 @@ body.focus-mode .view#view-crlog{ padding:14px 18px 14px; }
 body.focus-mode .crlog-kpis{ display:none; }
 body.focus-mode .view#view-uat{ padding:14px 18px 14px; }
 body.focus-mode .view#view-uat .uat-kpis{ display:none; }
+body.focus-mode .view#view-release{ padding:14px 18px 14px; }
+body.focus-mode .view#view-release .rel-kpis{ display:none; }
 
 /* ==========================================================================
    PANELS / CARDS
@@ -683,6 +685,12 @@ td.cell-id .id-chip{
 #tcTable.density-comfortable tbody td{ padding:14px 20px; }
 #tcTable.density-spacious thead th{ padding:16px 22px; }
 #tcTable.density-spacious tbody td{ padding:22px 22px; }
+#relTable.density-compact thead th{ padding:7px 16px; }
+#relTable.density-compact tbody td{ padding:7px 16px; font-size:12.5px; }
+#relTable.density-comfortable thead th{ padding:12px 20px; }
+#relTable.density-comfortable tbody td{ padding:14px 20px; }
+#relTable.density-spacious thead th{ padding:16px 22px; }
+#relTable.density-spacious tbody td{ padding:22px 22px; }
 
 /* UAT uses the same workspace grammar as CR Log: KPI strip, command toolbar,
    selectable rows, density controls and mobile cards. */
@@ -693,6 +701,7 @@ td.cell-id .id-chip{
 #view-uat .cell-result{ min-width:116px; }
 #view-uat .cell-title{ max-width:280px; }
 #view-uat .uat-mobile-list{ display:none; }
+#view-release .rel-mobile-list{ display:none; }
 .tc-detail-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -722,10 +731,42 @@ td.cell-id .id-chip{
   text-overflow:ellipsis;
   white-space:nowrap;
 }
+.rel-detail-summary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin:0 0 22px;
+  padding:14px;
+  border:1px solid #dbe9ec;
+  border-radius:12px;
+  background:linear-gradient(135deg,#f7fcfc,#ffffff);
+}
+.rel-summary-item{ min-width:0; }
+.rel-summary-label{
+  display:block;
+  margin-bottom:5px;
+  color:#8496a8;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.rel-summary-value{
+  display:block;
+  overflow:hidden;
+  color:#18364f;
+  font-size:13px;
+  font-weight:750;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 @media(max-width:640px){
   #view-uat .crlog-table-wrap table{ display:none; }
   #view-uat .uat-mobile-list{ display:flex; }
+  #view-release .crlog-table-wrap table{ display:none; }
+  #view-release .rel-mobile-list{ display:flex; }
   .tc-detail-summary{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .rel-detail-summary{ grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
 /* ---- mobile card list (replaces table on narrow screens) ---- */
@@ -2875,26 +2916,73 @@ tbody tr.detail-selected:hover{ background:
 
     <!-- ============ RELEASE VIEW ============ -->
     <section class="view hidden" id="view-release">
-      <div class="list-panel">
-        <div class="list-panel-head">
-          <div class="list-panel-count"><b id="relCount">0</b> Release</div>
-          <div class="table-toolbar">
-            <div class="filter-chip"><span>CR ID</span>
-              <select id="filterRelCr"><option value="">Tất cả</option></select>
+      <div class="crlog-shell release-shell">
+        <div class="crlog-kpis rel-kpis" id="relKpis"></div>
+
+        <div class="list-panel crlog-panel release-panel">
+          <div class="list-panel-head">
+            <div class="list-panel-count"><b id="relCount">0</b> Release</div>
+            <div class="table-toolbar" id="relToolbar">
+              <div class="tb-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input id="relSearchInput" type="text" placeholder="Tìm Release, version, owner...">
+              </div>
+              <div class="filter-chip"><span>CR ID</span>
+                <select id="filterRelCr"><option value="">Tất cả</option></select>
+              </div>
+              <div class="filter-chip"><span>Trạng thái</span>
+                <select id="filterRelStatus"><option value="">Tất cả</option></select>
+              </div>
+
+              <div class="tb-dropdown" data-dd-root="relMoreFilters">
+                <button class="btn btn-ghost btn-sm tb-btn" data-dd="relMoreFilters" type="button">Lọc thêm<span class="tb-badge hidden" id="relMoreFiltersBadge">0</span></button>
+                <div class="tb-menu" id="menuRelMoreFilters">
+                  <div class="tb-menu-item-label">Môi trường</div>
+                  <select id="filterRelEnvironment"><option value="">Tất cả</option></select>
+                  <div class="tb-menu-divider"></div>
+                  <div class="tb-menu-item-label">Release Owner</div>
+                  <select id="filterRelOwner"><option value="">Tất cả</option></select>
+                </div>
+              </div>
+
+              <div class="chip-clear" id="clearRelFilters">Xóa lọc</div>
+
+              <div class="tb-dropdown" data-dd-root="relColumns">
+                <button class="btn btn-ghost btn-sm tb-btn" data-dd="relColumns" type="button">Columns</button>
+                <div class="tb-menu right" id="menuRelColumns"></div>
+              </div>
+
+              <div class="tb-dropdown" data-dd-root="relDensity">
+                <button class="btn btn-ghost btn-sm tb-btn" data-dd="relDensity" type="button">Density</button>
+                <div class="tb-menu right" id="menuRelDensity">
+                  <label class="tb-radio-row"><input type="radio" name="releaseDensity" value="compact"> Compact</label>
+                  <label class="tb-radio-row"><input type="radio" name="releaseDensity" value="comfortable"> Comfortable</label>
+                  <label class="tb-radio-row"><input type="radio" name="releaseDensity" value="spacious"> Spacious</label>
+                </div>
+              </div>
+
+              <button class="btn btn-ghost btn-sm tb-btn" id="btnRelFocusMode" type="button" title="Chế độ toàn màn hình">⛶ Focus</button>
             </div>
-            <div class="filter-chip"><span>Trạng thái</span>
-              <select id="filterRelStatus"><option value="">Tất cả</option></select>
-            </div>
-            <div class="chip-clear" id="clearRelFilters">Xóa lọc</div>
           </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>CR ID</th><th>Release</th><th>Version</th><th>Ngày dự kiến</th><th>Ngày thực tế</th><th>Trạng thái</th><th></th>
-            </tr></thead>
-            <tbody id="relTableBody"></tbody>
-          </table>
+
+          <div class="bulk-bar hidden" id="relBulkBar">
+            <span><b id="relBulkCount">0</b> đã chọn</span>
+            <div class="bulk-actions">
+              <button class="btn btn-ghost btn-sm" id="relBulkClear">Bỏ chọn</button>
+            </div>
+          </div>
+
+          <div class="table-wrap crlog-table-wrap" id="relTableWrap">
+            <table id="relTable" class="density-comfortable">
+              <thead><tr id="relTheadRow"></tr></thead>
+              <tbody id="relTableBody"></tbody>
+            </table>
+            <div class="cr-mobile-list rel-mobile-list" id="relMobileList"></div>
+          </div>
+
+          <div class="list-panel-foot">
+            <span id="relFootCount">Hiển thị 0 / 0 Release</span>
+          </div>
         </div>
       </div>
     </section>
@@ -3044,7 +3132,7 @@ const STATE = {
   currentView: "dashboard",
   filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
   tcFilters: { cr:"", result:"", testor:"", owner:"", search:"" },
-  relFilters: { cr:"", status:"" },
+  relFilters: { cr:"", status:"", environment:"", owner:"", search:"" },
   userFilters: { q:"", role:"", status:"" },
   editingCrId: null,      // uuid of cr_log row being edited (null = create)
   editingTcId: null,
@@ -3065,6 +3153,9 @@ const STATE = {
   tcDensity: localStorage.getItem("uatDensity") || "comfortable",
   tcColumns: null,
   tcSelection: new Set(),
+  relDensity: localStorage.getItem("releaseDensity") || "comfortable",
+  relColumns: null,
+  relSelection: new Set(),
   loadErrors: { cr:null, tc:null, rel:null, admin:null, status:null }, // last fetch error per dataset, null = ok
   statusLoadWarned: false,
 };
@@ -3111,6 +3202,30 @@ function loadTcColumnPrefs(){
   return defaultTcColumnState();
 }
 STATE.tcColumns = loadTcColumnPrefs();
+
+const REL_COLUMNS = [
+  { key:"release_id", label:"Release ID" },
+  { key:"release_name", label:"Tên Release / Version" },
+  { key:"environment", label:"Môi trường" },
+  { key:"planned_date", label:"Ngày dự kiến" },
+  { key:"actual_date", label:"Ngày thực tế" },
+  { key:"status", label:"Trạng thái" },
+  { key:"checklist_golive", label:"Go-live Checklist" },
+  { key:"release_owner", label:"Release Owner" },
+  { key:"signoff_by", label:"Sign-off by" },
+  { key:"signoff_date", label:"Ngày sign-off" },
+];
+function defaultRelColumnState(){
+  const o = {}; REL_COLUMNS.forEach(c=> o[c.key] = true); return o;
+}
+function loadRelColumnPrefs(){
+  try{
+    const saved = JSON.parse(localStorage.getItem("releaseColumns") || "null");
+    if(saved && typeof saved === "object") return Object.assign(defaultRelColumnState(), saved);
+  }catch(e){ /* ignore malformed prefs */ }
+  return defaultRelColumnState();
+}
+STATE.relColumns = loadRelColumnPrefs();
 
 const BUCKET = "cr-attachments";
 const SIGNED_URL_TTL = 3600; // giây — link file có hiệu lực 1 giờ
@@ -3170,6 +3285,7 @@ const COLOR = {
   category: { "Enhancement":"#5b8def","Bug Fix":"#ee6b74","New Feature":"#3fd0c9","Compliance":"#b78af0","Infrastructure":"#f2b84b" },
   pass_fail: { "Not Started":"#8fa6c2","Pass":"#4cc38a","Fail":"#ee6b74","Blocked":"#e08a3c" },
   release_status: { "Planned":"#8fa6c2","In Progress":"#5b8def","Completed":"#4cc38a","Rolled Back":"#ee6b74" },
+  yesNo: { "Yes":"#4cc38a","No":"#ee6b74" },
   role: { "Quản trị":"#b78af0","Thành viên":"#5b8def" }
 };
 function colorFor(group, key){ return (COLOR[group] && COLOR[group][key]) || "#7488a0"; }
@@ -3389,7 +3505,7 @@ function closeMobileNav(){
 function detailRowNodes(kind){
   if(kind === "cr") return $all("#crTableBody tr[data-cr], #crMobileList .cr-card");
   if(kind === "tc") return $all("#tcTableBody tr[data-tc], #tcMobileList .cr-card");
-  if(kind === "rel") return $all("#relTableBody tr[data-rel]");
+  if(kind === "rel") return $all("#relTableBody tr[data-rel], #relMobileList .cr-card");
   return [];
 }
 function selectDetailRow(kind, id){
@@ -3538,11 +3654,26 @@ function initShell(){
     renderTcTable();
   });
 
+  initRelToolbarDropdowns();
+  initRelColumnsMenu();
+  initRelDensityMenu();
+  initRelSelection();
+  initReleaseFocusMode();
+
   $("#filterRelCr").addEventListener("change", e=>{ STATE.relFilters.cr = e.target.value; renderRelTable(); });
-  $("#filterRelStatus").addEventListener("change", e=>{ STATE.relFilters.status = e.target.value; renderRelTable(); });
+  $("#filterRelStatus").addEventListener("change", e=>{ STATE.relFilters.status = e.target.value; updateRelMoreFiltersBadge(); renderRelTable(); });
+  $("#filterRelEnvironment").addEventListener("change", e=>{ STATE.relFilters.environment = e.target.value; updateRelMoreFiltersBadge(); renderRelTable(); });
+  $("#filterRelOwner").addEventListener("change", e=>{ STATE.relFilters.owner = e.target.value; updateRelMoreFiltersBadge(); renderRelTable(); });
+  $("#relSearchInput").addEventListener("input", debounce(e=>{
+    STATE.relFilters.search = e.target.value.trim().toLowerCase();
+    renderRelTable();
+  }, 220));
   $("#clearRelFilters").addEventListener("click", ()=>{
-    STATE.relFilters = { cr:"", status:"" };
+    STATE.relFilters = { cr:"", status:"", environment:"", owner:"", search:"" };
+    $("#relSearchInput").value="";
     $("#filterRelCr").value=""; $("#filterRelStatus").value="";
+    $("#filterRelEnvironment").value=""; $("#filterRelOwner").value="";
+    updateRelMoreFiltersBadge();
     renderRelTable();
   });
 
@@ -3767,12 +3898,89 @@ function updateTcBulkBar(){
   bar.classList.toggle("hidden", n === 0);
 }
 
+function initReleaseFocusMode(){
+  $("#btnRelFocusMode").addEventListener("click", ()=> setFocusMode(!document.body.classList.contains("focus-mode")));
+}
+function initRelToolbarDropdowns(){
+  $all("#relToolbar [data-dd]").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const key = btn.dataset.dd;
+      const menu = $("#menu" + key.charAt(0).toUpperCase() + key.slice(1));
+      if(!menu) return;
+      const wasOpen = menu.classList.contains("show");
+      closeAllTbMenus();
+      if(!wasOpen) menu.classList.add("show");
+    });
+  });
+  $all("#relToolbar .tb-menu").forEach(menu=>menu.addEventListener("click", e=>e.stopPropagation()));
+}
+function updateRelMoreFiltersBadge(){
+  const f = STATE.relFilters;
+  const n = [f.environment, f.owner].filter(Boolean).length;
+  const badge = $("#relMoreFiltersBadge");
+  if(!badge) return;
+  badge.textContent = n;
+  badge.classList.toggle("hidden", n === 0);
+}
+function initRelColumnsMenu(){
+  const menu = $("#menuRelColumns");
+  if(!menu) return;
+  menu.innerHTML = `<div class="tb-menu-item-label">Hiển thị cột</div>` + REL_COLUMNS.map(c=>`
+    <label class="tb-checkbox-row"><input type="checkbox" data-rel-col="${c.key}" ${STATE.relColumns[c.key] ? "checked" : ""}> ${esc(c.label)}</label>
+  `).join("");
+  menu.addEventListener("change", e=>{
+    const cb = e.target.closest("[data-rel-col]");
+    if(!cb) return;
+    const visibleCount = Object.values(STATE.relColumns).filter(Boolean).length;
+    if(!cb.checked && visibleCount <= 1){ cb.checked = true; return; }
+    STATE.relColumns[cb.dataset.relCol] = cb.checked;
+    localStorage.setItem("releaseColumns", JSON.stringify(STATE.relColumns));
+    renderRelTable();
+  });
+}
+function initRelDensityMenu(){
+  const menu = $("#menuRelDensity");
+  if(!menu) return;
+  const radio = menu.querySelector(`input[value="${STATE.relDensity}"]`);
+  if(radio) radio.checked = true;
+  applyRelDensity();
+  menu.addEventListener("change", e=>{
+    if(e.target.name !== "releaseDensity") return;
+    STATE.relDensity = e.target.value;
+    localStorage.setItem("releaseDensity", STATE.relDensity);
+    applyRelDensity();
+  });
+}
+function applyRelDensity(){
+  const table = $("#relTable");
+  if(!table) return;
+  table.classList.remove("density-compact","density-comfortable","density-spacious");
+  table.classList.add("density-" + STATE.relDensity);
+}
+function initRelSelection(){
+  $("#relBulkClear").addEventListener("click", ()=>{
+    STATE.relSelection.clear();
+    renderRelTable();
+  });
+}
+function updateRelBulkBar(){
+  const bar = $("#relBulkBar");
+  const countEl = $("#relBulkCount");
+  if(!bar || !countEl) return;
+  const n = STATE.relSelection.size;
+  countEl.textContent = n;
+  bar.classList.toggle("hidden", n === 0);
+}
+
 function setFocusMode(on){
   document.body.classList.toggle("focus-mode", on);
   const btn = $("#btnFocusMode");
   const uatBtn = $("#btnUatFocusMode");
+  const relBtn = $("#btnRelFocusMode");
   if(btn) btn.innerHTML = on ? "✕ Thoát Focus" : "⛶ Focus";
   if(uatBtn) uatBtn.innerHTML = on ? "✕ Thoát Focus" : "⛶ Focus";
+  if(relBtn) relBtn.innerHTML = on ? "✕ Thoát Focus" : "⛶ Focus";
 }
 
 function populateSelect(sel, arr, withEmpty){
@@ -4229,6 +4437,21 @@ function populateCrDropdowns(){
   };
   fillTcPeople("#filterTcTestor", "testor");
   fillTcPeople("#filterTcOwner", "owner_scenario");
+  const fillRelPeople = (selector, key)=>{
+    const sel = $(selector);
+    if(!sel) return;
+    const cur = sel.value;
+    const values = [...new Set(STATE.relList.map(r=>String(r[key]||"").trim()).filter(Boolean))].sort();
+    populateSelect(sel, values);
+    sel.value = cur;
+  };
+  const relEnvironment = $("#filterRelEnvironment");
+  if(relEnvironment){
+    const cur = relEnvironment.value;
+    populateSelect(relEnvironment, [...new Set(STATE.relList.map(r=>String(r.environment||"").trim()).filter(Boolean))].sort());
+    relEnvironment.value = cur;
+  }
+  fillRelPeople("#filterRelOwner", "release_owner");
 }
 
 /* ---------------------------------------------------------------------------
@@ -5915,31 +6138,119 @@ function filteredRelList(){
   return STATE.relList.filter(r=>{
     if(f.cr && r.cr_id !== f.cr) return false;
     if(f.status && r.status !== f.status) return false;
+    if(f.environment && r.environment !== f.environment) return false;
+    if(f.owner && r.release_owner !== f.owner) return false;
+    if(f.search){
+      const hay = [
+        r.cr_id, r.release_id, r.release_name, r.environment, r.status,
+        r.checklist_golive, r.release_owner, r.signoff_by, r.features,
+        r.deploy_plan, r.rollback_plan, r.note
+      ].join(" ").toLowerCase();
+      if(!hay.includes(f.search)) return false;
+    }
     return true;
   });
 }
 
+function isRelOverdue(r){
+  if(!r.planned_date || ["Completed","Rolled Back"].includes(r.status)) return false;
+  return r.planned_date < todayISO();
+}
+
+function renderRelKpis(){
+  const host = $("#relKpis");
+  if(!host) return;
+  const list = STATE.relList;
+  const total = list.length;
+  const completed = list.filter(r=>r.status === "Completed").length;
+  const active = list.filter(r=>r.status === "In Progress").length;
+  const overdue = list.filter(isRelOverdue).length;
+  const pct = n => total ? Math.round((n / total) * 100) : 0;
+  host.innerHTML = `
+    ${kpiCard("Tổng số Release", total, "Toàn bộ release package đã ghi nhận", "")}
+    ${kpiCard("Đã hoàn tất", completed, "Release status Completed", "success", "", pct(completed))}
+    ${kpiCard("Đang triển khai", active, "Release status In Progress", "accent", "", pct(active))}
+    ${kpiCard("Quá hạn", overdue, "Đã qua ngày dự kiến", "danger", "", pct(overdue))}
+  `;
+}
+
+function relRowCellHtml(colKey, r){
+  switch(colKey){
+    case "release_id":
+      return `<td class="cell-id"><span class="id-chip">${esc(r.release_id || "—")}</span></td>`;
+    case "release_name":
+      return `<td class="cell-title" title="${esc(r.release_name || "")}">${esc(r.release_name || "—")}</td>`;
+    case "environment":
+      return `<td class="cell-dim">${esc(r.environment || "—")}</td>`;
+    case "planned_date":
+      return `<td class="cell-dim">${r.planned_date ? (isRelOverdue(r) ? `<span class="deadline-overdue"><span class="dl-warn">!</span>${fmtDate(r.planned_date)}</span>` : fmtDate(r.planned_date)) : "—"}</td>`;
+    case "actual_date":
+      return `<td class="cell-dim">${r.actual_date ? fmtDate(r.actual_date) : "—"}</td>`;
+    case "status":
+      return `<td>${badge("release_status", r.status)}</td>`;
+    case "checklist_golive":
+      return `<td>${badge("yesNo", r.checklist_golive || "—")}</td>`;
+    case "release_owner":
+      return `<td class="cell-dim">${esc(r.release_owner || "—")}</td>`;
+    case "signoff_by":
+      return `<td class="cell-dim">${esc(r.signoff_by || "—")}</td>`;
+    case "signoff_date":
+      return `<td class="cell-dim">${r.signoff_date ? fmtDate(r.signoff_date) : "—"}</td>`;
+    default: return "";
+  }
+}
+
+function renderRelThead(){
+  const tr = $("#relTheadRow");
+  if(!tr) return;
+  const cols = REL_COLUMNS.filter(c=>STATE.relColumns[c.key]);
+  tr.innerHTML =
+    `<th class="col-check"><input type="checkbox" class="select-all-check" id="relSelectAll" title="Chọn tất cả"></th>` +
+    `<th>CR ID</th>` +
+    cols.map(c=>`<th>${esc(c.label)}</th>`).join("") +
+    `<th></th>`;
+  const selectAll = $("#relSelectAll");
+  if(selectAll) selectAll.addEventListener("change", e=>{
+    const rows = filteredRelList();
+    if(e.target.checked) rows.forEach(r=>STATE.relSelection.add(r.id));
+    else rows.forEach(r=>STATE.relSelection.delete(r.id));
+    renderRelTable();
+  });
+}
+
 function renderRelTable(){
+  renderRelKpis();
+  renderRelThead();
   const rows = filteredRelList();
   const tbody = $("#relTableBody");
   const countEl = $("#relCount");
+  const footEl = $("#relFootCount");
+  const cols = REL_COLUMNS.filter(c=>STATE.relColumns[c.key]);
   if(countEl) countEl.textContent = rows.length;
+  if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${STATE.relList.length} Release`;
   if(STATE.loadErrors.rel){
-    tbody.innerHTML = `<tr><td colspan="7">${errorStateBlock("Không tải được Release/PRD", STATE.loadErrors.rel, "rel")}</td></tr>`;
+    const colspan = cols.length + 3;
+    const error = errorStateBlock("Không tải được Release/PRD", STATE.loadErrors.rel, "rel");
+    tbody.innerHTML = `<tr><td colspan="${colspan}">${error}</td></tr>`;
+    $("#relMobileList").innerHTML = error;
     return;
   }
+  const allIds = new Set(STATE.relList.map(r=>r.id));
+  STATE.relSelection.forEach(id=>{ if(!allIds.has(id)) STATE.relSelection.delete(id); });
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="7">${emptyStateBlock("Chưa có Release", "Bấm \"Thêm Release\" để tạo release package đầu tiên.")}</td></tr>`;
+    const colspan = cols.length + 3;
+    const empty = emptyStateBlock("Chưa có Release", "Bấm \"Thêm Release\" để tạo release package đầu tiên.");
+    tbody.innerHTML = `<tr><td colspan="${colspan}">${empty}</td></tr>`;
+    $("#relMobileList").innerHTML = empty;
+    updateRelSelectAllState(rows);
+    updateRelBulkBar();
     return;
   }
   tbody.innerHTML = rows.map(r=>`
-    <tr data-rel="${r.id}">
-      <td class="cell-id">${esc(r.cr_id||'—')}</td>
-      <td class="cell-title">${esc(r.release_id||'—')}</td>
-      <td class="cell-dim">${esc(r.release_name||'—')}</td>
-      <td class="cell-dim">${r.planned_date? fmtDate(r.planned_date):'—'}</td>
-      <td class="cell-dim">${r.actual_date? fmtDate(r.actual_date):'—'}</td>
-      <td>${badge("release_status", r.status)}</td>
+    <tr data-rel="${esc(r.id)}">
+      <td class="cell-check"><input type="checkbox" class="row-check" data-rel-check="${esc(r.id)}" ${STATE.relSelection.has(r.id) ? "checked" : ""}></td>
+      <td class="cell-id"><span class="id-chip">${esc(r.cr_id||"—")}</span></td>
+      ${cols.map(col=>relRowCellHtml(col.key, r)).join("")}
       <td class="cell-actions">
         <div class="row-actions">
           <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -5952,13 +6263,65 @@ function renderRelTable(){
   $all("#relTableBody tr[data-rel]").forEach(tr=>{
     tr.addEventListener("click", e=>{
       const r = STATE.relList.find(x=>x.id===tr.dataset.rel);
+      if(e.target.closest("input[type=checkbox]")) return;
       const actBtn = e.target.closest("[data-act]");
       if(!actBtn){ selectDetailRow("rel", tr.dataset.rel); openRelModal(r); return; }
       if(actBtn.dataset.act==="edit") openRelModal(r);
       if(actBtn.dataset.act==="del") confirmDelete("Xóa release?", `Release "${r.release_name||r.release_id||''}" sẽ bị xóa.`, ()=> deleteRel(r));
     });
   });
+  $all("#relTableBody .row-check").forEach(cb=>{
+    cb.addEventListener("change", ()=>{
+      if(cb.checked) STATE.relSelection.add(cb.dataset.relCheck);
+      else STATE.relSelection.delete(cb.dataset.relCheck);
+      updateRelSelectAllState(rows);
+      updateRelBulkBar();
+    });
+  });
+  renderRelMobileList(rows);
+  updateRelSelectAllState(rows);
+  updateRelBulkBar();
   syncDetailSelection("rel");
+}
+
+function updateRelSelectAllState(rows){
+  const selectAll = $("#relSelectAll");
+  if(!selectAll) return;
+  const selected = rows.filter(r=>STATE.relSelection.has(r.id)).length;
+  selectAll.checked = rows.length > 0 && selected === rows.length;
+  selectAll.indeterminate = selected > 0 && selected < rows.length;
+}
+
+function renderRelMobileList(rows){
+  const host = $("#relMobileList");
+  if(!host) return;
+  host.innerHTML = rows.map(r=>`
+    <div class="cr-card" data-rel="${esc(r.id)}">
+      <div class="cr-card-top">
+        <span class="id-chip cell-id">${esc(r.cr_id || "—")}</span>
+        ${badge("release_status", r.status)}
+      </div>
+      <div class="cr-card-title">${esc(r.release_id || r.release_name || "—")}</div>
+      <div class="cr-card-meta">
+        <span>${esc(r.release_name || "Chưa có version")}</span>
+        <span>${esc(r.environment || "Chưa chọn môi trường")}</span>
+        <span>${r.planned_date ? fmtDate(r.planned_date) : "Chưa có ngày dự kiến"}</span>
+      </div>
+      <div class="cr-card-actions">
+        <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002-2h7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7A2 2 0 015 20V6h14z"/></svg></button>
+      </div>
+    </div>
+  `).join("");
+  $all("#relMobileList .cr-card[data-rel]").forEach(card=>{
+    card.addEventListener("click", e=>{
+      const r = STATE.relList.find(x=>x.id===card.dataset.rel);
+      const act = e.target.closest("[data-act]");
+      if(!act){ selectDetailRow("rel", card.dataset.rel); openRelModal(r); return; }
+      if(act.dataset.act==="edit") openRelModal(r);
+      if(act.dataset.act==="del") confirmDelete("Xóa release?", `Release "${r.release_name||r.release_id||''}" sẽ bị xóa.`, ()=> deleteRel(r));
+    });
+  });
 }
 
 async function deleteRel(r){
@@ -5981,6 +6344,24 @@ function relModalTemplate(r, presetCrId){
       <button class="modal-close" id="relModalClose">✕</button>
     </div>
     <div class="modal-body">
+      <div class="rel-detail-summary">
+        <div class="rel-summary-item">
+          <span class="rel-summary-label">CR liên kết</span>
+          <strong class="rel-summary-value">${esc(v.cr_id || presetCrId || "Chưa chọn")}</strong>
+        </div>
+        <div class="rel-summary-item">
+          <span class="rel-summary-label">Release ID</span>
+          <strong class="rel-summary-value">${esc(v.release_id || "Chưa đặt mã")}</strong>
+        </div>
+        <div class="rel-summary-item">
+          <span class="rel-summary-label">Trạng thái</span>
+          <strong class="rel-summary-value">${v.status ? badge("release_status", v.status) : "Chưa lập kế hoạch"}</strong>
+        </div>
+        <div class="rel-summary-item">
+          <span class="rel-summary-label">Go-live checklist</span>
+          <strong class="rel-summary-value">${v.checklist_golive ? badge("yesNo", v.checklist_golive) : "Chưa cập nhật"}</strong>
+        </div>
+      </div>
       <div class="form-grid">
         <div class="field">
           <label>CR ID *</label>

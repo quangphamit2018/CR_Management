@@ -494,6 +494,27 @@ thead th{
   color: var(--text-muted); font-weight: var(--text-table-head-weight); padding:12px 20px; border-bottom:1px solid var(--border);
   white-space:nowrap; position:sticky; top:0; background: var(--bg-topbar-solid); z-index:5;
 }
+.sortable-th{
+  cursor:pointer;
+  user-select:none;
+  transition:color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
+}
+.sortable-th:hover{ color:var(--accent); background:var(--bg-surface-soft); }
+.sortable-th.is-sorted{ color:var(--accent); }
+.sort-marker{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:14px;
+  margin-left:6px;
+  color:var(--accent);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+  text-transform:none;
+  vertical-align:1px;
+}
+.sort-marker-muted{ color:var(--text-faint); opacity:.8; font-size:12px; }
 tbody td{ padding:14px 20px; font-size: var(--text-table-cell-size); border-bottom:1px solid rgba(255,255,255,0.045); vertical-align:middle; }
 tbody tr{ transition: background var(--duration-fast) var(--ease-standard); cursor:pointer; }
 tbody tr:hover{ background: var(--bg-surface-soft); }
@@ -3704,9 +3725,12 @@ const STATE = {
   tcDensity: localStorage.getItem("uatDensity") || "comfortable",
   tcColumns: null,
   tcSelection: new Set(),
+  crSort: [],
+  tcSort: [],
   relDensity: localStorage.getItem("releaseDensity") || "comfortable",
   relColumns: null,
   relSelection: new Set(),
+  relSort: [],
   loadErrors: { cr:null, tc:null, rel:null, admin:null, status:null }, // last fetch error per dataset, null = ok
   statusLoadWarned: false,
 };
@@ -3777,6 +3801,131 @@ function loadRelColumnPrefs(){
   return defaultRelColumnState();
 }
 STATE.relColumns = loadRelColumnPrefs();
+
+/* ---------------------------------------------------------------------------
+   Table sorting
+   Click a column once for ascending order, again for descending order.
+   Shift-click adds that column as a secondary / tertiary sort key.
+--------------------------------------------------------------------------- */
+const TABLE_SORT_KEYS = {
+  cr: new Set(["cr_id", ...CR_COLUMNS.map(c=>c.key)]),
+  tc: new Set(["cr_id", ...TC_COLUMNS.map(c=>c.key)]),
+  rel: new Set(["cr_id", ...REL_COLUMNS.map(c=>c.key)]),
+};
+const TABLE_SORT_STORAGE = {
+  cr: "crSort",
+  tc: "uatSort",
+  rel: "releaseSort",
+};
+const TABLE_SORT_DATE_KEYS = new Set([
+  "deadline","testing_date","confirmed_date",
+  "planned_date","actual_date","signoff_date"
+]);
+
+function loadTableSort(kind){
+  try{
+    const saved = JSON.parse(localStorage.getItem(TABLE_SORT_STORAGE[kind]) || "[]");
+    if(!Array.isArray(saved)) return [];
+    return saved
+      .filter(s=> s && TABLE_SORT_KEYS[kind].has(s.key) && ["asc","desc"].includes(s.direction))
+      .map(s=>({ key:s.key, direction:s.direction }))
+      .slice(0, 4);
+  }catch(e){ return []; }
+}
+
+STATE.crSort = loadTableSort("cr");
+STATE.tcSort = loadTableSort("tc");
+STATE.relSort = loadTableSort("rel");
+
+function tableSortState(kind){
+  return STATE[`${kind}Sort`] || [];
+}
+
+function saveTableSort(kind){
+  localStorage.setItem(TABLE_SORT_STORAGE[kind], JSON.stringify(tableSortState(kind)));
+}
+
+function sortHeaderHtml(kind, key, label){
+  const sort = tableSortState(kind);
+  const activeIndex = sort.findIndex(s=>s.key === key);
+  const active = activeIndex >= 0 ? sort[activeIndex] : null;
+  const direction = active?.direction === "desc" ? "desc" : "asc";
+  const rank = active ? activeIndex + 1 : 0;
+  const marker = active
+    ? `<span class="sort-marker" aria-hidden="true">${rank > 1 ? rank : ""}${direction === "asc" ? "↑" : "↓"}</span>`
+    : `<span class="sort-marker sort-marker-muted" aria-hidden="true">↕</span>`;
+  const aria = active ? (direction === "asc" ? "ascending" : "descending") : "none";
+  return `<th class="sortable-th${active ? " is-sorted" : ""}" data-sort-kind="${kind}" data-sort-key="${key}" aria-sort="${aria}" title="Bấm để sort${active ? ` (${direction === "asc" ? "tăng dần" : "giảm dần"})` : ""}; giữ Shift để sort nhiều cột">${esc(label)}${marker}</th>`;
+}
+
+function bindSortHeaders(root, kind){
+  $all("th[data-sort-key]", root).forEach(th=>{
+    th.addEventListener("click", e=>{
+      if(e.target.closest("input,button")) return;
+      toggleTableSort(kind, th.dataset.sortKey, e.shiftKey);
+    });
+  });
+}
+
+function toggleTableSort(kind, key, multi){
+  if(!TABLE_SORT_KEYS[kind]?.has(key)) return;
+  const current = tableSortState(kind);
+  const existingIndex = current.findIndex(s=>s.key === key);
+  let next = multi ? [...current] : [];
+
+  if(existingIndex >= 0){
+    const existing = current[existingIndex];
+    const updated = {
+      key,
+      direction: existing.direction === "asc" ? "desc" : "asc"
+    };
+    if(multi){
+      next[existingIndex] = updated;
+    }else{
+      next = [updated];
+    }
+  }else{
+    next.push({ key, direction:"asc" });
+  }
+
+  STATE[`${kind}Sort`] = next.slice(0, 4);
+  saveTableSort(kind);
+  if(kind === "cr") renderCrTable();
+  if(kind === "tc") renderTcTable();
+  if(kind === "rel") renderRelTable();
+}
+
+function compareTableValues(a, b, key){
+  const aEmpty = a === null || a === undefined || String(a).trim() === "";
+  const bEmpty = b === null || b === undefined || String(b).trim() === "";
+  if(aEmpty && bEmpty) return 0;
+  if(aEmpty) return 1;
+  if(bEmpty) return -1;
+
+  if(TABLE_SORT_DATE_KEYS.has(key)){
+    const aTime = new Date(String(a).length <= 10 ? `${a}T00:00:00` : a).getTime();
+    const bTime = new Date(String(b).length <= 10 ? `${b}T00:00:00` : b).getTime();
+    if(Number.isFinite(aTime) && Number.isFinite(bTime)) return aTime - bTime;
+  }
+
+  if(typeof a === "number" && typeof b === "number") return a - b;
+  return String(a).localeCompare(String(b), "vi", { numeric:true, sensitivity:"base" });
+}
+
+function sortedTableRows(kind, rows){
+  const sorts = tableSortState(kind);
+  if(!sorts.length) return rows;
+  return rows
+    .map((row, index)=>({ row, index }))
+    .sort((a, b)=>{
+      for(const sort of sorts){
+        const result = compareTableValues(a.row[sort.key], b.row[sort.key], sort.key);
+        if(result) return sort.direction === "desc" ? -result : result;
+      }
+      return a.index - b.index;
+    })
+    .map(item=>item.row);
+}
 
 const BUCKET = "cr-attachments";
 const SIGNED_URL_TTL = 3600; // giây — link file có hiệu lực 1 giờ
@@ -5160,9 +5309,10 @@ function renderCrThead(){
   const cols = CR_COLUMNS.filter(c=> STATE.crColumns[c.key]);
   tr.innerHTML =
     `<th class="col-check"><input type="checkbox" class="select-all-check" id="crSelectAll" title="Chọn tất cả"></th>` +
-    `<th>CR ID</th>` +
-    cols.map(c=> `<th>${esc(c.label)}</th>`).join("") +
+    sortHeaderHtml("cr", "cr_id", "CR ID") +
+    cols.map(c=> sortHeaderHtml("cr", c.key, c.label)).join("") +
     `<th></th>`;
+  bindSortHeaders(tr, "cr");
   const selectAll = $("#crSelectAll");
   if(selectAll) selectAll.addEventListener("change", e=>{
     const rows = filteredCrList();
@@ -5175,7 +5325,7 @@ function renderCrThead(){
 function renderCrTable(){
   renderCrKpis();
   renderCrThead();
-  const rows = filteredCrList();
+  const rows = sortedTableRows("cr", filteredCrList());
   const cols = CR_COLUMNS.filter(c=> STATE.crColumns[c.key]);
   const tbody = $("#crTableBody");
   const countEl = $("#crCount");
@@ -6318,9 +6468,10 @@ function renderTcThead(){
   const cols = TC_COLUMNS.filter(c=>STATE.tcColumns[c.key]);
   tr.innerHTML =
     `<th class="col-check"><input type="checkbox" class="select-all-check" id="tcSelectAll" title="Chọn tất cả"></th>` +
-    `<th>CR ID</th>` +
-    cols.map(c=>`<th>${esc(c.label)}</th>`).join("") +
+    sortHeaderHtml("tc", "cr_id", "CR ID") +
+    cols.map(c=>sortHeaderHtml("tc", c.key, c.label)).join("") +
     `<th></th>`;
+  bindSortHeaders(tr, "tc");
   const selectAll = $("#tcSelectAll");
   if(selectAll) selectAll.addEventListener("change", e=>{
     const rows = filteredTcList();
@@ -6333,7 +6484,7 @@ function renderTcThead(){
 function renderTcTable(){
   renderTcKpis();
   renderTcThead();
-  const rows = filteredTcList();
+  const rows = sortedTableRows("tc", filteredTcList());
   const tbody = $("#tcTableBody");
   const countEl = $("#tcCount");
   const footEl = $("#tcFootCount");
@@ -6813,9 +6964,10 @@ function renderRelThead(){
   const cols = REL_COLUMNS.filter(c=>STATE.relColumns[c.key]);
   tr.innerHTML =
     `<th class="col-check"><input type="checkbox" class="select-all-check" id="relSelectAll" title="Chọn tất cả"></th>` +
-    `<th>CR ID</th>` +
-    cols.map(c=>`<th>${esc(c.label)}</th>`).join("") +
+    sortHeaderHtml("rel", "cr_id", "CR ID") +
+    cols.map(c=>sortHeaderHtml("rel", c.key, c.label)).join("") +
     `<th></th>`;
+  bindSortHeaders(tr, "rel");
   const selectAll = $("#relSelectAll");
   if(selectAll) selectAll.addEventListener("change", e=>{
     const rows = filteredRelList();
@@ -6828,7 +6980,7 @@ function renderRelThead(){
 function renderRelTable(){
   renderRelKpis();
   renderRelThead();
-  const rows = filteredRelList();
+  const rows = sortedTableRows("rel", filteredRelList());
   const tbody = $("#relTableBody");
   const countEl = $("#relCount");
   const footEl = $("#relFootCount");

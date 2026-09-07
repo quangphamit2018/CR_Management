@@ -3075,6 +3075,28 @@ tbody tr.detail-selected:hover{ background:
   #relModalOverlay .rel-detail-summary{ grid-template-columns:1fr; padding:14px; }
 }
 
+/* Full-screen detail body — use the same wide reading canvas as CR Log's
+   drawer-body instead of constraining the UAT / Release content in a narrow
+   centered column. */
+#tcModalOverlay .modal.modal-lg > .modal-body,
+#relModalOverlay .modal.modal-lg > .modal-body{
+  width:100%;
+  max-width:1080px !important;
+  margin:0 auto;
+  padding:28px clamp(20px,4vw,52px) 80px;
+}
+#tcModalOverlay .modal.modal-lg > .modal-body > .tab-panel.active,
+#relModalOverlay .modal.modal-lg > .modal-body > .tc-form-groups{
+  width:100%;
+  max-width:none !important;
+  margin-left:0;
+  margin-right:0;
+}
+#tcModalOverlay .tc-detail-summary,
+#relModalOverlay .rel-detail-summary{
+  width:100%;
+}
+
 /* ==========================================================================
    MOBILE NAV TOGGLE — one geometry, one alignment, every screen
    --------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quản lý Change Request</title>
+<title>CR Control — Quản lý Change Request</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -282,7 +282,7 @@ h1,h2,h3,h4{ font-family: var(--font-head); font-weight:700; letter-spacing:-0.0
 /* ==========================================================================
    APP SHELL
    ========================================================================== */
-#app{ position:relative; z-index:1; display:flex; min-height:100vh; }
+#app{ position:relative; z-index:auto; display:flex; min-height:100vh; }
 
 :root{ --sidebar-w: 236px; --sidebar-w-collapsed: 76px; }
 
@@ -1152,7 +1152,7 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
   .mobile-nav-toggle{ display:flex; }
 
   .sidebar{
-    position:fixed; left:0; top:0; z-index:130;
+    position:fixed; left:0; top:0; z-index:990;
     transform: translateX(-100%);
     box-shadow: var(--shadow-floating);
     transition: transform var(--duration-slow) var(--ease-standard);
@@ -1161,7 +1161,7 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
   .sidebar-toggle{ display:none; } /* collapse/expand is a desktop-only affordance */
 
   .mobile-nav-backdrop{
-    display:none; position:fixed; inset:0; z-index:120;
+    display:none; position:fixed; inset:0; z-index:980;
     background: rgba(3,10,18,0.55);
   }
   body.mobile-nav-open .mobile-nav-backdrop{ display:block; }
@@ -1175,7 +1175,7 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
    spread across the stylesheet — consolidated here on purpose.)
    ========================================================================== */
 .mobile-nav-toggle{
-  position:fixed; top:16px; left:calc(var(--sidebar-w) + 20px); z-index:500;
+  position:fixed; top:16px; left:calc(var(--sidebar-w) + 20px); z-index:1000;
   display:flex !important; align-items:center; justify-content:center; flex-shrink:0;
   width:38px; height:38px; border-radius:10px;
   background:#ffffff; border:1.5px solid var(--accent); color:#0e6f6a;
@@ -1185,12 +1185,56 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 .mobile-nav-toggle:hover{ background:#effafa; transform:translateY(-1px); }
 .mobile-nav-toggle:active{ transform:translateY(0) scale(0.94); }
 .mobile-nav-toggle svg{ width:18px; height:18px; }
+.mobile-nav-toggle-label{ display:none; }
 body.sidebar-collapsed .mobile-nav-toggle{ left:calc(var(--sidebar-w-collapsed) + 20px); }
 body.sidebar-hidden .mobile-nav-toggle{ left:20px; }
 @media(max-width:900px){
   .mobile-nav-toggle{ top:14px; left:14px; }
   body.sidebar-collapsed .mobile-nav-toggle,
   body.sidebar-hidden .mobile-nav-toggle{ left:14px; }
+}
+
+/* Detail pages use a separate stacking layer. The launcher moves to a
+   compact pill so it remains visible above CR drawer / UAT / Release detail
+   surfaces and is easy to hit on touch screens. */
+body.detail-nav-visible .mobile-nav-toggle{
+  top:calc(env(safe-area-inset-top, 0px) + 12px);
+  left:14px;
+  width:auto;
+  min-width:44px;
+  height:42px;
+  padding:0 13px;
+  gap:8px;
+  border-radius:999px;
+  background:#0b7f7a;
+  border-color:#0b7f7a;
+  color:#ffffff;
+  box-shadow:0 10px 24px -10px rgba(7,72,77,.78), 0 2px 8px rgba(7,72,77,.22);
+}
+body.detail-nav-visible .mobile-nav-toggle:hover{
+  background:#086b68;
+  border-color:#086b68;
+  color:#ffffff;
+}
+body.detail-nav-visible .mobile-nav-toggle-label{
+  display:inline;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.01em;
+}
+body.mobile-nav-open .mobile-nav-toggle{
+  background:#ffffff;
+  border-color:#0b7f7a;
+  color:#0b7f7a;
+}
+body.mobile-nav-open .mobile-nav-toggle:hover{
+  background:#effafa;
+  color:#086b68;
+}
+@media(min-width:901px){
+  body.detail-nav-visible .mobile-nav-toggle{ left:calc(var(--sidebar-w) + 20px); }
+  body.sidebar-collapsed.detail-nav-visible .mobile-nav-toggle{ left:calc(var(--sidebar-w-collapsed) + 20px); }
+  body.sidebar-hidden.detail-nav-visible .mobile-nav-toggle{ left:14px; }
 }
 
 /* ==========================================================================
@@ -2701,6 +2745,7 @@ tbody tr.detail-selected:hover{ background:
 
   <button class="mobile-nav-toggle" id="btnMobileNav" title="Mở / đóng menu" aria-label="Mở / đóng menu" aria-expanded="false" type="button">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    <span class="mobile-nav-toggle-label">Menu</span>
   </button>
 
   <div class="main">

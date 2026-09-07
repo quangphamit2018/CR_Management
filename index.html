@@ -2974,6 +2974,104 @@ tbody tr.detail-selected:hover{ background:
 }
 
 /* ==========================================================================
+   RELEASE / PRD DETAIL — same hierarchy as CR Log and UAT
+   ========================================================================== */
+#relModalOverlay .rel-detail-modal{
+  background:#f2f8f9;
+  border-left:1px solid #d7e4e8;
+}
+#relModalOverlay .rel-detail-modal .modal-head{
+  position:relative;
+  overflow:hidden;
+  min-height:98px;
+  padding:18px clamp(20px,4vw,52px);
+  background:
+    radial-gradient(circle at 4% -45%,rgba(91,141,239,.13),transparent 34%),
+    linear-gradient(135deg,#ffffff 0%,#f4f8ff 100%);
+  border-bottom:1px solid #dce8eb;
+  box-shadow:0 6px 20px -22px rgba(15,42,68,.55);
+}
+#relModalOverlay .rel-detail-modal .modal-head::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:4px;
+  background:linear-gradient(180deg,#6f9cf0 0%,#477ad2 100%);
+}
+#relModalOverlay .rel-detail-modal .tc-modal-kicker{ color:#477ad2; }
+#relModalOverlay .rel-detail-modal .modal-head h3{
+  color:#153852;
+  font-size:clamp(18px,2vw,23px);
+  line-height:1.2;
+  letter-spacing:-.035em;
+}
+#relModalOverlay .rel-detail-modal .modal-head .sub{
+  margin-top:4px;
+  color:#7890a2;
+  font-size:11.5px;
+}
+#relModalOverlay .rel-detail-modal .modal-body{
+  background:linear-gradient(180deg,#f4f9fa 0%,#edf5f6 100%);
+}
+#relModalOverlay .rel-detail-modal > .modal-foot{
+  background:rgba(255,255,255,.94);
+  border-top:1px solid #dce8eb;
+  box-shadow:0 -8px 18px -22px rgba(15,42,68,.5);
+}
+#relModalOverlay .rel-detail-summary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin:0 0 22px;
+  padding:18px;
+  border:1px solid #dce8eb;
+  border-radius:14px;
+  background:#fbfdfe;
+  box-shadow:0 9px 22px -23px rgba(15,42,68,.58);
+}
+#relModalOverlay .rel-summary-item{
+  min-width:0;
+  min-height:68px;
+  padding:12px 14px;
+  border:1px solid #e0eaee;
+  border-radius:11px;
+  background:#fff;
+}
+#relModalOverlay .rel-summary-label{
+  display:block;
+  margin-bottom:7px;
+  color:#8196a4;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.055em;
+  line-height:1.25;
+  text-transform:uppercase;
+}
+#relModalOverlay .rel-summary-value{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  color:#18364f;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.45;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#relModalOverlay .rel-form-group .tc-form-group-title{ color:#486a9b; }
+#relModalOverlay .rel-form-group .tc-form-group-title::after{ background:#d8e2f1; }
+#relModalOverlay .rel-form-group .field textarea{ min-height:96px; }
+#relModalOverlay .rel-form-group .field textarea#r_deploy_plan,
+#relModalOverlay .rel-form-group .field textarea#r_rollback_plan{ min-height:126px; }
+@media(max-width:760px){
+  #relModalOverlay .rel-detail-summary{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:640px){
+  #relModalOverlay .rel-detail-modal .modal-head{ padding:16px; }
+  #relModalOverlay .rel-detail-summary{ grid-template-columns:1fr; padding:14px; }
+}
+
+/* ==========================================================================
    MOBILE NAV TOGGLE — one geometry, one alignment, every screen
    --------------------------------------------------------------------------
    The launcher stays outside .main so it remains available above a detail
@@ -6808,11 +6906,22 @@ function relModalTemplate(r, presetCrId){
   const v = r || {};
   const isEdit = !!r;
   const crOptions = STATE.crList.map(c=>c.cr_id);
+  const linkedCr = v.cr_id || presetCrId || "Chưa chọn";
+  const releaseId = v.release_id || "Chưa đặt mã";
+  const releaseStatus = v.status || "Planned";
   return `
-  <div class="modal modal-lg">
+  <div class="modal modal-lg rel-detail-modal">
     <div class="modal-head">
-      <div><h3>${isEdit? "Sửa Release" : "Thêm Release / PRD"}</h3>
-        <div class="sub">${isEdit? esc(v.release_id||v.cr_id) : "Tương ứng sheet Release_PRD"}</div></div>
+      <div class="tc-modal-head-copy">
+        <div class="tc-modal-kicker rel-modal-kicker">RELEASE / PRD</div>
+        <h3>${isEdit? "Sửa Release" : "Thêm Release / PRD"}</h3>
+        <div class="sub">${isEdit? esc(v.release_id||v.cr_id) : "Tương ứng sheet Release_PRD"}</div>
+        <div class="tc-modal-context">
+          <span><b>CR liên kết</b> ${esc(linkedCr)}</span>
+          <span><b>Release ID</b> ${esc(releaseId)}</span>
+          <span><b>Trạng thái</b> ${badge("release_status", releaseStatus)}</span>
+        </div>
+      </div>
       <button class="modal-close" id="relModalClose">✕</button>
     </div>
     <div class="modal-body">
@@ -6834,68 +6943,90 @@ function relModalTemplate(r, presetCrId){
           <strong class="rel-summary-value">${v.checklist_golive ? badge("yesNo", v.checklist_golive) : "Chưa cập nhật"}</strong>
         </div>
       </div>
-      <div class="form-grid">
-        <div class="field">
-          <label>CR ID *</label>
-          <select id="r_cr_id">${optionsHtml(crOptions, v.cr_id || presetCrId)}</select>
-        </div>
-        <div class="field">
-          <label>Release ID</label>
-          <input id="r_release_id" type="text" value="${esc(v.release_id||'')}">
-        </div>
-        <div class="field">
-          <label>Tên Release / Version</label>
-          <input id="r_release_name" type="text" value="${esc(v.release_name||'')}">
-        </div>
-        <div class="field">
-          <label>Môi trường</label>
-          <select id="r_environment">${optionsHtml(CR_LISTS.environment, v.environment)}</select>
-        </div>
-        <div class="field">
-          <label>Ngày dự kiến Release</label>
-          <input id="r_planned_date" type="date" value="${v.planned_date||''}">
-        </div>
-        <div class="field">
-          <label>Ngày Release thực tế</label>
-          <input id="r_actual_date" type="date" value="${v.actual_date||''}">
-        </div>
-        <div class="field">
-          <label>Trạng thái</label>
-          <select id="r_status">${optionsHtml(CR_LISTS.releaseStatus, v.status)}</select>
-        </div>
-        <div class="field">
-          <label>Checklist Go-live hoàn tất</label>
-          <select id="r_checklist_golive">${optionsHtml(CR_LISTS.yesNo, v.checklist_golive)}</select>
-        </div>
-        <div class="field">
-          <label>Người phụ trách Release</label>
-          <input id="r_release_owner" type="text" value="${esc(v.release_owner||'')}">
-        </div>
-        <div class="field">
-          <label>Người sign-off</label>
-          <input id="r_signoff_by" type="text" value="${esc(v.signoff_by||'')}">
-        </div>
-        <div class="field">
-          <label>Ngày sign-off</label>
-          <input id="r_signoff_date" type="date" value="${v.signoff_date||''}">
-        </div>
-        <div class="field"></div>
-        <div class="field span-2">
-          <label>Danh sách tính năng đính kèm</label>
-          <textarea id="r_features">${esc(v.features||'')}</textarea>
-        </div>
-        <div class="field span-2">
-          <label>Kế hoạch triển khai (Deploy Plan)</label>
-          <textarea id="r_deploy_plan">${esc(v.deploy_plan||'')}</textarea>
-        </div>
-        <div class="field span-2">
-          <label>Kế hoạch rollback</label>
-          <textarea id="r_rollback_plan">${esc(v.rollback_plan||'')}</textarea>
-        </div>
-        <div class="field span-2">
-          <label>Ghi chú</label>
-          <textarea id="r_note">${esc(v.note||'')}</textarea>
-        </div>
+      <div class="tc-form-groups rel-form-groups">
+        <section class="tc-form-group rel-form-group">
+          <div class="tc-form-group-title">Định danh & môi trường</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>CR ID *</label>
+              <select id="r_cr_id">${optionsHtml(crOptions, v.cr_id || presetCrId)}</select>
+            </div>
+            <div class="field">
+              <label>Release ID</label>
+              <input id="r_release_id" type="text" value="${esc(v.release_id||'')}">
+            </div>
+            <div class="field">
+              <label>Tên Release / Version</label>
+              <input id="r_release_name" type="text" value="${esc(v.release_name||'')}">
+            </div>
+            <div class="field">
+              <label>Môi trường</label>
+              <select id="r_environment">${optionsHtml(CR_LISTS.environment, v.environment)}</select>
+            </div>
+          </div>
+        </section>
+
+        <section class="tc-form-group rel-form-group">
+          <div class="tc-form-group-title">Lịch phát hành & trạng thái</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Ngày dự kiến Release</label>
+              <input id="r_planned_date" type="date" value="${v.planned_date||''}">
+            </div>
+            <div class="field">
+              <label>Ngày Release thực tế</label>
+              <input id="r_actual_date" type="date" value="${v.actual_date||''}">
+            </div>
+            <div class="field">
+              <label>Trạng thái</label>
+              <select id="r_status">${optionsHtml(CR_LISTS.releaseStatus, v.status)}</select>
+            </div>
+            <div class="field">
+              <label>Checklist Go-live hoàn tất</label>
+              <select id="r_checklist_golive">${optionsHtml(CR_LISTS.yesNo, v.checklist_golive)}</select>
+            </div>
+            <div class="field">
+              <label>Người phụ trách Release</label>
+              <input id="r_release_owner" type="text" value="${esc(v.release_owner||'')}">
+            </div>
+            <div class="field">
+              <label>Người sign-off</label>
+              <input id="r_signoff_by" type="text" value="${esc(v.signoff_by||'')}">
+            </div>
+            <div class="field">
+              <label>Ngày sign-off</label>
+              <input id="r_signoff_date" type="date" value="${v.signoff_date||''}">
+            </div>
+          </div>
+        </section>
+
+        <section class="tc-form-group rel-form-group">
+          <div class="tc-form-group-title">Nội dung phát hành</div>
+          <div class="form-grid">
+            <div class="field span-2">
+              <label>Danh sách tính năng đính kèm</label>
+              <textarea id="r_features">${esc(v.features||'')}</textarea>
+            </div>
+            <div class="field span-2">
+              <label>Kế hoạch triển khai (Deploy Plan)</label>
+              <textarea id="r_deploy_plan">${esc(v.deploy_plan||'')}</textarea>
+            </div>
+            <div class="field span-2">
+              <label>Kế hoạch rollback</label>
+              <textarea id="r_rollback_plan">${esc(v.rollback_plan||'')}</textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="tc-form-group rel-form-group">
+          <div class="tc-form-group-title">Ghi chú</div>
+          <div class="form-grid">
+            <div class="field span-2">
+              <label>Ghi chú</label>
+              <textarea id="r_note">${esc(v.note||'')}</textarea>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
     <div class="modal-foot">

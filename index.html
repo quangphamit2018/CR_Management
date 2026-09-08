@@ -500,11 +500,30 @@ body.focus-mode .view#view-release .rel-kpis{ display:none; }
 
 .table-wrap{ overflow:auto; }
 table{ width:100%; border-collapse:collapse; min-width:900px; }
+
+/* Resizable columns: fixed layout driven by <colgroup>, so widening one
+   column never squeezes its neighbours — the table simply grows past the
+   wrapper's width and .table-wrap (overflow:auto) scrolls horizontally. */
+#crTable, #tcTable, #relTable{
+  table-layout:fixed; width:auto; min-width:100%;
+}
 thead th{
   text-align:left; font-size: var(--text-table-head-size); text-transform:uppercase; letter-spacing:.06em;
   color: var(--text-muted); font-weight: var(--text-table-head-weight); padding:12px 20px; border-bottom:1px solid var(--border);
-  white-space:nowrap; position:sticky; top:0; background: var(--bg-topbar-solid); z-index:5;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; position:sticky; top:0; background: var(--bg-topbar-solid); z-index:5;
 }
+.col-resize-handle{
+  position:absolute; top:0; right:-4px; bottom:0; width:8px; cursor:col-resize;
+  z-index:6; touch-action:none; user-select:none;
+}
+.col-resize-handle::after{
+  content:""; position:absolute; top:8px; bottom:8px; right:3px; width:2px; border-radius:2px;
+  background:transparent; transition:background .12s ease;
+}
+.col-resize-handle:hover::after{ background:var(--accent); }
+body.col-resizing{ cursor:col-resize !important; }
+body.col-resizing *{ user-select:none !important; }
+body.col-resizing .col-resize-handle::after{ background:var(--accent); }
 .sortable-th{
   cursor:pointer;
   user-select:none;
@@ -527,11 +546,14 @@ thead th{
 }
 .sort-marker-muted{ color:var(--text-faint); opacity:.8; font-size:12px; }
 tbody td{ padding:14px 20px; font-size: var(--text-table-cell-size); border-bottom:1px solid rgba(255,255,255,0.045); vertical-align:middle; }
+#crTable tbody td, #tcTable tbody td, #relTable tbody td{
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 tbody tr{ transition: background var(--duration-fast) var(--ease-standard); cursor:pointer; }
 tbody tr:hover{ background: var(--bg-surface-soft); }
 tbody tr:last-child td{ border-bottom:none; }
 td.cell-id{ font-family: var(--font-mono); font-weight:700; color: var(--accent); }
-td.cell-title{ font-weight:600; max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+td.cell-title{ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 td.cell-dim{ color: var(--text-secondary); }
 td.cell-actions{ text-align:right; white-space:nowrap; }
 .row-actions{ display:flex; gap:6px; justify-content:flex-end; opacity:0; transition:opacity var(--duration-fast) var(--ease-standard); }
@@ -731,7 +753,7 @@ td.cell-id .id-chip{
 #view-uat .uat-kpis .kpi-card{ padding:14px 16px; }
 #view-uat .uat-kpis .kpi-value{ font-size:24px; }
 #view-uat .cell-result{ min-width:116px; }
-#view-uat .cell-title{ max-width:280px; }
+
 #view-uat .uat-mobile-list{ display:none; }
 #view-release .rel-mobile-list{ display:none; }
 .tc-detail-summary{
@@ -3203,151 +3225,6 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   }
 }
 
-/* --------------------------------------------------------------------------
-   TABLE FIT — keep every visible column inside the workspace at 100% zoom.
-   The default table has a deliberately generous 900px minimum width, which
-   makes the last Release/UAT columns fall outside the viewport on laptop
-   widths.  Above the mobile card breakpoint, use a fixed, fluid grid and
-   tighter cells; long values are still available in their row/detail view.
---------------------------------------------------------------------------- */
-@media (min-width:641px) and (max-width:1600px){
-  #crTable,
-  #tcTable,
-  #relTable{
-    width:100%;
-    min-width:100%;
-    table-layout:fixed;
-  }
-
-  #crTable thead th,
-  #tcTable thead th,
-  #relTable thead th{
-    padding:9px 10px;
-    font-size:9.5px;
-    line-height:1.25;
-    letter-spacing:.035em;
-    white-space:normal;
-    overflow-wrap:anywhere;
-  }
-
-  #crTable tbody td,
-  #tcTable tbody td,
-  #relTable tbody td{
-    min-width:0;
-    padding:10px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-
-  #crTable .cell-title,
-  #tcTable .cell-title,
-  #relTable .cell-title{
-    max-width:none;
-  }
-
-  #crTable .sortable-th .sort-marker,
-  #tcTable .sortable-th .sort-marker,
-  #relTable .sortable-th .sort-marker{
-    min-width:10px;
-    margin-left:3px;
-    font-size:10px;
-  }
-
-  #crTable th:first-child,
-  #tcTable th:first-child,
-  #relTable th:first-child{
-    width:34px;
-  }
-
-  #crTable th:last-child,
-  #tcTable th:last-child,
-  #relTable th:last-child{
-    width:68px;
-  }
-
-  #crTable td:last-child,
-  #tcTable td:last-child,
-  #relTable td:last-child{
-    width:68px;
-    min-width:68px;
-    max-width:68px;
-    overflow:visible;
-    padding-left:4px;
-    padding-right:4px;
-  }
-
-  /* On compact desktop widths the action column must stay discoverable;
-     hiding it until hover makes it look as if it was clipped away. */
-  #crTable .row-actions,
-  #tcTable .row-actions,
-  #relTable .row-actions{
-    opacity:1;
-    gap:3px;
-  }
-
-  #crTable .row-actions .icon-btn,
-  #tcTable .row-actions .icon-btn,
-  #relTable .row-actions .icon-btn{
-    width:25px;
-    height:25px;
-  }
-
-  /* Release has the most columns. Keep the action rail visible while the
-     data area remains scrollable on narrower desktop screens. */
-  #relTable.density-compact thead th,
-  #relTable.density-comfortable thead th,
-  #relTable.density-spacious thead th{
-    padding:7px 6px;
-  }
-
-  #relTable.density-compact tbody td,
-  #relTable.density-comfortable tbody td,
-  #relTable.density-spacious tbody td{
-    padding:8px 6px;
-    line-height:1.25;
-  }
-
-  #relTable th:last-child,
-  #relTable td.cell-actions{
-    position:sticky;
-    right:0;
-    z-index:6;
-    width:68px;
-    min-width:68px;
-    max-width:68px;
-  }
-
-  #relTable th:last-child{
-    background:#f6fafb;
-    box-shadow:-8px 0 12px -12px rgba(15,42,68,.7);
-  }
-
-  #relTable td.cell-actions{
-    background:#ffffff;
-    box-shadow:-8px 0 12px -12px rgba(15,42,68,.55);
-  }
-
-  #relTable tbody tr:hover td.cell-actions{
-    background:#f0f7f7;
-  }
-
-  #relTable td.cell-actions .row-actions{
-    opacity:1;
-    gap:3px;
-  }
-
-  #relTable td.cell-actions .icon-btn{
-    width:25px;
-    height:25px;
-  }
-
-  #relTable tbody td > .badge{
-    max-width:100%;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-}
 
 /* ==========================================================================
    AUTH EXPERIENCE — calm, premium entry point + purposeful motion
@@ -4111,6 +3988,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 
           <div class="table-wrap crlog-table-wrap" id="crTableWrap">
             <table id="crTable" class="density-comfortable">
+              <colgroup id="crColgroup"></colgroup>
               <thead><tr id="crTheadRow"></tr></thead>
               <tbody id="crTableBody"></tbody>
             </table>
@@ -4184,6 +4062,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 
           <div class="table-wrap crlog-table-wrap" id="tcTableWrap">
             <table id="tcTable" class="density-comfortable">
+              <colgroup id="tcColgroup"></colgroup>
               <thead><tr id="tcTheadRow"></tr></thead>
               <tbody id="tcTableBody"></tbody>
             </table>
@@ -4257,6 +4136,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 
           <div class="table-wrap crlog-table-wrap" id="relTableWrap">
             <table id="relTable" class="density-comfortable">
+              <colgroup id="relColgroup"></colgroup>
               <thead><tr id="relTheadRow"></tr></thead>
               <tbody id="relTableBody"></tbody>
             </table>
@@ -4548,6 +4428,118 @@ function loadRelColumnPrefs(){
 STATE.relColumns = loadRelColumnPrefs();
 
 /* ---------------------------------------------------------------------------
+   Resizable table columns
+   Every column (structural + togglable) gets a persisted pixel width applied
+   through a <colgroup>. Dragging a header's edge only changes that column;
+   others keep their width, so the table grows past its wrapper and
+   .table-wrap (overflow:auto) scrolls horizontally instead of squeezing text.
+--------------------------------------------------------------------------- */
+const COL_WIDTH_DEFAULTS = {
+  cr: {
+    __check:44, cr_id:106, title:280, requester:130, category:140,
+    priority:110, status:140, deadline:130, __actions:112,
+  },
+  tc: {
+    __check:44, cr_id:106, test_case_id:140, scenario:260, owner_scenario:160,
+    testor:130, testing_date:130, pass_fail:120, owner_confirm:150,
+    confirmed_date:140, __actions:112,
+  },
+  rel: {
+    __check:44, cr_id:106, release_id:120, release_name:220, environment:140,
+    planned_date:140, actual_date:140, status:140, checklist_golive:170,
+    release_owner:150, signoff_by:150, signoff_date:140, __actions:112,
+  },
+};
+const COL_WIDTH_STORAGE = { cr:"crColWidths", tc:"uatColWidths", rel:"releaseColWidths" };
+const COL_WIDTH_MIN = 64;
+
+function loadColWidths(kind){
+  const defaults = COL_WIDTH_DEFAULTS[kind];
+  try{
+    const saved = JSON.parse(localStorage.getItem(COL_WIDTH_STORAGE[kind]) || "null");
+    if(saved && typeof saved === "object") return Object.assign({}, defaults, saved);
+  }catch(e){ /* ignore malformed prefs */ }
+  return Object.assign({}, defaults);
+}
+function saveColWidths(kind){
+  try{ localStorage.setItem(COL_WIDTH_STORAGE[kind], JSON.stringify(STATE.colWidths[kind])); }
+  catch(e){ /* storage may be unavailable */ }
+}
+STATE.colWidths = { cr: loadColWidths("cr"), tc: loadColWidths("tc"), rel: loadColWidths("rel") };
+
+/* keys: ordered array of column keys currently rendered, incl. "__check" and "__actions" */
+function renderColgroup(kind, keys){
+  const el = document.getElementById(`${kind}Colgroup`);
+  if(!el) return;
+  const widths = STATE.colWidths[kind];
+  const fallback = COL_WIDTH_DEFAULTS[kind];
+  el.innerHTML = keys.map(k=>{
+    const w = widths[k] || fallback[k] || 130;
+    return `<col data-col-key="${k}" style="width:${w}px">`;
+  }).join("");
+}
+
+/* Adds a drag handle to every header cell (except the checkbox column) so the
+   user can resize that column by dragging its right edge. Safe to call again
+   after the header/colgroup are re-rendered — it just wires the new nodes. */
+function attachColumnResize(tableEl, kind){
+  if(!tableEl) return;
+  const ths = Array.from(tableEl.querySelectorAll("thead th"));
+  const cols = Array.from(tableEl.querySelectorAll("colgroup col"));
+  ths.forEach((th, idx)=>{
+    if(th.classList.contains("col-check")) return; // checkbox column stays fixed-width
+    const col = cols[idx];
+    if(!col) return;
+    const handle = document.createElement("span");
+    handle.className = "col-resize-handle";
+    handle.setAttribute("aria-hidden", "true");
+    th.appendChild(handle);
+    handle.addEventListener("mousedown", (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const liveCols = Array.from(tableEl.querySelectorAll("colgroup col"));
+      const liveCol = liveCols[idx];
+      if(!liveCol) return;
+      const startX = e.clientX;
+      const startWidth = liveCol.getBoundingClientRect().width;
+      document.body.classList.add("col-resizing");
+      function onMove(ev){
+        const delta = ev.clientX - startX;
+        const newWidth = Math.max(COL_WIDTH_MIN, Math.round(startWidth + delta));
+        liveCol.style.width = newWidth + "px";
+      }
+      function onUp(){
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        document.body.classList.remove("col-resizing");
+        const key = liveCol.dataset.colKey;
+        const finalWidth = parseInt(liveCol.style.width, 10);
+        if(key && finalWidth){
+          STATE.colWidths[kind][key] = finalWidth;
+          saveColWidths(kind);
+        }
+      }
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+    handle.addEventListener("dblclick", (e)=>{
+      // double-click resets that column back to its default width
+      e.preventDefault();
+      e.stopPropagation();
+      const liveCols = Array.from(tableEl.querySelectorAll("colgroup col"));
+      const liveCol = liveCols[idx];
+      if(!liveCol) return;
+      const key = liveCol.dataset.colKey;
+      const def = COL_WIDTH_DEFAULTS[kind][key];
+      if(!key || !def) return;
+      liveCol.style.width = def + "px";
+      STATE.colWidths[kind][key] = def;
+      saveColWidths(kind);
+    });
+  });
+}
+
+/* ---------------------------------------------------------------------------
    Table sorting
    Click a column once for ascending order, again for descending order.
    Shift-click adds that column as a secondary / tertiary sort key.
@@ -4606,7 +4598,7 @@ function sortHeaderHtml(kind, key, label){
 function bindSortHeaders(root, kind){
   $all("th[data-sort-key]", root).forEach(th=>{
     th.addEventListener("click", e=>{
-      if(e.target.closest("input,button")) return;
+      if(e.target.closest("input,button,.col-resize-handle")) return;
       toggleTableSort(kind, th.dataset.sortKey, e.shiftKey);
     });
   });
@@ -6345,6 +6337,8 @@ function renderCrThead(){
     cols.map(c=> sortHeaderHtml("cr", c.key, c.label)).join("") +
     `<th></th>`;
   bindSortHeaders(tr, "cr");
+  renderColgroup("cr", ["__check", "cr_id", ...cols.map(c=>c.key), "__actions"]);
+  attachColumnResize($("#crTable"), "cr");
   const selectAll = $("#crSelectAll");
   if(selectAll) selectAll.addEventListener("change", e=>{
     const rows = filteredCrList();
@@ -7857,6 +7851,8 @@ function renderTcThead(){
     cols.map(c=>sortHeaderHtml("tc", c.key, c.label)).join("") +
     `<th></th>`;
   bindSortHeaders(tr, "tc");
+  renderColgroup("tc", ["__check", "cr_id", ...cols.map(c=>c.key), "__actions"]);
+  attachColumnResize($("#tcTable"), "tc");
   const selectAll = $("#tcSelectAll");
   if(selectAll) selectAll.addEventListener("change", e=>{
     const rows = filteredTcList();
@@ -8414,6 +8410,8 @@ function renderRelThead(){
     cols.map(c=>sortHeaderHtml("rel", c.key, c.label)).join("") +
     `<th></th>`;
   bindSortHeaders(tr, "rel");
+  renderColgroup("rel", ["__check", "cr_id", ...cols.map(c=>c.key), "__actions"]);
+  attachColumnResize($("#relTable"), "rel");
   const selectAll = $("#relSelectAll");
   if(selectAll) selectAll.addEventListener("change", e=>{
     const rows = filteredRelList();

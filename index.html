@@ -3591,6 +3591,73 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   line-height:1.5;
   text-align:center;
 }
+
+/* ------------------------------------------------------------------
+   PENDING / ACCESS-WAITING SCREEN — shares the auth-card visual system
+   ------------------------------------------------------------------ */
+.auth-secure-badge.is-pending{
+  border-color:rgba(242,184,75,.28);
+  color:#f2c675;
+  background:rgba(242,184,75,.1);
+}
+.auth-card-eyebrow.is-pending{ color:#f2c675; }
+.auth-pending-account{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 13px;
+  margin-bottom:20px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  background:rgba(255,255,255,.035);
+}
+.auth-pending-avatar{
+  display:flex; align-items:center; justify-content:center;
+  width:38px; height:38px; flex:0 0 38px;
+  border-radius:10px;
+  background:rgba(242,184,75,.12);
+  color:#f2c675;
+}
+.auth-pending-avatar svg{ width:18px; height:18px; }
+.auth-pending-email{
+  font-size:13px; font-weight:700; color:#eef7fb;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.auth-pending-status{
+  display:flex; align-items:center; gap:6px;
+  margin-top:3px;
+  font-size:10.5px; font-weight:600; color:#e0a750;
+}
+.auth-pending-status .dot{
+  width:6px; height:6px; border-radius:50%;
+  background:#f2b84b;
+  box-shadow:0 0 0 3px rgba(242,184,75,.15);
+  animation:authPulse 2.4s ease-in-out infinite;
+}
+.auth-pending-actions{ display:flex; gap:10px; }
+.auth-pending-btn{
+  flex:1;
+  min-height:48px;
+  border-radius:11px;
+  font-weight:700;
+}
+.auth-pending-actions .btn-ghost.auth-pending-btn{
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.14);
+  color:#cfe0ea;
+}
+.auth-pending-actions .btn-ghost.auth-pending-btn:hover{ background:rgba(255,255,255,.08); }
+.auth-pending-actions .btn-primary.auth-pending-btn{
+  border:1px solid rgba(130,240,233,.45);
+  background:linear-gradient(135deg,#4bd6cf,#29b7b1);
+  box-shadow:0 12px 25px -14px rgba(63,208,201,.9);
+  color:#052f30;
+}
+.auth-pending-actions .btn-primary.auth-pending-btn:hover{
+  background:linear-gradient(135deg,#6ae5de,#35c6c0);
+  box-shadow:0 15px 30px -14px rgba(63,208,201,.95);
+}
+.auth-pending-actions .btn-primary.auth-pending-btn svg{ width:16px; height:16px; }
 #toastHost{
   right:24px;
   bottom:24px;
@@ -3668,7 +3735,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   .auth-spotlight{ display:none; }
 }
 @media(max-width:520px){
-  #loginScreen{ padding:16px; }
+  #loginScreen, #pendingScreen{ padding:16px; }
   .auth-card{ padding:25px 20px 22px; border-radius:18px; }
   .auth-card-rule{ margin-left:-20px; margin-right:-20px; margin-bottom:23px; }
   .auth-card h2{ font-size:22px; }
@@ -3691,8 +3758,8 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   <div class="auth-layout">
     <section class="auth-spotlight" aria-label="Giới thiệu CR Control">
       <div class="auth-kicker"><span class="auth-kicker-dot"></span> Change request workspace</div>
-      <h1>Kiểm soát mọi thay đổi.<br><span>Ra mắt tự tin hơn.</span></h1>
-      <p class="auth-spotlight-copy">Một không gian tập trung để theo dõi CR, kiểm thử UAT và quản lý Release từ lúc bắt đầu đến khi go-live.</p>
+      <h1>Quản Lý Các Thay Đổi.<br><span>DMS</span></h1>
+      <p class="auth-spotlight-copy">Theo dõi Change Request, Test Case UAT và quản lý Release từ lúc bắt đầu đến khi go-live.</p>
       <div class="auth-highlights">
         <div class="auth-highlight">
           <span class="auth-highlight-icon">
@@ -3747,15 +3814,67 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 
 <!-- ============================== PENDING / ACCESS DENIED SCREEN ============================== -->
 <div id="pendingScreen" class="hidden">
-  <div class="config-card">
-    <div class="confirm-icon" style="background:var(--accent-dim); color:var(--accent);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-    </div>
-    <h2>Đang chờ được cấp quyền</h2>
-    <p class="lead">Tài khoản <b id="pendingEmail" style="color:var(--text);"></b> chưa được cấp quyền truy cập (hoặc đã bị khóa). Vui lòng liên hệ quản trị viên hệ thống để được thêm vào danh sách truy cập.</p>
-    <div class="config-actions">
-      <button class="btn btn-ghost" id="btnLogoutPending" style="flex:1;">Đăng xuất</button>
-      <button class="btn btn-primary" id="btnRecheckPending" style="flex:1;">Kiểm tra lại</button>
+  <div class="auth-orb auth-orb-one"></div>
+  <div class="auth-orb auth-orb-two"></div>
+  <div class="auth-grid-lines"></div>
+  <div class="auth-layout">
+    <section class="auth-spotlight" aria-label="Giới thiệu CR Control">
+      <div class="auth-kicker"><span class="auth-kicker-dot"></span> Change request workspace</div>
+      <h1>Kiểm soát mọi thay đổi.<br><span>Ra mắt tự tin hơn.</span></h1>
+      <p class="auth-spotlight-copy">Một không gian tập trung để theo dõi CR, kiểm thử UAT và quản lý Release từ lúc bắt đầu đến khi go-live.</p>
+      <div class="auth-highlights">
+        <div class="auth-highlight">
+          <span class="auth-highlight-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.4-3 8.4-7 10-4-1.6-7-5.6-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+          </span>
+          <span><b>Phân quyền an toàn</b><small>Chỉ thành viên được cấp quyền mới có thể truy cập.</small></span>
+        </div>
+        <div class="auth-highlight">
+          <span class="auth-highlight-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17V7a2 2 0 012-2h12a2 2 0 012 2v10"/><path d="M8 21h8M12 17v4M8 9h8M8 13h5"/></svg>
+          </span>
+          <span><b>Luồng làm việc rõ ràng</b><small>CR → UAT → Release trong cùng một hệ thống.</small></span>
+        </div>
+      </div>
+      <div class="auth-status-line"><span class="auth-status-pulse"></span> Hệ thống đang hoạt động ổn định</div>
+    </section>
+
+    <div class="config-card auth-card">
+      <div class="auth-card-glow"></div>
+      <div class="config-brand">
+        <div class="mark">CR</div>
+        <div>
+          <div class="name">CR Control</div>
+          <div class="tag">Change Request Management</div>
+        </div>
+        <span class="auth-secure-badge is-pending">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Pending
+        </span>
+      </div>
+      <div class="auth-card-rule"></div>
+      <div class="auth-card-heading">
+        <span class="auth-card-eyebrow is-pending">ACCESS PENDING</span>
+        <h2>Đang chờ được cấp quyền</h2>
+        <p class="lead">Tài khoản của bạn chưa được cấp quyền truy cập (hoặc đã bị khóa). Vui lòng liên hệ quản trị viên hệ thống để được thêm vào danh sách truy cập.</p>
+      </div>
+      <div class="auth-pending-account">
+        <span class="auth-pending-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        <div>
+          <div class="auth-pending-email" id="pendingEmail"></div>
+          <div class="auth-pending-status"><span class="dot"></span> Chưa được cấp quyền truy cập</div>
+        </div>
+      </div>
+      <div class="config-actions auth-pending-actions">
+        <button class="btn btn-ghost auth-pending-btn" id="btnLogoutPending">Đăng xuất</button>
+        <button class="btn btn-primary auth-pending-btn" id="btnRecheckPending">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          Kiểm tra lại
+        </button>
+      </div>
+      <p class="auth-footnote">Bằng cách tiếp tục, bạn xác nhận mình thuộc workspace CR Control.</p>
     </div>
   </div>
 </div>

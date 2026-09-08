@@ -584,6 +584,16 @@ tbody tr:hover .row-actions{ opacity:1; }
   background:var(--sub-status-color); border:1px solid rgba(13,40,64,0.2);
   box-shadow:0 1px 2px rgba(13,40,64,0.12);
 }
+.admin-color-token{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--font-mono); font-size:11px; color:var(--text-secondary);
+  white-space:nowrap;
+}
+.admin-color-token i{
+  width:16px; height:16px; display:inline-block; border-radius:5px;
+  background:var(--admin-color); border:1px solid rgba(13,40,64,0.2);
+  box-shadow:0 1px 2px rgba(13,40,64,0.12);
+}
 .color-picker-row{ display:flex; align-items:center; gap:10px; }
 .color-picker-row input[type="color"]{
   width:48px; height:36px; padding:3px; border:1px solid #b8c9d8;
@@ -4280,7 +4290,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Status</th><th>Thứ tự</th><th></th>
+              <th>Status</th><th>Màu nền</th><th>Màu chữ</th><th>Thứ tự</th><th></th>
             </tr></thead>
             <tbody id="statusTableBody"></tbody>
           </table>
@@ -4308,7 +4318,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Sub-Status</th><th>Màu</th><th>Thứ tự</th><th></th>
+              <th>Sub-Status</th><th>Màu nền</th><th>Màu chữ</th><th>Thứ tự</th><th></th>
             </tr></thead>
             <tbody id="subStatusTableBody"></tbody>
           </table>
@@ -4465,6 +4475,7 @@ const STATE = {
   loadErrors: { cr:null, tc:null, rel:null, admin:null, status:null, subStatus:null, evidence:null }, // last fetch error per dataset, null = ok
   statusLoadWarned: false,
   subStatusLoadWarned: false,
+  editingStatusId: null,
   editingSubStatusId: null,
   evidenceLoadWarned: false,
 };
@@ -4849,19 +4860,41 @@ function defaultSubStatusColor(name=""){
   for(const ch of String(name)) hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
   return DEFAULT_SUB_STATUS_COLORS[Math.abs(hash) % DEFAULT_SUB_STATUS_COLORS.length];
 }
-function subStatusColor(value){
-  const item = STATE.subStatusList.find(s=>String(s.name).toLowerCase() === String(value||"").toLowerCase());
-  return normalizeHexColor(item?.color, defaultSubStatusColor(value));
+function hexToRgba(hex, alpha=.14){
+  const color = normalizeHexColor(hex, "#7488a0");
+  const r = parseInt(color.slice(1,3), 16);
+  const g = parseInt(color.slice(3,5), 16);
+  const b = parseInt(color.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function colorItem(group, value){
+  const list = group === "status" ? STATE.statusList : STATE.subStatusList;
+  return list.find(item=>String(item.name).toLowerCase() === String(value||"").toLowerCase()) || null;
+}
+function textColorFor(group, value){
+  const item = colorItem(group, value);
+  const fallback = group === "sub_status"
+    ? normalizeHexColor(item?.color, defaultSubStatusColor(value))
+    : normalizeHexColor(COLOR[group]?.[value], "#7488a0");
+  return normalizeHexColor(item?.text_color || item?.color, fallback);
+}
+function badgeColors(group, value){
+  const item = colorItem(group, value);
+  const text = textColorFor(group, value);
+  const background = normalizeHexColor(item?.background_color, "");
+  return { text, background: background || hexToRgba(text) };
+}
+function colorTokenHtml(color, fallback){
+  const value = normalizeHexColor(color, fallback);
+  return `<span class="admin-color-token" style="--admin-color:${value}"><i></i><span>${value}</span></span>`;
 }
 function colorFor(group, key){
-  return group === "sub_status"
-    ? subStatusColor(key)
-    : (COLOR[group] && COLOR[group][key]) || "#7488a0";
+  return textColorFor(group, key);
 }
 function badge(group, value){
   if(!value) return `<span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-faint)"><span class="dot" style="background:var(--text-faint)"></span>—</span>`;
-  const c = colorFor(group, value);
-  return `<span class="badge" style="background:${c}22; color:${c}"><span class="dot" style="background:${c}"></span>${esc(value)}</span>`;
+  const colors = badgeColors(group, value);
+  return `<span class="badge" style="background:${colors.background}; color:${colors.text}; border:1px solid ${hexToRgba(colors.text, .22)}"><span class="dot" style="background:${colors.text}"></span>${esc(value)}</span>`;
 }
 
 function fileKind(name, mime){
@@ -6166,7 +6199,7 @@ async function fetchRelList(){
 async function fetchStatusList(){
   const { data, error } = await STATE.sb
     .from("cr_statuses")
-    .select("id,name,sort_order,created_at")
+    .select("*")
     .order("sort_order", { ascending:true })
     .order("name", { ascending:true });
   if(error){
@@ -6188,7 +6221,7 @@ async function fetchStatusList(){
 async function fetchSubStatusList(){
   const { data, error } = await STATE.sb
     .from("cr_sub_statuses")
-    .select("id,name,sort_order,color,created_at")
+    .select("*")
     .order("sort_order", { ascending:true })
     .order("name", { ascending:true });
   if(error){
@@ -9065,20 +9098,25 @@ function renderAdminStatusTable(){
   if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${rows.length} status`;
 
   if(STATE.loadErrors.status){
-    tbody.innerHTML = `<tr><td colspan="3">${errorStateBlock("Không tải được danh mục Status", STATE.loadErrors.status, "admin")}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5">${errorStateBlock("Không tải được danh mục Status", STATE.loadErrors.status, "admin")}</td></tr>`;
     return;
   }
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="3">${emptyStateBlock("Chưa có Status", "Thêm Status đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5">${emptyStateBlock("Chưa có Status", "Thêm Status đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = rows.map((s, index)=>`
     <tr data-status-id="${esc(s.id)}">
       <td class="cell-title">${esc(s.name)}</td>
+      <td>${colorTokenHtml(s.background_color, "#eef4fa")}</td>
+      <td>${colorTokenHtml(s.text_color, normalizeHexColor(COLOR.status?.[s.name], "#4c6478"))}</td>
       <td class="cell-dim">${s.sort_order ?? index}</td>
       <td class="cell-actions">
         <div class="row-actions" style="opacity:1;">
+          <button class="icon-btn" data-status-act="edit" title="Sửa màu Status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
           <button class="icon-btn danger" data-status-act="delete" title="Xóa Status">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
           </button>
@@ -9089,14 +9127,17 @@ function renderAdminStatusTable(){
 
   $all("#statusTableBody tr[data-status-id]").forEach(tr=>{
     const status = rows.find(s=>String(s.id) === String(tr.dataset.statusId));
-    const button = $("[data-status-act='delete']", tr);
-    if(button && status){
-      button.addEventListener("click", e=>{
-        e.stopPropagation();
-        const warning = `Status "${status.name}" sẽ bị xóa khỏi danh mục. Các CR đã lưu vẫn giữ nguyên giá trị cũ.`;
-        confirmDelete("Xóa Status?", warning, ()=> deleteStatus(status));
-      });
-    }
+    const editButton = $("[data-status-act='edit']", tr);
+    const deleteButton = $("[data-status-act='delete']", tr);
+    if(editButton && status) editButton.addEventListener("click", e=>{
+      e.stopPropagation();
+      openStatusModal(status);
+    });
+    if(deleteButton && status) deleteButton.addEventListener("click", e=>{
+      e.stopPropagation();
+      const warning = `Status "${status.name}" sẽ bị xóa khỏi danh mục. Các CR đã lưu vẫn giữ nguyên giá trị cũ.`;
+      confirmDelete("Xóa Status?", warning, ()=> deleteStatus(status));
+    });
   });
 }
 
@@ -9110,20 +9151,19 @@ function renderAdminSubStatusTable(){
   if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${rows.length} sub-status`;
 
   if(STATE.loadErrors.subStatus){
-    tbody.innerHTML = `<tr><td colspan="4">${errorStateBlock("Không tải được danh mục Sub-Status", STATE.loadErrors.subStatus, "admin")}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5">${errorStateBlock("Không tải được danh mục Sub-Status", STATE.loadErrors.subStatus, "admin")}</td></tr>`;
     return;
   }
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="4">${emptyStateBlock("Chưa có Sub-Status", "Thêm Sub-Status đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5">${emptyStateBlock("Chưa có Sub-Status", "Thêm Sub-Status đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = rows.map((s, index)=>`
     <tr data-sub-status-id="${esc(s.id)}">
       <td class="cell-title">${esc(s.name)}</td>
-      <td><span class="sub-status-color-swatch" style="--sub-status-color:${normalizeHexColor(s.color, defaultSubStatusColor(s.name))}">
-        <i></i><span>${normalizeHexColor(s.color, defaultSubStatusColor(s.name))}</span>
-      </span></td>
+      <td>${colorTokenHtml(s.background_color, "#eef4fa")}</td>
+      <td>${colorTokenHtml(s.text_color || s.color, defaultSubStatusColor(s.name))}</td>
       <td class="cell-dim">${s.sort_order ?? index}</td>
       <td class="cell-actions">
         <div class="row-actions" style="opacity:1;">
@@ -9372,38 +9412,120 @@ async function deleteEvidenceStep(step){
   renderAdminEvidenceStepTable();
 }
 
+function statusModalTemplate(status){
+  const v = status || {};
+  const isEdit = !!status?.id;
+  const backgroundColor = normalizeHexColor(v.background_color, "#eef4fa");
+  const textColor = normalizeHexColor(v.text_color || COLOR.status?.[v.name], "#4c6478");
+  return `
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <div><h3>${isEdit ? "Sửa Status" : "Thêm Status"}</h3>
+        <div class="sub">Thiết lập màu nền và màu chữ hiển thị trong hệ thống</div></div>
+      <button class="modal-close" id="statusModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Tên Status *</label>
+        <input id="statusModalName" type="text" maxlength="80" value="${esc(v.name||'')}" placeholder="Ví dụ: Pending Review">
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label>Thứ tự</label>
+        <input id="statusModalOrder" type="number" min="0" step="1" value="${Number.isFinite(Number(v.sort_order)) ? Number(v.sort_order) : 0}">
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label>Màu nền / xung quanh</label>
+        <div class="color-picker-row">
+          <input id="statusModalBackgroundColor" type="color" value="${backgroundColor}" aria-label="Màu nền Status">
+          <span class="color-picker-value" id="statusModalBackgroundColorValue">${backgroundColor}</span>
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px; margin-bottom:0;">
+        <label>Màu chữ</label>
+        <div class="color-picker-row">
+          <input id="statusModalTextColor" type="color" value="${textColor}" aria-label="Màu chữ Status">
+          <span class="color-picker-value" id="statusModalTextColorValue">${textColor}</span>
+        </div>
+        <div class="hint">Màu nền và màu chữ sẽ được dùng cho badge Status trong CR Log, mobile view và chi tiết CR.</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="statusModalCancel">Hủy</button>
+      <button class="btn btn-primary" id="statusModalSave">${isEdit ? "Lưu thay đổi" : "Thêm Status"}</button>
+    </div>
+  </div>`;
+}
+
+function openStatusModal(status){
+  if(STATE.userRole !== "admin") return;
+  STATE.editingStatusId = status?.id || null;
+  STATE.editingSubStatusId = null;
+  const overlay = $("#subStatusModalOverlay");
+  overlay.innerHTML = statusModalTemplate(status);
+  overlay.classList.add("show");
+  $("#statusModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
+  $("#statusModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  $("#statusModalSave").addEventListener("click", saveStatus);
+  $("#statusModalBackgroundColor").addEventListener("input", e=>{
+    $("#statusModalBackgroundColorValue").textContent = normalizeHexColor(e.target.value);
+  });
+  $("#statusModalTextColor").addEventListener("input", e=>{
+    $("#statusModalTextColorValue").textContent = normalizeHexColor(e.target.value);
+  });
+  $("#statusModalName").focus();
+}
+
+async function saveStatus(){
+  if(STATE.userRole !== "admin") return;
+  const overlay = $("#subStatusModalOverlay");
+  const name = ($("#statusModalName").value || "").trim().replace(/\s+/g, " ");
+  const sortOrder = Number($("#statusModalOrder").value);
+  const backgroundColor = normalizeHexColor($("#statusModalBackgroundColor").value, "#eef4fa");
+  const textColor = normalizeHexColor($("#statusModalTextColor").value, "#4c6478");
+  if(!name){ toast("Vui lòng nhập tên Status", "err"); return; }
+  if(!Number.isInteger(sortOrder) || sortOrder < 0){
+    toast("Thứ tự phải là số nguyên từ 0 trở lên.", "err"); return;
+  }
+  const duplicate = STATE.statusList.some(s=>String(s.name).toLowerCase() === name.toLowerCase() && String(s.id) !== String(STATE.editingStatusId));
+  if(duplicate){ toast("Status này đã tồn tại", "err"); return; }
+  const btn = $("#statusModalSave");
+  btn.disabled = true; btn.textContent = "Đang lưu...";
+  const values = { name, sort_order: sortOrder, background_color: backgroundColor, text_color: textColor };
+  const result = STATE.editingStatusId
+    ? await STATE.sb.from("cr_statuses").update(values).eq("id", STATE.editingStatusId)
+    : await STATE.sb.from("cr_statuses").insert({ ...values, created_by: STATE.session?.user?.id || null });
+  btn.disabled = false;
+  if(result.error){
+    toast("Lưu Status thất bại: " + result.error.message, "err");
+    return;
+  }
+  overlay.classList.remove("show");
+  if(!STATE.editingStatusId && $("#statusNameInput")) $("#statusNameInput").value = "";
+  toast(STATE.editingStatusId ? `Đã cập nhật Status "${name}"` : `Đã thêm Status "${name}"`, "ok");
+  await fetchStatusList();
+  renderAdminStatusTable();
+  renderDashboard();
+  renderCrTable();
+  if(STATE.drawerCrId){
+    const cr = STATE.crList.find(c=>c.cr_id===STATE.drawerCrId);
+    if(cr) renderDrawer(cr);
+  }
+}
+
 async function addStatus(){
   if(STATE.userRole !== "admin") return;
   const input = $("#statusNameInput");
   const name = (input?.value || "").trim().replace(/\s+/g, " ");
   if(!name){ toast("Vui lòng nhập tên Status", "err"); input?.focus(); return; }
-  if(STATE.statusList.some(s=>String(s.name).toLowerCase() === name.toLowerCase())){
-    toast("Status này đã tồn tại", "err");
-    input?.focus();
-    return;
-  }
   const nextOrder = STATE.statusList.reduce((max, s)=>Math.max(max, Number(s.sort_order) || 0), -1) + 1;
-  const { error } = await STATE.sb.from("cr_statuses").insert({
-    name,
-    sort_order: nextOrder,
-    created_by: STATE.session?.user?.id || null
-  });
-  if(error){
-    toast(String(error.message||"").toLowerCase().includes("duplicate")
-      ? "Status này đã tồn tại"
-      : "Thêm Status thất bại: " + error.message, "err");
-    return;
-  }
-  if(input) input.value = "";
-  toast(`Đã thêm Status "${name}"`, "ok");
-  await fetchStatusList();
-  renderAdminStatusTable();
+  openStatusModal({ name, sort_order: nextOrder });
 }
 
 function subStatusModalTemplate(subStatus){
   const v = subStatus || {};
   const isEdit = !!subStatus?.id;
-  const selectedColor = normalizeHexColor(v.color, defaultSubStatusColor(v.name));
+  const selectedBackgroundColor = normalizeHexColor(v.background_color, "#eef4fa");
+  const selectedTextColor = normalizeHexColor(v.text_color || v.color, defaultSubStatusColor(v.name));
   return `
   <div class="modal modal-sm">
     <div class="modal-head">
@@ -9420,13 +9542,20 @@ function subStatusModalTemplate(subStatus){
         <label>Thứ tự</label>
         <input id="subStatusModalOrder" type="number" min="0" step="1" value="${Number.isFinite(Number(v.sort_order)) ? Number(v.sort_order) : 0}">
       </div>
-      <div class="field" style="margin-top:14px; margin-bottom:0;">
-        <label>Màu hiển thị</label>
+      <div class="field" style="margin-top:14px;">
+        <label>Màu nền / xung quanh</label>
         <div class="color-picker-row">
-          <input id="subStatusModalColor" type="color" value="${selectedColor}" aria-label="Màu hiển thị Sub-Status">
-          <span class="color-picker-value" id="subStatusModalColorValue">${selectedColor}</span>
+          <input id="subStatusModalBackgroundColor" type="color" value="${selectedBackgroundColor}" aria-label="Màu nền Sub-Status">
+          <span class="color-picker-value" id="subStatusModalBackgroundColorValue">${selectedBackgroundColor}</span>
         </div>
-        <div class="hint">Màu này sẽ được dùng cho badge Sub-Status trong CR Log và mobile view.</div>
+      </div>
+      <div class="field" style="margin-top:14px; margin-bottom:0;">
+        <label>Màu chữ</label>
+        <div class="color-picker-row">
+          <input id="subStatusModalTextColor" type="color" value="${selectedTextColor}" aria-label="Màu chữ Sub-Status">
+          <span class="color-picker-value" id="subStatusModalTextColorValue">${selectedTextColor}</span>
+        </div>
+        <div class="hint">Màu nền và màu chữ sẽ được dùng cho badge Sub-Status trong CR Log, mobile view và chi tiết CR.</div>
       </div>
     </div>
     <div class="modal-foot">
@@ -9438,6 +9567,7 @@ function subStatusModalTemplate(subStatus){
 
 function openSubStatusModal(subStatus){
   if(STATE.userRole !== "admin") return;
+  STATE.editingStatusId = null;
   STATE.editingSubStatusId = subStatus?.id || null;
   const overlay = $("#subStatusModalOverlay");
   overlay.innerHTML = subStatusModalTemplate(subStatus);
@@ -9445,8 +9575,11 @@ function openSubStatusModal(subStatus){
   $("#subStatusModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#subStatusModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#subStatusModalSave").addEventListener("click", saveSubStatus);
-  $("#subStatusModalColor").addEventListener("input", e=>{
-    $("#subStatusModalColorValue").textContent = normalizeHexColor(e.target.value);
+  $("#subStatusModalBackgroundColor").addEventListener("input", e=>{
+    $("#subStatusModalBackgroundColorValue").textContent = normalizeHexColor(e.target.value);
+  });
+  $("#subStatusModalTextColor").addEventListener("input", e=>{
+    $("#subStatusModalTextColorValue").textContent = normalizeHexColor(e.target.value);
   });
   $("#subStatusModalName").focus();
   if(!overlay.dataset.dismissBound){
@@ -9460,7 +9593,8 @@ async function saveSubStatus(){
   const overlay = $("#subStatusModalOverlay");
   const name = ($("#subStatusModalName").value || "").trim().replace(/\s+/g, " ");
   const sortOrder = Number($("#subStatusModalOrder").value);
-  const color = normalizeHexColor($("#subStatusModalColor").value, defaultSubStatusColor(name));
+  const backgroundColor = normalizeHexColor($("#subStatusModalBackgroundColor").value, "#eef4fa");
+  const textColor = normalizeHexColor($("#subStatusModalTextColor").value, defaultSubStatusColor(name));
   if(!name){ toast("Vui lòng nhập tên Sub-Status", "err"); return; }
   if(!Number.isInteger(sortOrder) || sortOrder < 0){
     toast("Thứ tự phải là số nguyên từ 0 trở lên.", "err"); return;
@@ -9469,7 +9603,13 @@ async function saveSubStatus(){
   if(duplicate){ toast("Sub-Status này đã tồn tại", "err"); return; }
   const btn = $("#subStatusModalSave");
   btn.disabled = true; btn.textContent = "Đang lưu...";
-  const values = { name, sort_order: sortOrder, color };
+  const values = {
+    name,
+    sort_order: sortOrder,
+    color: textColor,
+    background_color: backgroundColor,
+    text_color: textColor
+  };
   const result = STATE.editingSubStatusId
     ? await STATE.sb.from("cr_sub_statuses").update(values).eq("id", STATE.editingSubStatusId)
     : await STATE.sb.from("cr_sub_statuses").insert({ ...values, created_by: STATE.session?.user?.id || null });

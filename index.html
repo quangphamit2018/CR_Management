@@ -4782,21 +4782,195 @@ function authErrorFromUrl(){
     query.get("error_description") || query.get("error") || "";
 }
 
+/* Xoá sạch mọi tham số OAuth (access_token, code, error...) khỏi URL sau khi
+   Supabase đã xử lý xong, dù thành công hay lỗi. Đồng thời gọi replaceState
+   để KHÔNG tạo thêm entry mới trong lịch sử trình duyệt cho bước callback này
+   — nếu không xử lý, URL chứa token sẽ nằm ngay trong history/URL bar. */
+function cleanOAuthParamsFromUrl(){
+  if(!window.history?.replaceState) return;
+  const hasHashParams = /access_token|refresh_token|provider_token|expires_in|token_type|error/.test(window.location.hash);
+  const hasQueryParams = /[?&](code|error|error_description|error_code)=/.test(window.location.search);
+  if(!hasHashParams && !hasQueryParams) return;
+  const cleanUrl = window.location.origin + window.location.pathname;
+  window.history.replaceState({ crApp: true }, document.title, cleanUrl);
+}
+
+/* "Chốt" lịch sử trình duyệt ở trạng thái app khi đã đăng nhập.
+   Trình duyệt KHÔNG cho phép JS xoá các entry đã có trong lịch sử (vd trang
+   chọn tài khoản Google), nên khi người dùng bấm Back, trình duyệt vẫn sẽ
+   nháy qua trang cache của accounts.google.com — đây là hành vi chuẩn của
+   MỌI ứng dụng dùng OAuth redirect toàn trang (Gmail, Facebook Login...),
+   không phải lỗi bảo mật hay rò rỉ session. Cơ chế dưới đây xử lý phần NẰM
+   TRONG TẦM KIỂM SOÁT của app: nếu người dùng bấm Back thêm một lần nữa và
+   quay lại đúng trang app này trong khi vẫn còn phiên đăng nhập hợp lệ, ta
+   chặn điều hướng đó và đẩy lại trạng thái "đã đăng nhập" thay vì hiển thị
+   lại màn hình Login (điều gây hiểu lầm là đã bị đăng xuất). */
+let historyGuardInstalled = false;
+function installHistoryGuard(){
+  if(historyGuardInstalled) return;
+  historyGuardInstalled = true;
+  const stableUrl = window.location.origin + window.location.pathname;
+  window.history.replaceState({ crApp: true }, document.title, stableUrl);
+  window.history.pushState({ crApp: true }, document.title, stableUrl);
+
+  window.addEventListener("popstate", ()=>{
+    if(STATE.session){
+      // Vẫn còn phiên hợp lệ -> đừng để back-navigation đưa người dùng
+      // vào lại màn hình login của chính app. Đẩy lại 1 state để "giữ nguyên".
+      window.history.pushState({ crApp: true }, document.title, stableUrl);
+      handleAuthState();
+    }
+  });
+
+  // Khi trang được phục hồi từ bfcache (thường xảy ra sau khi bấm Back/Forward),
+  // DOM có thể đang hiển thị trạng thái CŨ tại thời điểm rời trang. Luôn
+  // kiểm tra lại phiên thật sự với Supabase để UI phản ánh đúng thực tế.
+  window.addEventListener("pageshow", async (e)=>{
+    if(e.persisted){
+      const { data:{ session } } = await STATE.sb.auth.getSession();
+      STATE.session = session;
+      await handleAuthState();
+    }
+  });
+}
+
+/* -----------------------------------------------------------------------
+   OAUTH QUA POPUP
+   Thay vì redirect toàn bộ tab chính sang accounts.google.com (khiến các
+   trang của Google bị ghi vào lịch sử trình duyệt của tab chính -> gây hiện
+   tượng bấm Back thấy lại màn hình chọn account), toàn bộ luồng Google chỉ
+   diễn ra trong MỘT popup riêng. Tab chính không điều hướng đi đâu cả nên
+   lịch sử của tab chính hoàn toàn sạch.
+   Cơ chế đồng bộ kết quả về tab chính có 2 lớp, phòng khi lớp 1 bị chặn:
+     1) postMessage từ popup (khi popup load lại app sau khi Google redirect
+        về) — nhanh, chủ động.
+     2) Theo dõi popup.closed bằng setInterval — nếu vì lý do gì đó
+        postMessage không tới (trình duyệt chặn window.opener, người dùng
+        tự đóng popup...), tab chính vẫn tự kiểm tra lại session thật với
+        Supabase ngay khi popup đóng.
+   supabase-js còn tự đồng bộ session giữa các tab cùng origin qua
+   BroadcastChannel nên đây thực chất là lớp phòng thủ kép, không phải điểm
+   yếu duy nhất. ----------------------------------------------------------- */
+const OAUTH_POPUP_NAME = "cr_oauth_popup";
+let oauthPopupRef = null;
+let oauthPopupWatcher = null;
+
+function isRunningInsideOAuthPopup(){
+  try{
+    return !!(window.opener && !window.opener.closed && window.name === OAUTH_POPUP_NAME);
+  }catch(e){ return false; }
+}
+
 async function loginWithGoogle(){
   if(!STATE.sb) return;
   STATE.loginAttempted = true;
   setLoginButtonLoading(true);
   try{
-    const { error } = await STATE.sb.auth.signInWithOAuth({
+    const redirectTo = window.location.origin + window.location.pathname;
+    const { data, error } = await STATE.sb.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.href.split("#")[0] }
+      options: { redirectTo, skipBrowserRedirect: true }
     });
     if(error) throw error;
+    if(!data?.url) throw new Error("Không nhận được đường dẫn đăng nhập Google.");
+
+    const width = 480, height = 640;
+    const left = Math.max(0, Math.round((window.screen.width - width) / 2));
+    const top = Math.max(0, Math.round((window.screen.height - height) / 2.2));
+    oauthPopupRef = window.open(
+      data.url,
+      OAUTH_POPUP_NAME,
+      `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,noopener=no`
+    );
+
+    if(!oauthPopupRef){
+      // Trình duyệt chặn popup -> fallback về redirect toàn trang như cũ,
+      // để login không bao giờ bị "chết cứng" chỉ vì popup blocker.
+      toast("Trình duyệt đang chặn popup, chuyển sang đăng nhập bằng redirect...", "info");
+      window.location.href = data.url;
+      return;
+    }
+
+    oauthPopupRef.focus();
+    clearInterval(oauthPopupWatcher);
+    oauthPopupWatcher = setInterval(async ()=>{
+      if(!oauthPopupRef || !oauthPopupRef.closed) return;
+      clearInterval(oauthPopupWatcher);
+      oauthPopupWatcher = null;
+      // Popup đã đóng (tự đóng sau khi thành công, hoặc do người dùng đóng
+      // tay). Kiểm tra lại session thật 1 lần để chắc chắn UI đúng thực tế,
+      // phòng trường hợp postMessage không tới được.
+      const { data:{ session } } = await STATE.sb.auth.getSession();
+      if(session){
+        STATE.session = session;
+        cleanOAuthParamsFromUrl();
+        await handleAuthState();
+        if(STATE.session) installHistoryGuard();
+      }else if(STATE.loginAttempted){
+        STATE.loginAttempted = false;
+        setLoginButtonLoading(false);
+      }
+    }, 500);
   }catch(error){
     STATE.loginAttempted = false;
     setLoginButtonLoading(false);
     toast("Đăng nhập thất bại: " + (error?.message || "Không thể kết nối Google."), "err");
   }
+}
+
+/* Xử lý postMessage gửi từ popup (lớp đồng bộ chủ động). */
+async function handleOAuthPopupMessage(e){
+  if(e.origin !== window.location.origin) return;
+  if(!e.data || e.data.source !== "cr-oauth") return;
+
+  if(e.data.status === "error"){
+    STATE.loginAttempted = false;
+    setLoginButtonLoading(false);
+    toast("Đăng nhập thất bại: " + (e.data.message || "Không thể đăng nhập qua Google."), "err");
+    return;
+  }
+  if(e.data.status === "cancelled"){
+    STATE.loginAttempted = false;
+    setLoginButtonLoading(false);
+    return;
+  }
+  // status === "success" — lấy lại session thật từ Supabase (popup đã ghi
+  // vào localStorage cùng origin trước khi đóng) rồi cập nhật UI tab chính.
+  const { data:{ session } } = await STATE.sb.auth.getSession();
+  STATE.session = session;
+  cleanOAuthParamsFromUrl();
+  await handleAuthState();
+  if(STATE.session) installHistoryGuard();
+}
+
+/* Nếu file này đang chạy BÊN TRONG popup OAuth (được mở bởi loginWithGoogle
+   ở tab chính) thì không boot app trong popup — chỉ đọc kết quả đăng nhập,
+   báo về tab chính qua postMessage, rồi tự đóng lại. Trả về true nếu đã xử
+   lý xong theo hướng popup (để initAuth dừng lại, không boot app trong đó). */
+async function finishIfOAuthPopup(){
+  if(!isRunningInsideOAuthPopup()) return false;
+
+  document.title = "Đang hoàn tất đăng nhập...";
+  document.body.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:100vh;' +
+    'background:#0b1420;color:#cfe3f2;font:14px Inter,system-ui,sans-serif;text-align:center;padding:24px;">' +
+    'Đang hoàn tất đăng nhập, cửa sổ này sẽ tự đóng…</div>';
+
+  const { data:{ session } } = await STATE.sb.auth.getSession();
+  const callbackError = authErrorFromUrl();
+
+  try{
+    if(session){
+      window.opener.postMessage({ source:"cr-oauth", status:"success" }, window.location.origin);
+    }else if(callbackError){
+      window.opener.postMessage({ source:"cr-oauth", status:"error", message: callbackError }, window.location.origin);
+    }else{
+      window.opener.postMessage({ source:"cr-oauth", status:"cancelled" }, window.location.origin);
+    }
+  }catch(e){ /* tab chính có thể đã đóng — bỏ qua */ }
+
+  setTimeout(()=>{ try{ window.close(); }catch(e){} }, 150);
+  return true;
 }
 
 async function logout(){
@@ -4855,28 +5029,36 @@ async function handleAuthState(){
 
 async function initAuth(){
   initClient();
+
+  // Nếu instance này của app đang chạy bên trong popup OAuth do chính app
+  // mở ra, xử lý xong luồng riêng của popup rồi dừng lại — không boot app
+  // (sidebar, dashboard...) bên trong cửa sổ nhỏ đó.
+  if(await finishIfOAuthPopup()) return;
+
   $("#btnGoogleLogin").addEventListener("click", loginWithGoogle);
   $("#btnLogoutPending").addEventListener("click", logout);
   $("#btnRecheckPending").addEventListener("click", async ()=>{
     toast("Đang kiểm tra lại quyền truy cập...", "info");
     await handleAuthState();
   });
+  window.addEventListener("message", handleOAuthPopupMessage);
 
   const { data: { session } } = await STATE.sb.auth.getSession();
   STATE.session = session;
   const callbackError = authErrorFromUrl();
   if(callbackError){
     toast("Đăng nhập thất bại: " + callbackError, "err");
-    if(window.history?.replaceState){
-      const cleanUrl = window.location.href.replace(/([#?&])(?:error_description|error|error_code|error_reason)=[^&#]*/g, "$1").replace(/[?#&]$/, "");
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
   }
+  cleanOAuthParamsFromUrl();
   await handleAuthState();
+  if(STATE.session) installHistoryGuard();
 
   STATE.sb.auth.onAuthStateChange(async (_event, session)=>{
+    const hadSession = !!STATE.session;
     STATE.session = session;
+    cleanOAuthParamsFromUrl();
     await handleAuthState();
+    if(session && !hadSession) installHistoryGuard();
   });
 }
 

@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ==========================================================================
    DESIGN TOKENS
@@ -3754,6 +3755,21 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   .auth-layout,.auth-card,.auth-orb-one,.auth-orb-two,.auth-kicker-dot,.auth-status-pulse,
   .toast,.toast::after{ animation:none !important; }
 }
+
+/* ---- Import CR từ Excel: tóm tắt kết quả đọc file ------------------------- */
+.import-summary{
+  display:grid; grid-template-columns:repeat(4, minmax(120px,1fr)); gap:10px; margin-bottom:16px;
+}
+.import-stat{
+  background:#fff; border:1px solid #e0eaee; border-radius:12px; padding:12px 14px;
+  display:flex; flex-direction:column; gap:4px;
+}
+.import-stat b{ font-family:var(--font-head); font-size:22px; font-weight:800; color:#16344e; }
+.import-stat span{ font-size:11.5px; color:#7890a2; font-weight:600; }
+.import-stat.ok b{ color:#0e9a94; }
+.import-stat.info b{ color:#2b7fd6; }
+.import-stat.danger b{ color:#d0524e; }
+@media(max-width:640px){ .import-summary{ grid-template-columns:repeat(2,1fr); } }
 </style>
 </head>
 <body>
@@ -3960,6 +3976,14 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
         <button class="btn btn-ghost btn-sm tb-btn refresh-btn" id="btnDashRefresh" type="button" title="Làm mới dữ liệu">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
           <span class="refresh-label">Làm mới</span>
+        </button>
+        <button class="btn btn-ghost btn-sm view-action hidden" data-for="crlog" id="btnCrTemplate" type="button" title="Tải file Excel mẫu để điền thông tin CR">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 15V3M7 10l5 5 5-5"/><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/></svg>
+          Tải template
+        </button>
+        <button class="btn btn-ghost btn-sm view-action hidden" data-for="crlog" id="btnCrImport" type="button" title="Nhập nhiều CR cùng lúc từ file Excel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v12M7 10l5-5 5 5"/><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/></svg>
+          Nhập Excel
         </button>
         <button class="btn btn-primary view-action hidden" data-for="crlog" id="btnAddCr">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -4330,6 +4354,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 <div class="modal-overlay" id="confirmModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="attachmentModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="evidenceStepModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="importModalOverlay" role="dialog" aria-modal="true"></div>
 
 <div class="drawer-overlay" id="drawerOverlay" role="presentation"></div>
 <div class="drawer" id="crDrawer"></div>
@@ -5347,6 +5372,8 @@ function initShell(){
   });
 
   $("#btnAddCr").addEventListener("click", ()=> openCrModal(null));
+  $("#btnCrTemplate").addEventListener("click", downloadCrTemplate);
+  $("#btnCrImport").addEventListener("click", openImportModal);
   $("#btnAddTc").addEventListener("click", ()=> openTcModal(null));
   $("#btnAddRel").addEventListener("click", ()=> openRelModal(null));
   $("#btnDashRefresh").addEventListener("click", ()=>{
@@ -6645,8 +6672,307 @@ async function saveCr(overlay, isEdit){
 }
 
 /* ---------------------------------------------------------------------------
-   9. CR DETAIL DRAWER
+   8b. IMPORT CR TỪ EXCEL — tải template & nhập hàng loạt
+   Chỉ thêm mới, không đổi hành vi của saveCr()/openCrModal() ở trên.
+   Dùng chung đúng danh sách cột & luật hợp lệ (CR_LISTS.status/category/
+   priority/approval) như form tạo/sửa CR thủ công.
 --------------------------------------------------------------------------- */
+const CR_IMPORT_COLUMNS = [
+  { header: "CR ID*",                         key: "cr_id",            required: true },
+  { header: "Old Name From InterK",           key: "old_name" },
+  { header: "Rename Folder",                  key: "rename_folder" },
+  { header: "App",                            key: "app" },
+  { header: "Requester",                      key: "requester" },
+  { header: "Department",                     key: "department" },
+  { header: "Request Date (yyyy-mm-dd)",      key: "request_date",     type: "date" },
+  { header: "Category",                       key: "category",         choices: () => CR_LISTS.category },
+  { header: "Priority",                       key: "priority",         choices: () => CR_LISTS.priority },
+  { header: "Description BRD",                key: "description_brd" },
+  { header: "Description FSD",                key: "description_fsd" },
+  { header: "Status*",                        key: "status",           required: true, choices: () => CR_LISTS.status },
+  { header: "BRD Link",                       key: "brd_link" },
+  { header: "FSD Link",                       key: "fsd_link" },
+  { header: "Quotation Link",                 key: "quotation_link" },
+  { header: "Owner",                          key: "owner" },
+  { header: "Approved Date (yyyy-mm-dd)",     key: "approved_date",     type: "date" },
+  { header: "Approved Status",                key: "approved_status",  choices: () => CR_LISTS.approval },
+  { header: "Deadline (yyyy-mm-dd)",          key: "deadline",          type: "date" },
+  { header: "Loop Mail Header",               key: "loop_mail_header" },
+  { header: "Progress",                       key: "progress" },
+  { header: "Note",                           key: "note" },
+];
+const CR_IMPORT_SHEET_NAME = "CR_Log";
+const CR_IMPORT_LISTS_SHEET_NAME = "Danh_sach_hop_le";
+
+function excelValueToISODate(v){
+  if(v === null || v === undefined || v === "") return null;
+  if(v instanceof Date && !isNaN(v.getTime())){
+    const y = v.getFullYear(), m = String(v.getMonth()+1).padStart(2,"0"), d = String(v.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(v).trim();
+  if(!s) return null;
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
+  if(m) return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+  if(m) return `${m[3]}-${m[1].padStart(2,"0")}-${m[2].padStart(2,"0")}`;
+  return s;
+}
+
+/* ---- Tải file Excel mẫu (template) ---------------------------------------- */
+function downloadCrTemplate(){
+  if(typeof XLSX === "undefined"){
+    toast("Không tải được thư viện Excel (XLSX). Kiểm tra kết nối mạng rồi thử lại.", "err");
+    return;
+  }
+  const headerRow = CR_IMPORT_COLUMNS.map(c=>c.header);
+  const exampleRow = CR_IMPORT_COLUMNS.map(c=>{
+    if(c.key === "cr_id") return "CR_0" + String((STATE.crList?.length||0)+1).padStart(2,"0");
+    if(c.key === "status") return (CR_LISTS.status && CR_LISTS.status[0]) || "New";
+    if(c.key === "category") return CR_LISTS.category[0];
+    if(c.key === "priority") return CR_LISTS.priority[0];
+    if(c.key === "approved_status") return "";
+    if(c.type === "date") return "";
+    if(c.key === "app") return "DMS";
+    if(c.key === "requester") return "SFA Team";
+    if(c.key === "rename_folder") return "[CR_0xx] Tên mô tả ngắn gọn cho CR";
+    return "";
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headerRow, exampleRow]);
+  ws["!cols"] = CR_IMPORT_COLUMNS.map(c=> ({ wch: Math.max(18, c.header.length + 2) }));
+
+  const listsAoa = [["Category hợp lệ","Priority hợp lệ","Status hợp lệ","Approved Status hợp lệ"]];
+  const maxLen = Math.max(CR_LISTS.category.length, CR_LISTS.priority.length, (CR_LISTS.status||[]).length, CR_LISTS.approval.length);
+  for(let i=0;i<maxLen;i++){
+    listsAoa.push([CR_LISTS.category[i]||"", CR_LISTS.priority[i]||"", (CR_LISTS.status||[])[i]||"", CR_LISTS.approval[i]||""]);
+  }
+  const wsLists = XLSX.utils.aoa_to_sheet(listsAoa);
+  wsLists["!cols"] = [{wch:20},{wch:16},{wch:20},{wch:20}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, CR_IMPORT_SHEET_NAME);
+  XLSX.utils.book_append_sheet(wb, wsLists, CR_IMPORT_LISTS_SHEET_NAME);
+  XLSX.writeFile(wb, "CR_Log_Template.xlsx");
+  toast("Đã tải file template. Điền thông tin CR vào sheet \"" + CR_IMPORT_SHEET_NAME + "\" rồi nhập lại qua nút \"Nhập Excel\".", "ok");
+}
+
+/* ---- Modal nhập Excel ------------------------------------------------------ */
+function importModalTemplate(){
+  return `
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Nhập CR từ Excel</h3>
+        <div class="sub">Dùng đúng file template đã tải — hệ thống sẽ đọc sheet "${esc(CR_IMPORT_SHEET_NAME)}"</div></div>
+      <button class="modal-close" id="importModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="file-drop" id="importFileDrop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+        <p><b>Bấm để chọn file Excel</b> hoặc kéo thả vào đây</p>
+        <div class="hint">Chỉ nhận file .xlsx / .xls theo đúng cấu trúc template</div>
+        <input type="file" id="importFileInput" accept=".xlsx,.xls" hidden>
+      </div>
+      <div id="importPreviewHost"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="importModalCancel">Đóng</button>
+      <button class="btn btn-primary hidden" id="importConfirmBtn" disabled>Xác nhận nhập</button>
+    </div>
+  </div>`;
+}
+
+function openImportModal(){
+  const overlay = $("#importModalOverlay");
+  overlay.innerHTML = importModalTemplate();
+  overlay.classList.add("show", "full");
+  $("#importModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
+  $("#importModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  }
+
+  const drop = $("#importFileDrop");
+  const input = $("#importFileInput");
+  drop.addEventListener("click", ()=> input.click());
+  input.addEventListener("change", ()=>{ if(input.files[0]) handleImportFile(overlay, input.files[0]); });
+  ["dragenter","dragover"].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add("drag"); }));
+  ["dragleave","drop"].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove("drag"); }));
+  drop.addEventListener("drop", e=>{
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) handleImportFile(overlay, f);
+  });
+}
+
+function handleImportFile(overlay, file){
+  if(typeof XLSX === "undefined"){
+    toast("Không tải được thư viện Excel (XLSX). Kiểm tra kết nối mạng rồi thử lại.", "err");
+    return;
+  }
+  const host = $("#importPreviewHost");
+  host.innerHTML = `<div class="loading-row" style="padding:24px 0;"><div class="spinner"></div>Đang đọc file "${esc(file.name)}"...</div>`;
+  const reader = new FileReader();
+  reader.onerror = ()=> { host.innerHTML = ""; toast("Không đọc được file. Vui lòng thử lại.", "err"); };
+  reader.onload = (e)=>{
+    let wb;
+    try{
+      wb = XLSX.read(new Uint8Array(e.target.result), { type:"array", cellDates:true });
+    }catch(err){
+      host.innerHTML = "";
+      toast("File không đúng định dạng Excel: " + err.message, "err");
+      return;
+    }
+    const sheetName = wb.SheetNames.includes(CR_IMPORT_SHEET_NAME) ? CR_IMPORT_SHEET_NAME : wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const objRows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, dateNF: "yyyy-mm-dd" });
+    // sheet_to_json với raw:false ép ngày về text theo dateNF; với cell kiểu Date thật (raw:true cần) ta đọc lại raw để có Date object chính xác hơn cho các cột date
+    const objRowsRaw = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    if(!objRows.length){
+      host.innerHTML = `<div class="empty-state" style="padding:30px 0;"><p>File không có dữ liệu nào ở sheet "${esc(sheetName)}". Hãy dùng đúng file template đã tải.</p></div>`;
+      return;
+    }
+    const headerKnown = CR_IMPORT_COLUMNS.some(c=> Object.prototype.hasOwnProperty.call(objRows[0], c.header));
+    if(!headerKnown){
+      host.innerHTML = `<div class="empty-state" style="padding:30px 0;">
+        <p>Không nhận diện được cột nào khớp với template. Vui lòng tải lại file template mới nhất và điền đúng vào sheet "${esc(CR_IMPORT_SHEET_NAME)}", không đổi tên cột.</p>
+      </div>`;
+      return;
+    }
+    const parsed = objRows.map((row, idx)=> buildImportRow(row, objRowsRaw[idx]));
+    const annotated = validateImportRows(parsed);
+    renderImportPreview(overlay, annotated);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function buildImportRow(row, rowRaw){
+  const out = {};
+  CR_IMPORT_COLUMNS.forEach(c=>{
+    let v = row[c.header];
+    if(v === undefined) v = "";
+    if(c.type === "date"){
+      const rawVal = rowRaw ? rowRaw[c.header] : undefined;
+      out[c.key] = excelValueToISODate(rawVal !== undefined && rawVal !== "" ? rawVal : v);
+    } else {
+      out[c.key] = typeof v === "string" ? v.trim() : (v===""? "" : String(v));
+    }
+  });
+  return out;
+}
+
+function validateImportRows(rows){
+  const seenIds = new Set();
+  const existingIds = new Set((STATE.crList||[]).map(c=>c.cr_id));
+  return rows.map((row, i)=>{
+    const errors = [];
+    CR_IMPORT_COLUMNS.forEach(c=>{
+      const val = row[c.key];
+      if(c.required && !val){ errors.push(`Thiếu "${c.header}"`); return; }
+      if(val && c.choices){
+        const list = c.choices();
+        if(list && list.length && !list.includes(val)){
+          errors.push(`"${c.header}" = "${val}" không hợp lệ`);
+        }
+      }
+    });
+    let willUpdate = false;
+    if(row.cr_id){
+      if(seenIds.has(row.cr_id)) errors.push(`CR ID "${row.cr_id}" bị trùng trong file`);
+      seenIds.add(row.cr_id);
+      if(existingIds.has(row.cr_id)) willUpdate = true;
+    }
+    return { rowIndex: i+1, data: row, errors, willUpdate, valid: errors.length===0 };
+  });
+}
+
+function renderImportPreview(overlay, annotated){
+  const host = $("#importPreviewHost");
+  const total = annotated.length;
+  const validCount = annotated.filter(r=>r.valid).length;
+  const updateCount = annotated.filter(r=>r.valid && r.willUpdate).length;
+  const errorCount = total - validCount;
+
+  host.innerHTML = `
+    <div class="import-summary">
+      <div class="import-stat"><b>${total}</b><span>Tổng số dòng đọc được</span></div>
+      <div class="import-stat ok"><b>${validCount}</b><span>Hợp lệ (nhập được)</span></div>
+      <div class="import-stat info"><b>${updateCount}</b><span>Trong đó sẽ cập nhật đè CR đã có</span></div>
+      <div class="import-stat ${errorCount? 'danger':''}"><b>${errorCount}</b><span>Có lỗi (sẽ bỏ qua)</span></div>
+    </div>
+    <div class="field" style="max-width:420px;">
+      <label>Với CR ID đã tồn tại trong hệ thống</label>
+      <select id="importDupMode">
+        <option value="overwrite">Ghi đè bằng dữ liệu trong file</option>
+        <option value="skip">Bỏ qua, giữ nguyên dữ liệu cũ</option>
+      </select>
+    </div>
+    <div class="table-wrap" style="margin-top:14px;">
+      <table>
+        <thead><tr><th>#</th><th>CR ID</th><th>Tiêu đề</th><th>Category</th><th>Priority</th><th>Status</th><th>Kết quả</th></tr></thead>
+        <tbody>
+          ${annotated.map(r=>`
+            <tr>
+              <td class="cell-dim">${r.rowIndex}</td>
+              <td class="cell-id">${esc(r.data.cr_id || "—")}</td>
+              <td class="cell-title" title="${esc(r.data.rename_folder||r.data.old_name||'')}">${esc(r.data.rename_folder || r.data.old_name || r.data.app || "—")}</td>
+              <td>${esc(r.data.category||"—")}</td>
+              <td>${esc(r.data.priority||"—")}</td>
+              <td>${esc(r.data.status||"—")}</td>
+              <td>${
+                r.valid
+                  ? (r.willUpdate
+                      ? `<span class="badge" style="background:var(--info-dim); color:var(--info);"><span class="dot" style="background:var(--info)"></span>Sẽ cập nhật</span>`
+                      : `<span class="badge" style="background:var(--success-dim); color:var(--success);"><span class="dot" style="background:var(--success)"></span>Hợp lệ</span>`)
+                  : `<span class="badge" style="background:var(--danger-dim); color:var(--danger);" title="${esc(r.errors.join('; '))}"><span class="dot" style="background:var(--danger)"></span>${esc(r.errors[0])}</span>`
+              }</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const confirmBtn = $("#importConfirmBtn");
+  confirmBtn.classList.remove("hidden");
+  confirmBtn.disabled = validCount === 0;
+  confirmBtn.textContent = `Xác nhận nhập ${validCount} dòng hợp lệ`;
+  confirmBtn.onclick = ()=> executeImport(overlay, annotated, validCount);
+}
+
+async function executeImport(overlay, annotated, validCount){
+  const dupMode = $("#importDupMode")?.value || "overwrite";
+  let rowsToImport = annotated.filter(r=>r.valid);
+  if(dupMode === "skip"){
+    rowsToImport = rowsToImport.filter(r=>!r.willUpdate);
+  }
+  if(!rowsToImport.length){
+    toast("Không có dòng nào để nhập (có thể tất cả đều trùng CR đã có và bạn chọn Bỏ qua).", "err");
+    return;
+  }
+  const confirmBtn = $("#importConfirmBtn");
+  confirmBtn.disabled = true;
+  const originalLabel = confirmBtn.textContent;
+  confirmBtn.textContent = "Đang nhập...";
+
+  const payloadRows = rowsToImport.map(r=>{
+    const p = {};
+    CR_IMPORT_COLUMNS.forEach(c=>{ p[c.key] = r.data[c.key] || null; });
+    return p;
+  });
+
+  const { error } = await STATE.sb.from("cr_log").upsert(payloadRows, { onConflict: "cr_id" });
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = originalLabel;
+  if(error){
+    toast("Nhập thất bại: " + error.message, "err");
+    return;
+  }
+  toast(`Đã nhập thành công ${payloadRows.length} CR`, "ok");
+  overlay.classList.remove("show");
+  await refreshAll();
+}
+
+
 function infoItem(label, value, full){
   const v = (value===null||value===undefined||value==="") ? `<span class="v empty">Chưa có dữ liệu</span>` : `<div class="v"><pre>${esc(value)}</pre></div>`;
   return `<div class="info-item ${full?'full block':''}"><div class="k">${esc(label)}</div>${v}</div>`;

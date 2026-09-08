@@ -8253,16 +8253,31 @@ async function saveEvidenceStep(existingStep){
     is_active: isActive,
     updated_at: new Date().toISOString()
   };
-  let error;
+  let error, saved;
   if(existingStep){
-    ({ error } = await STATE.sb.from("evidence_steps").update(payload).eq("id", existingStep.id));
+    ({ data: saved, error } = await STATE.sb
+      .from("evidence_steps")
+      .update(payload)
+      .eq("id", existingStep.id)
+      .select("id")
+      .maybeSingle());
   }else{
-    ({ error } = await STATE.sb.from("evidence_steps").insert({
-      ...payload,
-      created_by: STATE.session?.user?.id || null
-    }));
+    ({ data: saved, error } = await STATE.sb
+      .from("evidence_steps")
+      .insert({
+        ...payload,
+        created_by: STATE.session?.user?.id || null
+      })
+      .select("id")
+      .maybeSingle());
   }
-  if(error){ toast("Lưu Evidence Step thất bại: " + error.message, "err"); return; }
+  if(error || !saved){
+    toast(error
+      ? "Lưu Evidence Step thất bại: " + error.message
+      : "Không có dữ liệu nào được cập nhật. Kiểm tra quyền Admin/RLS.",
+      "err");
+    return;
+  }
   closeEvidenceStepModal();
   toast(existingStep ? `Đã cập nhật "${name}"` : `Đã thêm "${name}"`, "ok");
   await fetchEvidenceStepList();
@@ -8282,13 +8297,19 @@ async function addEvidenceStep(){
   if(STATE.evidenceStepList.some(s=>String(s.name||"").toLowerCase() === name.toLowerCase())){
     toast("Evidence Step này đã tồn tại.", "err"); nameInput?.focus(); return;
   }
-  const { error } = await STATE.sb.from("evidence_steps").insert({
+  const { data, error } = await STATE.sb.from("evidence_steps").insert({
     name,
     sort_order: sortOrder,
     is_active: true,
     created_by: STATE.session?.user?.id || null
-  });
-  if(error){ toast("Thêm Evidence Step thất bại: " + error.message, "err"); return; }
+  }).select("id").maybeSingle();
+  if(error || !data){
+    toast(error
+      ? "Thêm Evidence Step thất bại: " + error.message
+      : "Không có dữ liệu nào được thêm. Kiểm tra quyền Admin/RLS.",
+      "err");
+    return;
+  }
   if(nameInput) nameInput.value = "";
   if(orderInput) orderInput.value = "0";
   toast(`Đã thêm Evidence Step "${name}"`, "ok");
@@ -8298,8 +8319,19 @@ async function addEvidenceStep(){
 
 async function deleteEvidenceStep(step){
   if(STATE.userRole !== "admin") return;
-  const { error } = await STATE.sb.from("evidence_steps").delete().eq("id", step.id);
-  if(error){ toast("Xóa Evidence Step thất bại: " + error.message, "err"); return; }
+  const { data, error } = await STATE.sb
+    .from("evidence_steps")
+    .delete()
+    .eq("id", step.id)
+    .select("id")
+    .maybeSingle();
+  if(error || !data){
+    toast(error
+      ? "Xóa Evidence Step thất bại: " + error.message
+      : "Không có dữ liệu nào được xóa. Kiểm tra quyền Admin/RLS.",
+      "err");
+    return;
+  }
   toast(`Đã xóa Evidence Step "${step.name}"`, "ok");
   await fetchEvidenceStepList();
   renderAdminEvidenceStepTable();

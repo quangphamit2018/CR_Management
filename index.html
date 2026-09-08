@@ -575,6 +575,24 @@ tbody tr:hover .row-actions{ opacity:1; }
   padding:4px 10px; border-radius:20px; white-space:nowrap;
 }
 .badge .dot{ width:6px; height:6px; border-radius:50%; }
+.sub-status-color-swatch{
+  display:inline-flex; align-items:center; gap:7px; color:var(--text-secondary);
+  font-family:var(--font-mono); font-size:11px; white-space:nowrap;
+}
+.sub-status-color-swatch i{
+  width:18px; height:18px; display:inline-block; border-radius:6px;
+  background:var(--sub-status-color); border:1px solid rgba(13,40,64,0.2);
+  box-shadow:0 1px 2px rgba(13,40,64,0.12);
+}
+.color-picker-row{ display:flex; align-items:center; gap:10px; }
+.color-picker-row input[type="color"]{
+  width:48px; height:36px; padding:3px; border:1px solid #b8c9d8;
+  border-radius:9px; background:#fff; cursor:pointer;
+}
+.color-picker-value{
+  color:var(--text-secondary); font-family:var(--font-mono); font-size:12px;
+  font-weight:700; letter-spacing:.02em;
+}
 
 .empty-state{ text-align:center; padding:60px 20px; color: var(--text-faint); }
 .empty-state svg{ width:44px; height:44px; margin-bottom:14px; opacity:.4; }
@@ -4290,7 +4308,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Sub-Status</th><th>Thứ tự</th><th></th>
+              <th>Sub-Status</th><th>Màu</th><th>Thứ tự</th><th></th>
             </tr></thead>
             <tbody id="subStatusTableBody"></tbody>
           </table>
@@ -4818,7 +4836,28 @@ const COLOR = {
   sub_status: {},
   role: { "Quản trị":"#b78af0","Thành viên":"#5b8def" }
 };
-function colorFor(group, key){ return (COLOR[group] && COLOR[group][key]) || "#7488a0"; }
+const DEFAULT_SUB_STATUS_COLORS = [
+  "#5b8def", "#8b6fd8", "#2fae67", "#e08a3c", "#ee6b74",
+  "#0e9a94", "#c58a29", "#6d7f95", "#d05c9e", "#477b9e"
+];
+function normalizeHexColor(value, fallback="#5b8def"){
+  const color = String(value || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : fallback;
+}
+function defaultSubStatusColor(name=""){
+  let hash = 0;
+  for(const ch of String(name)) hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
+  return DEFAULT_SUB_STATUS_COLORS[Math.abs(hash) % DEFAULT_SUB_STATUS_COLORS.length];
+}
+function subStatusColor(value){
+  const item = STATE.subStatusList.find(s=>String(s.name).toLowerCase() === String(value||"").toLowerCase());
+  return normalizeHexColor(item?.color, defaultSubStatusColor(value));
+}
+function colorFor(group, key){
+  return group === "sub_status"
+    ? subStatusColor(key)
+    : (COLOR[group] && COLOR[group][key]) || "#7488a0";
+}
 function badge(group, value){
   if(!value) return `<span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-faint)"><span class="dot" style="background:var(--text-faint)"></span>—</span>`;
   const c = colorFor(group, value);
@@ -6149,12 +6188,13 @@ async function fetchStatusList(){
 async function fetchSubStatusList(){
   const { data, error } = await STATE.sb
     .from("cr_sub_statuses")
-    .select("id,name,sort_order,created_at")
+    .select("id,name,sort_order,color,created_at")
     .order("sort_order", { ascending:true })
     .order("name", { ascending:true });
   if(error){
     STATE.subStatusList = [];
     CR_LISTS.subStatus = [];
+    COLOR.sub_status = {};
     STATE.loadErrors.subStatus = error.message;
     if(!STATE.subStatusLoadWarned){
       toast("Không tải được danh mục Sub-Status: " + error.message, "err");
@@ -6166,6 +6206,9 @@ async function fetchSubStatusList(){
   STATE.subStatusLoadWarned = false;
   STATE.subStatusList = (data || []).filter(s=>s && String(s.name||"").trim());
   CR_LISTS.subStatus = STATE.subStatusList.map(s=>s.name);
+  COLOR.sub_status = Object.fromEntries(
+    STATE.subStatusList.map(s=>[s.name, normalizeHexColor(s.color, defaultSubStatusColor(s.name))])
+  );
 }
 
 async function fetchEvidenceStepList(){
@@ -9067,17 +9110,20 @@ function renderAdminSubStatusTable(){
   if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${rows.length} sub-status`;
 
   if(STATE.loadErrors.subStatus){
-    tbody.innerHTML = `<tr><td colspan="3">${errorStateBlock("Không tải được danh mục Sub-Status", STATE.loadErrors.subStatus, "admin")}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4">${errorStateBlock("Không tải được danh mục Sub-Status", STATE.loadErrors.subStatus, "admin")}</td></tr>`;
     return;
   }
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="3">${emptyStateBlock("Chưa có Sub-Status", "Thêm Sub-Status đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4">${emptyStateBlock("Chưa có Sub-Status", "Thêm Sub-Status đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = rows.map((s, index)=>`
     <tr data-sub-status-id="${esc(s.id)}">
       <td class="cell-title">${esc(s.name)}</td>
+      <td><span class="sub-status-color-swatch" style="--sub-status-color:${normalizeHexColor(s.color, defaultSubStatusColor(s.name))}">
+        <i></i><span>${normalizeHexColor(s.color, defaultSubStatusColor(s.name))}</span>
+      </span></td>
       <td class="cell-dim">${s.sort_order ?? index}</td>
       <td class="cell-actions">
         <div class="row-actions" style="opacity:1;">
@@ -9357,6 +9403,7 @@ async function addStatus(){
 function subStatusModalTemplate(subStatus){
   const v = subStatus || {};
   const isEdit = !!subStatus?.id;
+  const selectedColor = normalizeHexColor(v.color, defaultSubStatusColor(v.name));
   return `
   <div class="modal modal-sm">
     <div class="modal-head">
@@ -9372,6 +9419,14 @@ function subStatusModalTemplate(subStatus){
       <div class="field" style="margin-top:14px;">
         <label>Thứ tự</label>
         <input id="subStatusModalOrder" type="number" min="0" step="1" value="${Number.isFinite(Number(v.sort_order)) ? Number(v.sort_order) : 0}">
+      </div>
+      <div class="field" style="margin-top:14px; margin-bottom:0;">
+        <label>Màu hiển thị</label>
+        <div class="color-picker-row">
+          <input id="subStatusModalColor" type="color" value="${selectedColor}" aria-label="Màu hiển thị Sub-Status">
+          <span class="color-picker-value" id="subStatusModalColorValue">${selectedColor}</span>
+        </div>
+        <div class="hint">Màu này sẽ được dùng cho badge Sub-Status trong CR Log và mobile view.</div>
       </div>
     </div>
     <div class="modal-foot">
@@ -9390,6 +9445,9 @@ function openSubStatusModal(subStatus){
   $("#subStatusModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#subStatusModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#subStatusModalSave").addEventListener("click", saveSubStatus);
+  $("#subStatusModalColor").addEventListener("input", e=>{
+    $("#subStatusModalColorValue").textContent = normalizeHexColor(e.target.value);
+  });
   $("#subStatusModalName").focus();
   if(!overlay.dataset.dismissBound){
     overlay.dataset.dismissBound = "1";
@@ -9402,6 +9460,7 @@ async function saveSubStatus(){
   const overlay = $("#subStatusModalOverlay");
   const name = ($("#subStatusModalName").value || "").trim().replace(/\s+/g, " ");
   const sortOrder = Number($("#subStatusModalOrder").value);
+  const color = normalizeHexColor($("#subStatusModalColor").value, defaultSubStatusColor(name));
   if(!name){ toast("Vui lòng nhập tên Sub-Status", "err"); return; }
   if(!Number.isInteger(sortOrder) || sortOrder < 0){
     toast("Thứ tự phải là số nguyên từ 0 trở lên.", "err"); return;
@@ -9410,7 +9469,7 @@ async function saveSubStatus(){
   if(duplicate){ toast("Sub-Status này đã tồn tại", "err"); return; }
   const btn = $("#subStatusModalSave");
   btn.disabled = true; btn.textContent = "Đang lưu...";
-  const values = { name, sort_order: sortOrder };
+  const values = { name, sort_order: sortOrder, color };
   const result = STATE.editingSubStatusId
     ? await STATE.sb.from("cr_sub_statuses").update(values).eq("id", STATE.editingSubStatusId)
     : await STATE.sb.from("cr_sub_statuses").insert({ ...values, created_by: STATE.session?.user?.id || null });

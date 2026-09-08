@@ -903,6 +903,12 @@ body.sidebar-collapsed .modal-overlay.full{ left: var(--sidebar-w-collapsed); }
 .field textarea.auto-grow{ resize:none; overflow-y:hidden; }
 .field-row-btn{ display:flex; gap:8px; }
 .field-row-btn input{ flex:1; }
+.tc-id-prefix{
+  display:flex; align-items:center; flex-shrink:0; white-space:nowrap;
+  font-family: var(--font-mono); font-size:12.5px; font-weight:700; color:#0e9a94;
+  background:#effafa; border:1px solid #cdeceb; border-radius:9px;
+  padding:0 12px;
+}
 
 .status-create{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .status-create input{
@@ -6481,17 +6487,20 @@ async function deleteCr(cr_id){
    8. CR MODAL (ADD / EDIT)
 --------------------------------------------------------------------------- */
 function nextCrIdSuggestion(){
-  let max = 0;
+  const used = new Set();
   STATE.crList.forEach(c=>{
     const m = /^CR_(\d+)$/i.exec(c.cr_id||"");
-    if(m) max = Math.max(max, parseInt(m[1],10));
+    if(m) used.add(parseInt(m[1],10));
   });
-  return "CR_" + String(max+1).padStart(3,"0");
+  let n = 1;
+  while(used.has(n)) n++;
+  return "CR_" + String(n).padStart(3,"0");
 }
 
 function crModalTemplate(cr){
   const v = cr || {};
   const isEdit = !!cr;
+  const suggestedCrId = isEdit ? "" : nextCrIdSuggestion();
   return `
   <div class="modal modal-lg">
     <div class="modal-head">
@@ -6504,9 +6513,10 @@ function crModalTemplate(cr){
         <div class="field">
           <label>CR ID *</label>
           <div class="field-row-btn">
-            <input id="f_cr_id" type="text" value="${esc(v.cr_id||'')}" placeholder="CR_001" ${isEdit?'':''}>
+            <input id="f_cr_id" type="text" value="${esc(isEdit? (v.cr_id||'') : suggestedCrId)}" placeholder="CR_001" ${isEdit?'':''}>
             ${isEdit? '' : '<button class="btn btn-ghost btn-sm" id="btnSuggestCrId" type="button">Gợi ý</button>'}
           </div>
+          ${isEdit? '' : '<div class="hint">Hệ thống tự gợi ý số CR nhỏ nhất còn trống — bạn vẫn có thể sửa tay nếu cần.</div>'}
         </div>
         <div class="field">
           <label>App</label>
@@ -6678,7 +6688,6 @@ async function saveCr(overlay, isEdit){
    priority/approval) như form tạo/sửa CR thủ công.
 --------------------------------------------------------------------------- */
 const CR_IMPORT_COLUMNS = [
-  { header: "CR ID*",                         key: "cr_id",            required: true },
   { header: "Old Name From InterK",           key: "old_name" },
   { header: "Rename Folder",                  key: "rename_folder" },
   { header: "App",                            key: "app" },
@@ -6701,6 +6710,9 @@ const CR_IMPORT_COLUMNS = [
   { header: "Progress",                       key: "progress" },
   { header: "Note",                           key: "note" },
 ];
+// Không còn cột CR ID trong template: mỗi dòng import luôn là 1 CR MỚI,
+// hệ thống (trigger phía Supabase) tự cấp CR ID nhỏ nhất còn trống — xem
+// hàm assign_cr_id() trong supabase_schema.sql.
 const CR_IMPORT_SHEET_NAME = "CR_Log";
 const CR_IMPORT_LISTS_SHEET_NAME = "Danh_sach_hop_le";
 
@@ -6727,7 +6739,6 @@ function downloadCrTemplate(){
   }
   const headerRow = CR_IMPORT_COLUMNS.map(c=>c.header);
   const exampleRow = CR_IMPORT_COLUMNS.map(c=>{
-    if(c.key === "cr_id") return "CR_0" + String((STATE.crList?.length||0)+1).padStart(2,"0");
     if(c.key === "status") return (CR_LISTS.status && CR_LISTS.status[0]) || "New";
     if(c.key === "category") return CR_LISTS.category[0];
     if(c.key === "priority") return CR_LISTS.priority[0];
@@ -6861,8 +6872,6 @@ function buildImportRow(row, rowRaw){
 }
 
 function validateImportRows(rows){
-  const seenIds = new Set();
-  const existingIds = new Set((STATE.crList||[]).map(c=>c.cr_id));
   return rows.map((row, i)=>{
     const errors = [];
     CR_IMPORT_COLUMNS.forEach(c=>{
@@ -6875,13 +6884,7 @@ function validateImportRows(rows){
         }
       }
     });
-    let willUpdate = false;
-    if(row.cr_id){
-      if(seenIds.has(row.cr_id)) errors.push(`CR ID "${row.cr_id}" bị trùng trong file`);
-      seenIds.add(row.cr_id);
-      if(existingIds.has(row.cr_id)) willUpdate = true;
-    }
-    return { rowIndex: i+1, data: row, errors, willUpdate, valid: errors.length===0 };
+    return { rowIndex: i+1, data: row, errors, valid: errors.length===0 };
   });
 }
 
@@ -6889,40 +6892,32 @@ function renderImportPreview(overlay, annotated){
   const host = $("#importPreviewHost");
   const total = annotated.length;
   const validCount = annotated.filter(r=>r.valid).length;
-  const updateCount = annotated.filter(r=>r.valid && r.willUpdate).length;
   const errorCount = total - validCount;
 
   host.innerHTML = `
     <div class="import-summary">
       <div class="import-stat"><b>${total}</b><span>Tổng số dòng đọc được</span></div>
-      <div class="import-stat ok"><b>${validCount}</b><span>Hợp lệ (nhập được)</span></div>
-      <div class="import-stat info"><b>${updateCount}</b><span>Trong đó sẽ cập nhật đè CR đã có</span></div>
+      <div class="import-stat ok"><b>${validCount}</b><span>Hợp lệ (sẽ tạo CR mới)</span></div>
       <div class="import-stat ${errorCount? 'danger':''}"><b>${errorCount}</b><span>Có lỗi (sẽ bỏ qua)</span></div>
     </div>
-    <div class="field" style="max-width:420px;">
-      <label>Với CR ID đã tồn tại trong hệ thống</label>
-      <select id="importDupMode">
-        <option value="overwrite">Ghi đè bằng dữ liệu trong file</option>
-        <option value="skip">Bỏ qua, giữ nguyên dữ liệu cũ</option>
-      </select>
-    </div>
-    <div class="table-wrap" style="margin-top:14px;">
+    <p style="font-size:12.5px; color:#7890a2; margin:-6px 0 14px;">
+      Mỗi dòng hợp lệ sẽ tạo <b>1 CR hoàn toàn mới</b> — CR ID được hệ thống tự cấp
+      (số nhỏ nhất còn trống), không lấy từ file Excel.
+    </p>
+    <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>CR ID</th><th>Tiêu đề</th><th>Category</th><th>Priority</th><th>Status</th><th>Kết quả</th></tr></thead>
+        <thead><tr><th>#</th><th>Tiêu đề</th><th>Category</th><th>Priority</th><th>Status</th><th>Kết quả</th></tr></thead>
         <tbody>
           ${annotated.map(r=>`
             <tr>
               <td class="cell-dim">${r.rowIndex}</td>
-              <td class="cell-id">${esc(r.data.cr_id || "—")}</td>
               <td class="cell-title" title="${esc(r.data.rename_folder||r.data.old_name||'')}">${esc(r.data.rename_folder || r.data.old_name || r.data.app || "—")}</td>
               <td>${esc(r.data.category||"—")}</td>
               <td>${esc(r.data.priority||"—")}</td>
               <td>${esc(r.data.status||"—")}</td>
               <td>${
                 r.valid
-                  ? (r.willUpdate
-                      ? `<span class="badge" style="background:var(--info-dim); color:var(--info);"><span class="dot" style="background:var(--info)"></span>Sẽ cập nhật</span>`
-                      : `<span class="badge" style="background:var(--success-dim); color:var(--success);"><span class="dot" style="background:var(--success)"></span>Hợp lệ</span>`)
+                  ? `<span class="badge" style="background:var(--success-dim); color:var(--success);"><span class="dot" style="background:var(--success)"></span>Hợp lệ</span>`
                   : `<span class="badge" style="background:var(--danger-dim); color:var(--danger);" title="${esc(r.errors.join('; '))}"><span class="dot" style="background:var(--danger)"></span>${esc(r.errors[0])}</span>`
               }</td>
             </tr>
@@ -6936,17 +6931,13 @@ function renderImportPreview(overlay, annotated){
   confirmBtn.classList.remove("hidden");
   confirmBtn.disabled = validCount === 0;
   confirmBtn.textContent = `Xác nhận nhập ${validCount} dòng hợp lệ`;
-  confirmBtn.onclick = ()=> executeImport(overlay, annotated, validCount);
+  confirmBtn.onclick = ()=> executeImport(overlay, annotated);
 }
 
-async function executeImport(overlay, annotated, validCount){
-  const dupMode = $("#importDupMode")?.value || "overwrite";
-  let rowsToImport = annotated.filter(r=>r.valid);
-  if(dupMode === "skip"){
-    rowsToImport = rowsToImport.filter(r=>!r.willUpdate);
-  }
+async function executeImport(overlay, annotated){
+  const rowsToImport = annotated.filter(r=>r.valid);
   if(!rowsToImport.length){
-    toast("Không có dòng nào để nhập (có thể tất cả đều trùng CR đã có và bạn chọn Bỏ qua).", "err");
+    toast("Không có dòng nào hợp lệ để nhập.", "err");
     return;
   }
   const confirmBtn = $("#importConfirmBtn");
@@ -6954,20 +6945,22 @@ async function executeImport(overlay, annotated, validCount){
   const originalLabel = confirmBtn.textContent;
   confirmBtn.textContent = "Đang nhập...";
 
+  // Cố ý KHÔNG gửi cr_id — trigger assign_cr_id() phía Supabase sẽ tự cấp
+  // số CR ID nhỏ nhất còn trống cho từng dòng (xem supabase_schema.sql).
   const payloadRows = rowsToImport.map(r=>{
     const p = {};
     CR_IMPORT_COLUMNS.forEach(c=>{ p[c.key] = r.data[c.key] || null; });
     return p;
   });
 
-  const { error } = await STATE.sb.from("cr_log").upsert(payloadRows, { onConflict: "cr_id" });
+  const { error } = await STATE.sb.from("cr_log").insert(payloadRows);
   confirmBtn.disabled = false;
   confirmBtn.textContent = originalLabel;
   if(error){
     toast("Nhập thất bại: " + error.message, "err");
     return;
   }
-  toast(`Đã nhập thành công ${payloadRows.length} CR`, "ok");
+  toast(`Đã tạo mới thành công ${payloadRows.length} CR`, "ok");
   overlay.classList.remove("show");
   await refreshAll();
 }
@@ -7911,6 +7904,33 @@ async function deleteTc(t){
   if(STATE.drawerCrId===t.cr_id) renderDrawerLinked(t.cr_id);
 }
 
+/* ---- Test Case ID: prefix "UAT_{CR_ID}_" cố định + hậu tố người dùng nhập -- */
+function buildTcPrefix(cr_id){
+  return cr_id ? `UAT_${cr_id}_` : "UAT_(chọn CR)_";
+}
+function parseTcSuffix(cr_id, fullId){
+  if(!fullId) return "";
+  const prefix = buildTcPrefix(cr_id);
+  return (cr_id && fullId.startsWith(prefix)) ? fullId.slice(prefix.length) : fullId;
+}
+function computeNextTcSuffix(cr_id, excludeTcId){
+  if(!cr_id) return "01";
+  const prefix = buildTcPrefix(cr_id);
+  const used = new Set();
+  (STATE.tcList||[]).forEach(t=>{
+    if(excludeTcId && t.id === excludeTcId) return;
+    if(t.cr_id !== cr_id) return;
+    const suf = (t.test_case_id||"").startsWith(prefix) ? (t.test_case_id||"").slice(prefix.length) : null;
+    if(suf){
+      const m = /^(\d+)$/.exec(suf);
+      if(m) used.add(parseInt(m[1],10));
+    }
+  });
+  let n = 1;
+  while(used.has(n)) n++;
+  return String(n).padStart(2,"0");
+}
+
 function tcModalTemplate(t, presetCrId){
   const v = t || {};
   const isEdit = !!t;
@@ -7966,8 +7986,14 @@ function tcModalTemplate(t, presetCrId){
                 <select id="t_cr_id">${optionsHtml(crOptions, v.cr_id || presetCrId)}</select>
               </div>
               <div class="field">
-                <label>Test Case ID</label>
-                <input id="t_test_case_id" type="text" value="${esc(v.test_case_id||'')}" placeholder="UAT_CR_001_01">
+                <label>Test Case ID *</label>
+                <div class="field-row-btn">
+                  <span class="tc-id-prefix" id="tcIdPrefix">${esc(buildTcPrefix(v.cr_id || presetCrId))}</span>
+                  <input id="t_test_case_suffix" type="text"
+                    value="${esc(isEdit ? parseTcSuffix(v.cr_id, v.test_case_id) : computeNextTcSuffix(v.cr_id || presetCrId))}"
+                    placeholder="01">
+                </div>
+                <div class="hint">Chỉ nhập phần số/hậu tố — vd "01" hoặc "01_02" cho case con. Mã đầy đủ tự ghép phía trước, không được trùng.</div>
               </div>
             </div>
           </section>
@@ -8091,6 +8117,7 @@ function tcModalTemplate(t, presetCrId){
 }
 
 function openTcModal(t, presetCrId){
+  const isEdit = !!t;
   STATE.editingTcId = t ? t.id : null;
   if(t) selectDetailRow("tc", t.id);
   STATE.detailCloseSeq.tc++;
@@ -8107,6 +8134,15 @@ function openTcModal(t, presetCrId){
     overlay.dataset.dismissBound = "1";
     overlay.addEventListener("click", e=>{ if(e.target===overlay) closeDetailOverlay(overlay, "tc"); });
   }
+
+  $("#t_cr_id").addEventListener("change", ()=>{
+    const crId = $("#t_cr_id").value;
+    $("#tcIdPrefix").textContent = buildTcPrefix(crId);
+    const suffixInput = $("#t_test_case_suffix");
+    if(!isEdit && !suffixInput.value.trim()){
+      suffixInput.value = computeNextTcSuffix(crId);
+    }
+  });
 
   $all(".tab-btn", overlay).forEach(btn=>{
     btn.addEventListener("click", ()=>{
@@ -8137,9 +8173,21 @@ function openTcModal(t, presetCrId){
 }
 
 async function saveTc(overlay, isEdit){
+  const crIdVal = $("#t_cr_id").value;
+  const suffix = $("#t_test_case_suffix").value.trim();
+  if(!crIdVal){ toast("Vui lòng chọn CR ID", "err"); return; }
+  if(!suffix){ toast("Vui lòng nhập hậu tố cho Test Case ID (vd: 01)", "err"); return; }
+  const fullTestCaseId = buildTcPrefix(crIdVal) + suffix;
+
+  const duplicate = (STATE.tcList||[]).some(x=> x.test_case_id === fullTestCaseId && x.id !== STATE.editingTcId);
+  if(duplicate){
+    toast(`Test Case ID "${fullTestCaseId}" đã tồn tại — vui lòng đổi hậu tố khác.`, "err");
+    return;
+  }
+
   const payload = {
-    cr_id: $("#t_cr_id").value,
-    test_case_id: $("#t_test_case_id").value.trim(),
+    cr_id: crIdVal,
+    test_case_id: fullTestCaseId,
     scenario: $("#t_scenario").value.trim(),
     description: $("#t_description").value,
     expectation: $("#t_expectation").value,
@@ -8154,7 +8202,6 @@ async function saveTc(overlay, isEdit){
     confirmed_date: $("#t_confirmed_date").value || null,
     note: $("#t_note").value,
   };
-  if(!payload.cr_id){ toast("Vui lòng chọn CR ID", "err"); return; }
 
   const btn = $("#tcModalSave"); btn.disabled = true; btn.textContent = "Đang lưu...";
   let error, data;
@@ -8164,7 +8211,14 @@ async function saveTc(overlay, isEdit){
     ({ data, error } = await STATE.sb.from("uat_testcase").insert(payload).select().single());
   }
   btn.disabled = false; btn.textContent = isEdit? "Lưu thay đổi":"Tạo Test Case";
-  if(error){ toast("Lưu thất bại: " + error.message, "err"); return; }
+  if(error){
+    if(String(error.message||"").toLowerCase().includes("duplicate")){
+      toast(`Test Case ID "${fullTestCaseId}" đã tồn tại (trùng ở hệ thống) — vui lòng đổi hậu tố khác.`, "err");
+    } else {
+      toast("Lưu thất bại: " + error.message, "err");
+    }
+    return;
+  }
   toast(isEdit? "Đã cập nhật test case" : "Đã tạo test case", "ok");
   await refreshAll();
   if(STATE.drawerCrId === payload.cr_id) renderDrawerLinked(payload.cr_id);

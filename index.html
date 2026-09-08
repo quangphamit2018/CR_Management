@@ -484,6 +484,9 @@ body.focus-mode .view#view-release .rel-kpis{ display:none; }
 }
 .list-panel-count{ font-size: var(--text-meta-size); color: var(--text-muted); font-weight: var(--text-meta-weight); margin-right:auto; white-space:nowrap; }
 .list-panel-count b{ color: var(--text-primary); font-weight:700; }
+.list-panel-head > .status-create{
+  margin-left:auto; justify-content:flex-end; flex:0 1 auto;
+}
 
 .table-toolbar{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .filter-chip{
@@ -948,6 +951,14 @@ body.sidebar-collapsed .modal-overlay.full{ left: var(--sidebar-w-collapsed); }
   border-radius:9px; padding:8px 10px; color:var(--text-primary); font-size:12.5px;
 }
 .status-create input:focus{ outline:none; border-color:var(--accent); background:var(--bg-surface-soft-hover); }
+@media(max-width:768px){
+  .list-panel-head > .status-create{
+    width:100%; margin-left:0; justify-content:flex-start;
+  }
+  .status-create input:first-child{
+    flex:1 1 auto; min-width:0; width:auto;
+  }
+}
 
 .tabs{ display:flex; gap:4px; border-bottom:1px solid var(--panel-border); padding:0 24px; flex-shrink:0; }
 .tab-btn{
@@ -1631,6 +1642,9 @@ body.sidebar-collapsed .nav-item::before{ left:-2px; }
   width:max-content; max-width:100%; padding:6px 11px; border-radius:999px;
   background:rgba(63,208,201,.12); border:1px solid rgba(63,208,201,.28);
   color:#168f8a; font-size:11.5px; font-weight:800; line-height:1.25;
+}
+.progress-substatus.is-empty{
+  background:#f6f9fb; border-color:#dce7ec; color:#8aa0af; font-weight:600;
 }
 .progress-substatus-label{
   color:#6d8598; font-size:9.5px; font-weight:800; letter-spacing:.06em;
@@ -7300,10 +7314,10 @@ function statusProgressHtml(status, subStatus){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
     <span>${esc(note.text)}</span>
   </div>` : "";
-  const subStatusHtml = subStatus ? `<div class="progress-substatus" title="Sub-Status hiện tại">
+  const subStatusHtml = `<div class="progress-substatus ${subStatus ? "" : "is-empty"}" title="Sub-Status hiện tại">
     <span class="progress-substatus-label">Sub-Status</span>
-    <span>${esc(subStatus)}</span>
-  </div>` : "";
+    <span>${esc(subStatus || "Chưa có Sub-Status")}</span>
+  </div>`;
   return `<div class="progress-track ${muted?'muted':''}">${steps}</div>${subStatusHtml}${noteHtml}`;
 }
 

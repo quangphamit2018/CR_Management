@@ -4165,6 +4165,31 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
           <span id="statusFootCount">Hiển thị 0 / 0 status</span>
         </div>
       </div>
+
+      <div class="list-panel" style="margin-top:16px;">
+        <div class="list-panel-head">
+          <div class="list-panel-count"><b id="evidenceStepCount">0</b> Evidence Step</div>
+          <div class="status-create">
+            <input id="evidenceStepNameInput" type="text" maxlength="150" placeholder="Ví dụ: Prepare Data Testing 01">
+            <input id="evidenceStepOrderInput" type="number" min="0" step="1" value="0" style="width:86px;" aria-label="Thứ tự">
+            <button class="btn btn-primary btn-sm" id="btnAddEvidenceStep" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              Thêm bước
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Evidence Step</th><th>Thứ tự</th><th>Trạng thái</th><th></th>
+            </tr></thead>
+            <tbody id="evidenceStepTableBody"></tbody>
+          </table>
+        </div>
+        <div class="list-panel-foot">
+          <span id="evidenceStepFootCount">Hiển thị 0 / 0 Evidence Step</span>
+        </div>
+      </div>
     </section>
 
   </div>
@@ -4177,6 +4202,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 <div class="modal-overlay" id="userModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="confirmModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="attachmentModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="evidenceStepModalOverlay" role="dialog" aria-modal="true"></div>
 
 <div class="drawer-overlay" id="drawerOverlay" role="presentation"></div>
 <div class="drawer" id="crDrawer"></div>
@@ -4212,15 +4238,8 @@ window.CR_LISTS = {
   environment: ["Dev","Staging","Prod"],
   releaseStatus: ["Planned","In Progress","Completed","Rolled Back"],
   attachCategory: ["BRD","FSD","Quotation","Mail","Evidence","Other"],
-  evidenceSteps: [
-    "Prepare Data Testing 01","Prepare Data Testing 02","Prepare Data Testing 03",
-    "Create Sales Order On Pace 01","Create Sales Order On Pace 02","Create Sales Order On Pace 03",
-    "Sync Sales Order To DMS 01","Sync Sales Order To DMS 02",
-    "Delivery Note 01","Delivery Note 02",
-    "Load Out 01","Load Out 02","Load Out 03","Load Out 04","Load Out 05","Load Out 06","Load Out 07",
-    "Sales Order Report 01","Sales Order Report 02",
-    "Sales Register 01","Sales Register 02"
-  ]
+  // Được nạp từ public.evidence_steps sau khi đăng nhập; không hard-code tại đây.
+  evidenceSteps: []
 };
 </script>
 <script>
@@ -4245,6 +4264,7 @@ const STATE = {
   relList: [],
   userList: [],
   statusList: [],
+  evidenceStepList: [],
   currentView: "dashboard",
   filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
   tcFilters: { cr:"", result:"", testor:"", owner:"", search:"" },
@@ -4275,8 +4295,9 @@ const STATE = {
   relColumns: null,
   relSelection: new Set(),
   relSort: [],
-  loadErrors: { cr:null, tc:null, rel:null, admin:null, status:null }, // last fetch error per dataset, null = ok
+  loadErrors: { cr:null, tc:null, rel:null, admin:null, status:null, evidence:null }, // last fetch error per dataset, null = ok
   statusLoadWarned: false,
+  evidenceLoadWarned: false,
 };
 
 /* Togglable CR Log columns (CR ID + Status + Actions are structural, not toggled) */
@@ -4768,6 +4789,9 @@ function subscribeRealtime(){
   STATE.sb.channel("realtime-cr_statuses")
     .on("postgres_changes", { event:"*", schema:"public", table:"cr_statuses" }, debouncedRefresh)
     .subscribe();
+  STATE.sb.channel("realtime-evidence_steps")
+    .on("postgres_changes", { event:"*", schema:"public", table:"evidence_steps" }, debouncedRefresh)
+    .subscribe();
   STATE.sb.channel("realtime-cr_attachments")
     .on("postgres_changes", { event:"*", schema:"public", table:"cr_attachments" }, ()=>{
       if(STATE.drawerCrId){
@@ -4794,7 +4818,7 @@ const VIEW_META = {
   crlog:     { title:"CR Log", sub:"Sổ đăng ký toàn bộ Change Request", search:false },
   uat:       { title:"UAT Test Case", sub:"Test case UAT cho từng Change Request", search:false },
   release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:false },
-  admin:     { title:"Quản trị", sub:"Quản lý người dùng và danh mục Status", search:false },
+  admin:     { title:"Quản trị", sub:"Quản lý người dùng, Status và Evidence Step", search:false },
 };
 
 function closeMobileNav(){
@@ -4904,8 +4928,15 @@ function initShell(){
   });
   $("#btnAddUser").addEventListener("click", ()=> openUserModal(null));
   $("#btnAddStatus").addEventListener("click", addStatus);
+  $("#btnAddEvidenceStep").addEventListener("click", addEvidenceStep);
   $("#statusNameInput").addEventListener("keydown", e=>{
     if(e.key === "Enter"){ e.preventDefault(); addStatus(); }
+  });
+  $("#evidenceStepNameInput").addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); addEvidenceStep(); }
+  });
+  $("#evidenceStepOrderInput").addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); addEvidenceStep(); }
   });
 
   populateSelect($("#filterStatus"), CR_LISTS.status);
@@ -5584,7 +5615,7 @@ async function refreshAll(){
   setRefreshLoading(true);
   if(initialLoad) showLoadingSkeletons();
   try{
-    await Promise.all([fetchStatusList(), fetchCrList(), fetchTcList(), fetchRelList()]);
+    await Promise.all([fetchStatusList(), fetchEvidenceStepList(), fetchCrList(), fetchTcList(), fetchRelList()]);
     renderNavCounts();
     renderDashboard();
     renderCrTable();
@@ -5637,6 +5668,30 @@ async function fetchStatusList(){
   STATE.statusList = (data || []).filter(s=>s && String(s.name||"").trim());
   CR_LISTS.status = STATE.statusList.map(s=>s.name);
   populateStatusControls();
+}
+
+async function fetchEvidenceStepList(){
+  const { data, error } = await STATE.sb
+    .from("evidence_steps")
+    .select("id,name,sort_order,is_active,created_at")
+    .order("sort_order", { ascending:true })
+    .order("name", { ascending:true });
+  if(error){
+    STATE.evidenceStepList = [];
+    CR_LISTS.evidenceSteps = [];
+    STATE.loadErrors.evidence = error.message;
+    if(!STATE.evidenceLoadWarned){
+      toast("Không tải được danh sách Evidence Step: " + error.message, "err");
+      STATE.evidenceLoadWarned = true;
+    }
+    return;
+  }
+  STATE.loadErrors.evidence = null;
+  STATE.evidenceLoadWarned = false;
+  STATE.evidenceStepList = (data || []).filter(s=>s && String(s.name||"").trim());
+  CR_LISTS.evidenceSteps = STATE.evidenceStepList
+    .filter(s=>s.is_active !== false)
+    .map(s=>s.name);
 }
 
 /* ---------------------------------------------------------------------------
@@ -7928,9 +7983,10 @@ async function loadAndRenderAdmin(){
   if(tbody) skeletonTableRows(tbody, 5, 4);
   const statusBody = $("#statusTableBody");
   if(statusBody) skeletonTableRows(statusBody, 3, 3);
-  await Promise.all([fetchAppUsers(), fetchStatusList()]);
+  await Promise.all([fetchAppUsers(), fetchStatusList(), fetchEvidenceStepList()]);
   renderAdminTable();
   renderAdminStatusTable();
+  renderAdminEvidenceStepTable();
 }
 
 async function fetchAppUsers(){
@@ -8061,6 +8117,192 @@ function renderAdminStatusTable(){
       });
     }
   });
+}
+
+function renderAdminEvidenceStepTable(){
+  const tbody = $("#evidenceStepTableBody");
+  if(!tbody) return;
+  const rows = STATE.evidenceStepList;
+  const countEl = $("#evidenceStepCount");
+  if(countEl) countEl.textContent = rows.length;
+  const footEl = $("#evidenceStepFootCount");
+  if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${rows.length} Evidence Step`;
+
+  if(STATE.loadErrors.evidence){
+    tbody.innerHTML = `<tr><td colspan="4">${errorStateBlock("Không tải được Evidence Step", STATE.loadErrors.evidence, "admin")}</td></tr>`;
+    return;
+  }
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="4">${emptyStateBlock("Chưa có Evidence Step", "Thêm bước đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(step=>`
+    <tr data-evidence-step-id="${esc(step.id)}">
+      <td class="cell-title">${esc(step.name)}</td>
+      <td class="cell-dim">${Number(step.sort_order)||0}</td>
+      <td>${step.is_active === false
+        ? '<span class="badge" style="background:var(--danger-dim); color:var(--danger);">Đã ẩn</span>'
+        : '<span class="badge" style="background:var(--success-dim); color:var(--success);">Đang dùng</span>'}</td>
+      <td class="cell-actions">
+        <div class="row-actions" style="opacity:1;">
+          <button class="icon-btn" data-evidence-act="edit" title="Sửa Evidence Step">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn danger" data-evidence-act="delete" title="Xóa Evidence Step">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  $all("#evidenceStepTableBody tr[data-evidence-step-id]").forEach(tr=>{
+    const step = rows.find(s=>String(s.id) === String(tr.dataset.evidenceStepId));
+    if(!step) return;
+    $("[data-evidence-act='edit']", tr)?.addEventListener("click", e=>{
+      e.stopPropagation();
+      openEvidenceStepModal(step);
+    });
+    $("[data-evidence-act='delete']", tr)?.addEventListener("click", e=>{
+      e.stopPropagation();
+      confirmDelete(
+        "Xóa Evidence Step?",
+        `Evidence Step "${step.name}" sẽ bị xóa. Evidence đã tải lên vẫn giữ nguyên tên bước.`,
+        ()=> deleteEvidenceStep(step)
+      );
+    });
+  });
+}
+
+function evidenceStepModalTemplate(step){
+  const isEdit = !!step;
+  const v = step || {};
+  return `
+    <div class="modal modal-sm">
+      <div class="modal-head">
+        <div>
+          <h3>${isEdit ? "Sửa Evidence Step" : "Thêm Evidence Step"}</h3>
+          <div class="sub">Danh sách được lưu trên Supabase</div>
+        </div>
+        <button class="modal-close" id="evidenceStepModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Tên bước *</label>
+          <input id="es_name" type="text" maxlength="150" value="${esc(v.name||'')}" placeholder="Ví dụ: Prepare Data Testing 01">
+        </div>
+        <div class="field">
+          <label>Thứ tự</label>
+          <input id="es_order" type="number" min="0" step="1" value="${Number(v.sort_order)||0}">
+          <div class="hint">Số nhỏ hơn sẽ hiển thị trước trong danh sách chọn evidence.</div>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Trạng thái</label>
+          <select id="es_active">
+            <option value="true" ${v.is_active !== false ? "selected" : ""}>Đang dùng</option>
+            <option value="false" ${v.is_active === false ? "selected" : ""}>Ẩn khỏi danh sách</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" id="evidenceStepModalCancel">Hủy</button>
+        <button class="btn btn-primary" id="evidenceStepModalSave">${isEdit ? "Lưu thay đổi" : "Thêm bước"}</button>
+      </div>
+    </div>`;
+}
+
+function closeEvidenceStepModal(){
+  const overlay = $("#evidenceStepModalOverlay");
+  if(!overlay) return;
+  overlay.classList.remove("show");
+  overlay.innerHTML = "";
+}
+
+function openEvidenceStepModal(step){
+  if(STATE.userRole !== "admin") return;
+  const overlay = $("#evidenceStepModalOverlay");
+  if(!overlay) return;
+  overlay.innerHTML = evidenceStepModalTemplate(step);
+  overlay.classList.add("show");
+  $("#evidenceStepModalClose").addEventListener("click", closeEvidenceStepModal);
+  $("#evidenceStepModalCancel").addEventListener("click", closeEvidenceStepModal);
+  $("#evidenceStepModalSave").addEventListener("click", ()=> saveEvidenceStep(step));
+  overlay.onclick = e=>{ if(e.target === overlay) closeEvidenceStepModal(); };
+  $("#es_name").focus();
+}
+
+async function saveEvidenceStep(existingStep){
+  if(STATE.userRole !== "admin") return;
+  const name = ($("#es_name")?.value || "").trim().replace(/\s+/g, " ");
+  const sortOrder = Number.parseInt($("#es_order")?.value, 10);
+  const isActive = $("#es_active")?.value !== "false";
+  if(!name){ toast("Vui lòng nhập tên Evidence Step", "err"); $("#es_name")?.focus(); return; }
+  if(!Number.isInteger(sortOrder) || sortOrder < 0){
+    toast("Thứ tự phải là số nguyên từ 0 trở lên.", "err"); return;
+  }
+  const duplicate = STATE.evidenceStepList.find(s=>
+    String(s.name||"").toLowerCase() === name.toLowerCase() &&
+    (!existingStep || String(s.id) !== String(existingStep.id))
+  );
+  if(duplicate){ toast("Evidence Step này đã tồn tại.", "err"); return; }
+
+  const payload = {
+    name,
+    sort_order: sortOrder,
+    is_active: isActive,
+    updated_at: new Date().toISOString()
+  };
+  let error;
+  if(existingStep){
+    ({ error } = await STATE.sb.from("evidence_steps").update(payload).eq("id", existingStep.id));
+  }else{
+    ({ error } = await STATE.sb.from("evidence_steps").insert({
+      ...payload,
+      created_by: STATE.session?.user?.id || null
+    }));
+  }
+  if(error){ toast("Lưu Evidence Step thất bại: " + error.message, "err"); return; }
+  closeEvidenceStepModal();
+  toast(existingStep ? `Đã cập nhật "${name}"` : `Đã thêm "${name}"`, "ok");
+  await fetchEvidenceStepList();
+  renderAdminEvidenceStepTable();
+}
+
+async function addEvidenceStep(){
+  if(STATE.userRole !== "admin") return;
+  const nameInput = $("#evidenceStepNameInput");
+  const orderInput = $("#evidenceStepOrderInput");
+  const name = (nameInput?.value || "").trim().replace(/\s+/g, " ");
+  const sortOrder = Number.parseInt(orderInput?.value, 10);
+  if(!name){ toast("Vui lòng nhập tên Evidence Step", "err"); nameInput?.focus(); return; }
+  if(!Number.isInteger(sortOrder) || sortOrder < 0){
+    toast("Thứ tự phải là số nguyên từ 0 trở lên.", "err"); return;
+  }
+  if(STATE.evidenceStepList.some(s=>String(s.name||"").toLowerCase() === name.toLowerCase())){
+    toast("Evidence Step này đã tồn tại.", "err"); nameInput?.focus(); return;
+  }
+  const { error } = await STATE.sb.from("evidence_steps").insert({
+    name,
+    sort_order: sortOrder,
+    is_active: true,
+    created_by: STATE.session?.user?.id || null
+  });
+  if(error){ toast("Thêm Evidence Step thất bại: " + error.message, "err"); return; }
+  if(nameInput) nameInput.value = "";
+  if(orderInput) orderInput.value = "0";
+  toast(`Đã thêm Evidence Step "${name}"`, "ok");
+  await fetchEvidenceStepList();
+  renderAdminEvidenceStepTable();
+}
+
+async function deleteEvidenceStep(step){
+  if(STATE.userRole !== "admin") return;
+  const { error } = await STATE.sb.from("evidence_steps").delete().eq("id", step.id);
+  if(error){ toast("Xóa Evidence Step thất bại: " + error.message, "err"); return; }
+  toast(`Đã xóa Evidence Step "${step.name}"`, "ok");
+  await fetchEvidenceStepList();
+  renderAdminEvidenceStepTable();
 }
 
 async function addStatus(){

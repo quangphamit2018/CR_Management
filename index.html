@@ -4251,6 +4251,17 @@ window.CR_LISTS = {
 /* ---------------------------------------------------------------------------
    0. STATE
 --------------------------------------------------------------------------- */
+const VIEW_STORAGE_KEY = "crControlCurrentView";
+const VALID_VIEWS = new Set(["dashboard", "crlog", "uat", "release", "admin"]);
+function getSavedView(){
+  try{
+    const saved = localStorage.getItem(VIEW_STORAGE_KEY);
+    return VALID_VIEWS.has(saved) ? saved : "dashboard";
+  }catch(_){
+    return "dashboard";
+  }
+}
+
 const STATE = {
   sb: null,
   connected: false,
@@ -4265,7 +4276,7 @@ const STATE = {
   userList: [],
   statusList: [],
   evidenceStepList: [],
-  currentView: "dashboard",
+  currentView: getSavedView(),
   filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
   tcFilters: { cr:"", result:"", testor:"", owner:"", search:"" },
   relFilters: { cr:"", status:"", environment:"", owner:"", search:"" },
@@ -5064,6 +5075,10 @@ function initShell(){
       if(document.body.classList.contains("focus-mode")) setFocusMode(false);
     }
   });
+
+  // Khôi phục đúng tab cuối cùng sau F5/refresh.
+  // Chỉ gọi sau khi các handler và view đã sẵn sàng.
+  setView(STATE.currentView);
 }
 
 /* ---------------------------------------------------------------------------
@@ -5357,7 +5372,10 @@ function initAutoGrow(root){
 }
 
 function setView(view){
+  if(!VALID_VIEWS.has(view)) view = "dashboard";
+  if(view === "admin" && STATE.userRole !== "admin") view = "dashboard";
   STATE.currentView = view;
+  try{ localStorage.setItem(VIEW_STORAGE_KEY, view); }catch(_){}
   closeDrawer();
   if($("#tcModalOverlay").classList.contains("show")) closeDetailOverlay($("#tcModalOverlay"), "tc");
   if($("#relModalOverlay").classList.contains("show")) closeDetailOverlay($("#relModalOverlay"), "rel");

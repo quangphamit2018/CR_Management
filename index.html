@@ -1874,6 +1874,14 @@ tbody tr.detail-selected:hover{ background:
    Keep it above the parent detail overlay so it is visible immediately. */
 #attachmentModalOverlay{ z-index:450; }
 
+/* Confirm dialog (Xóa CR / Xóa test case / Xóa evidence / Đăng xuất...) can be
+   triggered from ANYWHERE — including from inside the full-screen editor
+   (.modal-overlay.full, z-index:300) or the attachment editor (z-index:450).
+   It must always render as the absolute top-most layer, otherwise the parent
+   overlay it was opened from can visually cover it and block its buttons
+   (e.g. xóa evidence bên trong "Sửa Test Case"). */
+#confirmModalOverlay{ z-index:600; }
+
 /* One tab treatment for every drawer and modal tab set. */
 .tabs{ gap:6px; overflow-x:auto; scrollbar-width:none; }
 .tabs::-webkit-scrollbar{ display:none; }

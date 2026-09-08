@@ -9,6 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- ExcelJS: chỉ dùng để XUẤT file template với dropdown (Data Validation) thật.
+     SheetJS (xlsx.full.min.js ở trên) bản miễn phí không hỗ trợ ghi Data Validation
+     khi export nên vẫn giữ nguyên để ĐỌC file import như cũ, không đổi hành vi import. -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
 /* ==========================================================================
    DESIGN TOKENS
@@ -6731,40 +6735,107 @@ function excelValueToISODate(v){
   return s;
 }
 
-/* ---- Tải file Excel mẫu (template) ---------------------------------------- */
-function downloadCrTemplate(){
-  if(typeof XLSX === "undefined"){
-    toast("Không tải được thư viện Excel (XLSX). Kiểm tra kết nối mạng rồi thử lại.", "err");
+/* ---- Tải file Excel mẫu (template) ----------------------------------------
+   Dùng ExcelJS (không phải SheetJS/XLSX) chỉ cho việc XUẤT file này, vì bản
+   SheetJS miễn phí đang dùng trong app (xlsx.full.min.js) không hỗ trợ GHI
+   Data Validation (dropdown) — nó chỉ đọc được validation có sẵn, không tạo
+   mới được. ExcelJS hỗ trợ ghi dataValidation type "list" nên 4 cột Category,
+   Priority, Status, Approved Status sẽ có dropdown thật khi mở bằng Excel.
+   Phần ĐỌC file import (handleImportFile ở dưới) vẫn dùng XLSX như cũ, không
+   đổi gì cả — chỉ hàm xuất template này được viết lại.
+--------------------------------------------------------------------------- */
+async function downloadCrTemplate(){
+  if(typeof ExcelJS === "undefined"){
+    toast("Không tải được thư viện Excel (ExcelJS). Kiểm tra kết nối mạng rồi thử lại.", "err");
     return;
   }
-  const headerRow = CR_IMPORT_COLUMNS.map(c=>c.header);
-  const exampleRow = CR_IMPORT_COLUMNS.map(c=>{
-    if(c.key === "status") return (CR_LISTS.status && CR_LISTS.status[0]) || "New";
-    if(c.key === "category") return CR_LISTS.category[0];
-    if(c.key === "priority") return CR_LISTS.priority[0];
-    if(c.key === "approved_status") return "";
-    if(c.type === "date") return "";
-    if(c.key === "app") return "DMS";
-    if(c.key === "requester") return "SFA Team";
-    if(c.key === "rename_folder") return "[CR_0xx] Tên mô tả ngắn gọn cho CR";
-    return "";
-  });
-  const ws = XLSX.utils.aoa_to_sheet([headerRow, exampleRow]);
-  ws["!cols"] = CR_IMPORT_COLUMNS.map(c=> ({ wch: Math.max(18, c.header.length + 2) }));
+  const btn = $("#btnCrTemplate");
+  if(btn){ btn.disabled = true; }
+  try{
+    const headerRow = CR_IMPORT_COLUMNS.map(c=>c.header);
+    const exampleRow = CR_IMPORT_COLUMNS.map(c=>{
+      if(c.key === "status") return (CR_LISTS.status && CR_LISTS.status[0]) || "New";
+      if(c.key === "category") return CR_LISTS.category[0];
+      if(c.key === "priority") return CR_LISTS.priority[0];
+      if(c.key === "approved_status") return "";
+      if(c.type === "date") return "";
+      if(c.key === "app") return "DMS";
+      if(c.key === "requester") return "SFA Team";
+      if(c.key === "rename_folder") return "[CR_0xx] Tên mô tả ngắn gọn cho CR";
+      return "";
+    });
 
-  const listsAoa = [["Category hợp lệ","Priority hợp lệ","Status hợp lệ","Approved Status hợp lệ"]];
-  const maxLen = Math.max(CR_LISTS.category.length, CR_LISTS.priority.length, (CR_LISTS.status||[]).length, CR_LISTS.approval.length);
-  for(let i=0;i<maxLen;i++){
-    listsAoa.push([CR_LISTS.category[i]||"", CR_LISTS.priority[i]||"", (CR_LISTS.status||[])[i]||"", CR_LISTS.approval[i]||""]);
+    const wb = new ExcelJS.Workbook();
+
+    // Sheet danh sách hợp lệ — tạo TRƯỚC để sheet chính có thể tham chiếu tới.
+    const listCols = [
+      { title: "Category hợp lệ",        values: CR_LISTS.category },
+      { title: "Priority hợp lệ",        values: CR_LISTS.priority },
+      { title: "Status hợp lệ",          values: CR_LISTS.status || [] },
+      { title: "Approved Status hợp lệ", values: CR_LISTS.approval },
+    ];
+    const wsLists = wb.addWorksheet(CR_IMPORT_LISTS_SHEET_NAME);
+    wsLists.addRow(listCols.map(c=>c.title));
+    wsLists.columns = [{width:20},{width:16},{width:20},{width:20}];
+    const maxLen = Math.max(...listCols.map(c=>c.values.length), 1);
+    for(let i=0;i<maxLen;i++){
+      wsLists.addRow(listCols.map(c=> c.values[i] || ""));
+    }
+    wsLists.getRow(1).font = { bold: true };
+
+    // Sheet dữ liệu chính (CR_Log)
+    const ws = wb.addWorksheet(CR_IMPORT_SHEET_NAME);
+    ws.columns = CR_IMPORT_COLUMNS.map(c=> ({ width: Math.max(18, c.header.length + 2) }));
+    ws.addRow(headerRow);
+    ws.addRow(exampleRow);
+    ws.getRow(1).font = { bold: true };
+    ws.views = [{ state: "frozen", ySplit: 1 }];
+
+    // Gắn dropdown (Data Validation kiểu "list") cho 4 cột: Category, Priority,
+    // Status*, Approved Status — tham chiếu về sheet Danh_sach_hop_le.
+    const colLetter = (n) => { // n: 1-based column index -> "A","B",...,"AA"...
+      let s = "";
+      while(n > 0){ const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+      return s;
+    };
+    const VALIDATION_COLS = [
+      { key: "category",        listCol: "A" },
+      { key: "priority",        listCol: "B" },
+      { key: "status",          listCol: "C" },
+      { key: "approved_status", listCol: "D" },
+    ];
+    const MAX_DATA_ROWS = 500; // đủ dư cho việc nhập liệu hàng loạt, giữ dropdown tới hàng 500
+    VALIDATION_COLS.forEach(vc=>{
+      const colIdx = CR_IMPORT_COLUMNS.findIndex(c=> c.key === vc.key);
+      if(colIdx === -1) return;
+      const letter = colLetter(colIdx + 1);
+      const formula = `'${CR_IMPORT_LISTS_SHEET_NAME}'!$${vc.listCol}$2:$${vc.listCol}$${maxLen + 1}`;
+      for(let r = 2; r <= MAX_DATA_ROWS; r++){
+        ws.getCell(`${letter}${r}`).dataValidation = {
+          type: "list",
+          allowBlank: true,
+          showErrorMessage: true,
+          errorStyle: "stop",
+          error: "Giá trị không có trong danh sách hợp lệ ở sheet \"" + CR_IMPORT_LISTS_SHEET_NAME + "\".",
+          formulae: [formula],
+        };
+      }
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "CR_Log_Template.xlsx";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+
+    toast("Đã tải file template (đã có dropdown cho Category/Priority/Status/Approved Status). Điền thông tin CR vào sheet \"" + CR_IMPORT_SHEET_NAME + "\" rồi nhập lại qua nút \"Nhập Excel\".", "ok");
+  }catch(err){
+    toast("Tạo file template thất bại: " + err.message, "err");
+  }finally{
+    if(btn){ btn.disabled = false; }
   }
-  const wsLists = XLSX.utils.aoa_to_sheet(listsAoa);
-  wsLists["!cols"] = [{wch:20},{wch:16},{wch:20},{wch:20}];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, CR_IMPORT_SHEET_NAME);
-  XLSX.utils.book_append_sheet(wb, wsLists, CR_IMPORT_LISTS_SHEET_NAME);
-  XLSX.writeFile(wb, "CR_Log_Template.xlsx");
-  toast("Đã tải file template. Điền thông tin CR vào sheet \"" + CR_IMPORT_SHEET_NAME + "\" rồi nhập lại qua nút \"Nhập Excel\".", "ok");
 }
 
 /* ---- Modal nhập Excel ------------------------------------------------------ */

@@ -1626,6 +1626,16 @@ body.sidebar-collapsed .nav-item::before{ left:-2px; }
 .progress-note svg{ width:15px; height:15px; flex-shrink:0; color: var(--accent-2); }
 .progress-note.is-danger{ color: var(--danger); }
 .progress-note.is-danger svg{ color: var(--danger); }
+.progress-substatus{
+  margin:10px auto 0; display:flex; align-items:center; justify-content:center; gap:7px;
+  width:max-content; max-width:100%; padding:6px 11px; border-radius:999px;
+  background:rgba(63,208,201,.12); border:1px solid rgba(63,208,201,.28);
+  color:#168f8a; font-size:11.5px; font-weight:800; line-height:1.25;
+}
+.progress-substatus-label{
+  color:#6d8598; font-size:9.5px; font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase;
+}
 @media(max-width:640px){
   .progress-track{ overflow-x:auto; }
   .progress-step{ min-width:64px; }
@@ -4242,6 +4252,34 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 
       <div class="list-panel" style="margin-top:16px;">
         <div class="list-panel-head">
+          <div>
+            <div class="list-panel-count"><b id="subStatusCount">0</b> sub-status</div>
+            <div class="hint">Danh sách giá trị dùng để theo dõi chi tiết bên trong từng Status</div>
+          </div>
+          <div class="status-create">
+            <input id="subStatusNameInput" type="text" maxlength="120" placeholder="Ví dụ: Vendor Testing">
+            <input id="subStatusOrderInput" type="number" min="0" step="1" value="0" style="width:86px;" aria-label="Thứ tự sub-status">
+            <button class="btn btn-primary btn-sm" id="btnAddSubStatus" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              Thêm sub-status
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Sub-Status</th><th>Thứ tự</th><th></th>
+            </tr></thead>
+            <tbody id="subStatusTableBody"></tbody>
+          </table>
+        </div>
+        <div class="list-panel-foot">
+          <span id="subStatusFootCount">Hiển thị 0 / 0 sub-status</span>
+        </div>
+      </div>
+
+      <div class="list-panel" style="margin-top:16px;">
+        <div class="list-panel-head">
           <div class="list-panel-count"><b id="evidenceStepCount">0</b> Evidence Step</div>
           <div class="status-create">
             <input id="evidenceStepNameInput" type="text" maxlength="150" placeholder="Ví dụ: Prepare Data Testing 01">
@@ -4277,6 +4315,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 <div class="modal-overlay" id="confirmModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="attachmentModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="evidenceStepModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="subStatusModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="importModalOverlay" role="dialog" aria-modal="true"></div>
 
 <div class="drawer-overlay" id="drawerOverlay" role="presentation"></div>
@@ -4305,6 +4344,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 <script>
 window.CR_LISTS = {
   status: ["New","In Review","Approved","Rejected","In Progress","UAT","Ready to Release","Released","Closed","On Hold"],
+  subStatus: [],
   priority: ["Critical","High","Medium","Low"],
   category: ["Enhancement","Bug Fix","New Feature","Compliance","Infrastructure"],
   approval: ["Pending","Approved","Rejected"],
@@ -4350,6 +4390,7 @@ const STATE = {
   relList: [],
   userList: [],
   statusList: [],
+  subStatusList: [],
   evidenceStepList: [],
   currentView: getSavedView(),
   filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
@@ -4381,8 +4422,10 @@ const STATE = {
   relColumns: null,
   relSelection: new Set(),
   relSort: [],
-  loadErrors: { cr:null, tc:null, rel:null, admin:null, status:null, evidence:null }, // last fetch error per dataset, null = ok
+  loadErrors: { cr:null, tc:null, rel:null, admin:null, status:null, subStatus:null, evidence:null }, // last fetch error per dataset, null = ok
   statusLoadWarned: false,
+  subStatusLoadWarned: false,
+  editingSubStatusId: null,
   evidenceLoadWarned: false,
 };
 
@@ -4393,6 +4436,7 @@ const CR_COLUMNS = [
   { key:"category",  label:"Category" },
   { key:"priority",  label:"Priority" },
   { key:"status",    label:"Status" },
+  { key:"sub_status", label:"Sub-Status" },
   { key:"deadline",  label:"Deadline" },
 ];
 function defaultCrColumnState(){
@@ -4463,7 +4507,7 @@ STATE.relColumns = loadRelColumnPrefs();
 const COL_WIDTH_DEFAULTS = {
   cr: {
     __check:44, cr_id:106, title:280, requester:130, category:140,
-    priority:110, status:140, deadline:130, __actions:112,
+    priority:110, status:140, sub_status:170, deadline:130, __actions:112,
   },
   tc: {
     __check:44, cr_id:106, test_case_id:140, scenario:260, owner_scenario:160,
@@ -4749,6 +4793,7 @@ const COLOR = {
   pass_fail: { "Not Started":"#8fa6c2","Pass":"#4cc38a","Fail":"#ee6b74","Blocked":"#e08a3c" },
   release_status: { "Planned":"#8fa6c2","In Progress":"#5b8def","Completed":"#4cc38a","Rolled Back":"#ee6b74" },
   yesNo: { "Yes":"#4cc38a","No":"#ee6b74" },
+  sub_status: {},
   role: { "Quản trị":"#b78af0","Thành viên":"#5b8def" }
 };
 function colorFor(group, key){ return (COLOR[group] && COLOR[group][key]) || "#7488a0"; }
@@ -5169,6 +5214,9 @@ function subscribeRealtime(){
   STATE.sb.channel("realtime-cr_statuses")
     .on("postgres_changes", { event:"*", schema:"public", table:"cr_statuses" }, debouncedRefresh)
     .subscribe();
+  STATE.sb.channel("realtime-cr_sub_statuses")
+    .on("postgres_changes", { event:"*", schema:"public", table:"cr_sub_statuses" }, debouncedRefresh)
+    .subscribe();
   STATE.sb.channel("realtime-evidence_steps")
     .on("postgres_changes", { event:"*", schema:"public", table:"evidence_steps" }, debouncedRefresh)
     .subscribe();
@@ -5308,9 +5356,20 @@ function initShell(){
   });
   $("#btnAddUser").addEventListener("click", ()=> openUserModal(null));
   $("#btnAddStatus").addEventListener("click", addStatus);
+  $("#btnAddSubStatus").addEventListener("click", ()=>{
+    const name = ($("#subStatusNameInput").value || "").trim();
+    const order = $("#subStatusOrderInput").value || "0";
+    openSubStatusModal({ name, sort_order: Number(order) });
+  });
   $("#btnAddEvidenceStep").addEventListener("click", addEvidenceStep);
   $("#statusNameInput").addEventListener("keydown", e=>{
     if(e.key === "Enter"){ e.preventDefault(); addStatus(); }
+  });
+  $("#subStatusNameInput").addEventListener("keydown", e=>{
+    if(e.key === "Enter"){
+      e.preventDefault();
+      openSubStatusModal({ name: e.target.value.trim(), sort_order: Number($("#subStatusOrderInput").value || 0) });
+    }
   });
   $("#evidenceStepNameInput").addEventListener("keydown", e=>{
     if(e.key === "Enter"){ e.preventDefault(); addEvidenceStep(); }
@@ -5851,7 +5910,7 @@ function gsMatchTier(record, idFields, titleFields, otherFields, q){
 function gsSearchCr(q){
   const idFields = ["cr_id"];
   const titleFields = ["app","rename_folder","old_name"];
-  const otherFields = ["requester","department","owner","category","priority","status",
+  const otherFields = ["requester","department","owner","category","priority","status","sub_status",
     "description_brd","description_fsd","progress","note","brd_link","fsd_link","quotation_link","loop_mail_header"];
   return STATE.crList
     .map(c=> ({ tier: gsMatchTier(c, idFields, titleFields, otherFields, q), record:c }))
@@ -6010,7 +6069,7 @@ async function refreshAll(){
   setRefreshLoading(true);
   if(initialLoad) showLoadingSkeletons();
   try{
-    await Promise.all([fetchStatusList(), fetchEvidenceStepList(), fetchCrList(), fetchTcList(), fetchRelList()]);
+    await Promise.all([fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchCrList(), fetchTcList(), fetchRelList()]);
     renderNavCounts();
     renderDashboard();
     renderCrTable();
@@ -6063,6 +6122,28 @@ async function fetchStatusList(){
   STATE.statusList = (data || []).filter(s=>s && String(s.name||"").trim());
   CR_LISTS.status = STATE.statusList.map(s=>s.name);
   populateStatusControls();
+}
+
+async function fetchSubStatusList(){
+  const { data, error } = await STATE.sb
+    .from("cr_sub_statuses")
+    .select("id,name,sort_order,created_at")
+    .order("sort_order", { ascending:true })
+    .order("name", { ascending:true });
+  if(error){
+    STATE.subStatusList = [];
+    CR_LISTS.subStatus = [];
+    STATE.loadErrors.subStatus = error.message;
+    if(!STATE.subStatusLoadWarned){
+      toast("Không tải được danh mục Sub-Status: " + error.message, "err");
+      STATE.subStatusLoadWarned = true;
+    }
+    return;
+  }
+  STATE.loadErrors.subStatus = null;
+  STATE.subStatusLoadWarned = false;
+  STATE.subStatusList = (data || []).filter(s=>s && String(s.name||"").trim());
+  CR_LISTS.subStatus = STATE.subStatusList.map(s=>s.name);
 }
 
 async function fetchEvidenceStepList(){
@@ -6316,7 +6397,7 @@ function filteredCrList(){
     if(f.requester && c.requester !== f.requester) return false;
     if(f.overdueOnly && !isOverdue(c)) return false;
     if(f.search){
-      const hay = [c.cr_id, c.old_name, c.rename_folder, c.app, c.requester, c.department, c.owner].join(" ").toLowerCase();
+      const hay = [c.cr_id, c.old_name, c.rename_folder, c.app, c.requester, c.department, c.owner, c.status, c.sub_status].join(" ").toLowerCase();
       if(!hay.includes(f.search)) return false;
     }
     return true;
@@ -6348,6 +6429,7 @@ function crRowCellHtml(colKey, c, overdue){
     case "category": return `<td>${badge("category", c.category)}</td>`;
     case "priority": return `<td>${badge("priority", c.priority)}</td>`;
     case "status": return `<td>${badge("status", c.status)}</td>`;
+    case "sub_status": return `<td>${c.sub_status ? badge("sub_status", c.sub_status) : '<span class="cell-dim">—</span>'}</td>`;
     case "deadline": return `<td class="cell-dim">${
         c.deadline
           ? (overdue
@@ -6473,6 +6555,7 @@ function renderCrMobileList(rows){
       <div class="cr-card-top">
         <span class="id-chip cell-id">${esc(c.cr_id)}</span>
         ${badge("status", c.status)}
+        ${c.sub_status ? badge("sub_status", c.sub_status) : ""}
       </div>
       <div class="cr-card-title">${esc(crCellTitle(c))}</div>
       <div class="cr-card-badges">${badge("category", c.category)}${badge("priority", c.priority)}</div>
@@ -6596,6 +6679,11 @@ function crModalTemplate(cr){
           <select id="f_status">${optionsHtml(CR_LISTS.status, v.status || CR_LISTS.status[0] || "")}</select>
         </div>
         <div class="field">
+          <label>Sub-Status</label>
+          <select id="f_sub_status">${optionsHtml(CR_LISTS.subStatus, v.sub_status || "")}</select>
+          <div class="hint">Giá trị chi tiết do Admin quản lý; có thể để trống nếu chưa cần theo dõi.</div>
+        </div>
+        <div class="field">
           <label>Approved Status</label>
           <select id="f_approved_status">${optionsHtml(CR_LISTS.approval, v.approved_status)}</select>
         </div>
@@ -6693,6 +6781,7 @@ async function saveCr(overlay, isEdit){
     owner: $("#f_owner").value.trim(),
     approved_date: $("#f_approved_date").value || null,
     approved_status: $("#f_approved_status").value,
+    sub_status: $("#f_sub_status").value || null,
     deadline: $("#f_deadline").value || null,
     loop_mail_header: $("#f_loop_mail_header").value.trim(),
     progress: $("#f_progress").value,
@@ -6722,7 +6811,7 @@ async function saveCr(overlay, isEdit){
    8b. IMPORT CR TỪ EXCEL — tải template & nhập hàng loạt
    Chỉ thêm mới, không đổi hành vi của saveCr()/openCrModal() ở trên.
    Dùng chung đúng danh sách cột & luật hợp lệ (CR_LISTS.status/category/
-   priority/approval) như form tạo/sửa CR thủ công.
+   priority/approval/sub-status) như form tạo/sửa CR thủ công.
 --------------------------------------------------------------------------- */
 const CR_IMPORT_COLUMNS = [
   { header: "Old Name From InterK",           key: "old_name" },
@@ -6736,6 +6825,7 @@ const CR_IMPORT_COLUMNS = [
   { header: "Description BRD",                key: "description_brd" },
   { header: "Description FSD",                key: "description_fsd" },
   { header: "Status*",                        key: "status",           required: true, choices: () => CR_LISTS.status },
+  { header: "Sub-Status",                     key: "sub_status",        choices: () => CR_LISTS.subStatus },
   { header: "BRD Link",                       key: "brd_link" },
   { header: "FSD Link",                       key: "fsd_link" },
   { header: "Quotation Link",                 key: "quotation_link" },
@@ -6772,8 +6862,8 @@ function excelValueToISODate(v){
    Dùng ExcelJS (không phải SheetJS/XLSX) chỉ cho việc XUẤT file này, vì bản
    SheetJS miễn phí đang dùng trong app (xlsx.full.min.js) không hỗ trợ GHI
    Data Validation (dropdown) — nó chỉ đọc được validation có sẵn, không tạo
-   mới được. ExcelJS hỗ trợ ghi dataValidation type "list" nên 4 cột Category,
-   Priority, Status, Approved Status sẽ có dropdown thật khi mở bằng Excel.
+   mới được. ExcelJS hỗ trợ ghi dataValidation type "list" nên các cột danh mục
+   Category, Priority, Status, Sub-Status, Approved Status sẽ có dropdown thật khi mở bằng Excel.
    Phần ĐỌC file import (handleImportFile ở dưới) vẫn dùng XLSX như cũ, không
    đổi gì cả — chỉ hàm xuất template này được viết lại.
 --------------------------------------------------------------------------- */
@@ -6788,6 +6878,7 @@ async function downloadCrTemplate(){
     const headerRow = CR_IMPORT_COLUMNS.map(c=>c.header);
     const exampleRow = CR_IMPORT_COLUMNS.map(c=>{
       if(c.key === "status") return (CR_LISTS.status && CR_LISTS.status[0]) || "New";
+      if(c.key === "sub_status") return (CR_LISTS.subStatus && CR_LISTS.subStatus[0]) || "";
       if(c.key === "category") return CR_LISTS.category[0];
       if(c.key === "priority") return CR_LISTS.priority[0];
       if(c.key === "approved_status") return "";
@@ -6805,11 +6896,12 @@ async function downloadCrTemplate(){
       { title: "Category hợp lệ",        values: CR_LISTS.category },
       { title: "Priority hợp lệ",        values: CR_LISTS.priority },
       { title: "Status hợp lệ",          values: CR_LISTS.status || [] },
+      { title: "Sub-Status hợp lệ",      values: CR_LISTS.subStatus || [] },
       { title: "Approved Status hợp lệ", values: CR_LISTS.approval },
     ];
     const wsLists = wb.addWorksheet(CR_IMPORT_LISTS_SHEET_NAME);
     wsLists.addRow(listCols.map(c=>c.title));
-    wsLists.columns = [{width:20},{width:16},{width:20},{width:20}];
+    wsLists.columns = [{width:20},{width:16},{width:20},{width:20},{width:24}];
     const maxLen = Math.max(...listCols.map(c=>c.values.length), 1);
     for(let i=0;i<maxLen;i++){
       wsLists.addRow(listCols.map(c=> c.values[i] || ""));
@@ -6824,8 +6916,8 @@ async function downloadCrTemplate(){
     ws.getRow(1).font = { bold: true };
     ws.views = [{ state: "frozen", ySplit: 1 }];
 
-    // Gắn dropdown (Data Validation kiểu "list") cho 4 cột: Category, Priority,
-    // Status*, Approved Status — tham chiếu về sheet Danh_sach_hop_le.
+    // Gắn dropdown (Data Validation kiểu "list") cho các cột danh mục —
+    // tham chiếu về sheet Danh_sach_hop_le.
     const colLetter = (n) => { // n: 1-based column index -> "A","B",...,"AA"...
       let s = "";
       while(n > 0){ const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
@@ -6835,7 +6927,8 @@ async function downloadCrTemplate(){
       { key: "category",        listCol: "A" },
       { key: "priority",        listCol: "B" },
       { key: "status",          listCol: "C" },
-      { key: "approved_status", listCol: "D" },
+      { key: "sub_status",      listCol: "D" },
+      { key: "approved_status", listCol: "E" },
     ];
     const MAX_DATA_ROWS = 500; // đủ dư cho việc nhập liệu hàng loạt, giữ dropdown tới hàng 500
     VALIDATION_COLS.forEach(vc=>{
@@ -7142,6 +7235,7 @@ function crLogFieldGroups(cr){
         <div class="crlog-field-group-title">Trạng thái & phê duyệt</div>
         <div class="crlog-field-grid">
           ${crLogField("Status", cr.status)}
+          ${crLogField("Sub-Status", cr.sub_status)}
           ${crLogField("BRD Link", cr.brd_link)}
           ${crLogField("FSD Link", cr.fsd_link)}
           ${crLogField("Quotation Link", cr.quotation_link)}
@@ -7175,7 +7269,7 @@ function linkChip(label, url){
    Ready to Release, On Hold) are shown as an explicit branch note instead of
    being forced onto the line. */
 const STATUS_FLOW = ["New","In Review","Approved","In Progress","UAT","Released","Closed"];
-function statusProgressHtml(status){
+function statusProgressHtml(status, subStatus){
   let idx = STATUS_FLOW.indexOf(status);
   let muted = false, note = null;
   if(idx === -1){
@@ -7206,7 +7300,11 @@ function statusProgressHtml(status){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
     <span>${esc(note.text)}</span>
   </div>` : "";
-  return `<div class="progress-track ${muted?'muted':''}">${steps}</div>${noteHtml}`;
+  const subStatusHtml = subStatus ? `<div class="progress-substatus" title="Sub-Status hiện tại">
+    <span class="progress-substatus-label">Sub-Status</span>
+    <span>${esc(subStatus)}</span>
+  </div>` : "";
+  return `<div class="progress-track ${muted?'muted':''}">${steps}</div>${subStatusHtml}${noteHtml}`;
 }
 
 /* Minimal activity feed built only from timestamps the record already has
@@ -7353,7 +7451,7 @@ function renderDrawer(cr){
 
         <div class="dsec">
           <div class="dsec-head"><span class="dsec-title">Tiến trình trạng thái</span></div>
-          ${statusProgressHtml(cr.status)}
+          ${statusProgressHtml(cr.status, cr.sub_status)}
         </div>
 
         <div class="dsec">
@@ -8798,9 +8896,12 @@ async function loadAndRenderAdmin(){
   if(tbody) skeletonTableRows(tbody, 5, 4);
   const statusBody = $("#statusTableBody");
   if(statusBody) skeletonTableRows(statusBody, 3, 3);
-  await Promise.all([fetchAppUsers(), fetchStatusList(), fetchEvidenceStepList()]);
+  const subStatusBody = $("#subStatusTableBody");
+  if(subStatusBody) skeletonTableRows(subStatusBody, 3, 3);
+  await Promise.all([fetchAppUsers(), fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList()]);
   renderAdminTable();
   renderAdminStatusTable();
+  renderAdminSubStatusTable();
   renderAdminEvidenceStepTable();
 }
 
@@ -8931,6 +9032,57 @@ function renderAdminStatusTable(){
         confirmDelete("Xóa Status?", warning, ()=> deleteStatus(status));
       });
     }
+  });
+}
+
+function renderAdminSubStatusTable(){
+  const tbody = $("#subStatusTableBody");
+  if(!tbody) return;
+  const rows = STATE.subStatusList;
+  const countEl = $("#subStatusCount");
+  if(countEl) countEl.textContent = rows.length;
+  const footEl = $("#subStatusFootCount");
+  if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${rows.length} sub-status`;
+
+  if(STATE.loadErrors.subStatus){
+    tbody.innerHTML = `<tr><td colspan="3">${errorStateBlock("Không tải được danh mục Sub-Status", STATE.loadErrors.subStatus, "admin")}</td></tr>`;
+    return;
+  }
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="3">${emptyStateBlock("Chưa có Sub-Status", "Thêm Sub-Status đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map((s, index)=>`
+    <tr data-sub-status-id="${esc(s.id)}">
+      <td class="cell-title">${esc(s.name)}</td>
+      <td class="cell-dim">${s.sort_order ?? index}</td>
+      <td class="cell-actions">
+        <div class="row-actions" style="opacity:1;">
+          <button class="icon-btn" data-sub-status-act="edit" title="Sửa Sub-Status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn danger" data-sub-status-act="delete" title="Xóa Sub-Status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  $all("#subStatusTableBody tr[data-sub-status-id]").forEach(tr=>{
+    const subStatus = rows.find(s=>String(s.id) === String(tr.dataset.subStatusId));
+    $all("[data-sub-status-act]", tr).forEach(button=>{
+      button.addEventListener("click", e=>{
+        e.stopPropagation();
+        const act = button.dataset.subStatusAct;
+        if(act === "edit") openSubStatusModal(subStatus);
+        if(act === "delete"){
+          const warning = `Sub-Status "${subStatus.name}" sẽ bị xóa khỏi danh mục. Các CR đã lưu vẫn giữ nguyên giá trị cũ.`;
+          confirmDelete("Xóa Sub-Status?", warning, ()=> deleteSubStatus(subStatus));
+        }
+      });
+    });
   });
 }
 
@@ -9178,6 +9330,96 @@ async function addStatus(){
   toast(`Đã thêm Status "${name}"`, "ok");
   await fetchStatusList();
   renderAdminStatusTable();
+}
+
+function subStatusModalTemplate(subStatus){
+  const v = subStatus || {};
+  const isEdit = !!subStatus?.id;
+  return `
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <div><h3>${isEdit ? "Sửa Sub-Status" : "Thêm Sub-Status"}</h3>
+        <div class="sub">Giá trị chi tiết hiển thị trong CR Log và tiến trình</div></div>
+      <button class="modal-close" id="subStatusModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Tên Sub-Status *</label>
+        <input id="subStatusModalName" type="text" maxlength="120" value="${esc(v.name||'')}" placeholder="Ví dụ: Vendor Testing">
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label>Thứ tự</label>
+        <input id="subStatusModalOrder" type="number" min="0" step="1" value="${Number.isFinite(Number(v.sort_order)) ? Number(v.sort_order) : 0}">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="subStatusModalCancel">Hủy</button>
+      <button class="btn btn-primary" id="subStatusModalSave">${isEdit ? "Lưu thay đổi" : "Thêm Sub-Status"}</button>
+    </div>
+  </div>`;
+}
+
+function openSubStatusModal(subStatus){
+  if(STATE.userRole !== "admin") return;
+  STATE.editingSubStatusId = subStatus?.id || null;
+  const overlay = $("#subStatusModalOverlay");
+  overlay.innerHTML = subStatusModalTemplate(subStatus);
+  overlay.classList.add("show");
+  $("#subStatusModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
+  $("#subStatusModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
+  $("#subStatusModalSave").addEventListener("click", saveSubStatus);
+  $("#subStatusModalName").focus();
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  }
+}
+
+async function saveSubStatus(){
+  if(STATE.userRole !== "admin") return;
+  const overlay = $("#subStatusModalOverlay");
+  const name = ($("#subStatusModalName").value || "").trim().replace(/\s+/g, " ");
+  const sortOrder = Number($("#subStatusModalOrder").value);
+  if(!name){ toast("Vui lòng nhập tên Sub-Status", "err"); return; }
+  if(!Number.isInteger(sortOrder) || sortOrder < 0){
+    toast("Thứ tự phải là số nguyên từ 0 trở lên.", "err"); return;
+  }
+  const duplicate = STATE.subStatusList.some(s=>String(s.name).toLowerCase() === name.toLowerCase() && String(s.id) !== String(STATE.editingSubStatusId));
+  if(duplicate){ toast("Sub-Status này đã tồn tại", "err"); return; }
+  const btn = $("#subStatusModalSave");
+  btn.disabled = true; btn.textContent = "Đang lưu...";
+  const values = { name, sort_order: sortOrder };
+  const result = STATE.editingSubStatusId
+    ? await STATE.sb.from("cr_sub_statuses").update(values).eq("id", STATE.editingSubStatusId)
+    : await STATE.sb.from("cr_sub_statuses").insert({ ...values, created_by: STATE.session?.user?.id || null });
+  btn.disabled = false;
+  if(result.error){
+    toast("Lưu Sub-Status thất bại: " + result.error.message, "err");
+    return;
+  }
+  overlay.classList.remove("show");
+  if(!STATE.editingSubStatusId){
+    if($("#subStatusNameInput")) $("#subStatusNameInput").value = "";
+    if($("#subStatusOrderInput")) $("#subStatusOrderInput").value = "0";
+  }
+  toast(STATE.editingSubStatusId ? `Đã cập nhật Sub-Status "${name}"` : `Đã thêm Sub-Status "${name}"`, "ok");
+  await fetchSubStatusList();
+  renderAdminSubStatusTable();
+  renderCrTable();
+  if(STATE.drawerCrId){
+    const cr = STATE.crList.find(c=>c.cr_id===STATE.drawerCrId);
+    if(cr) renderDrawer(cr);
+  }
+}
+
+async function deleteSubStatus(subStatus){
+  if(STATE.userRole !== "admin") return;
+  const { error } = await STATE.sb.from("cr_sub_statuses").delete().eq("id", subStatus.id);
+  if(error){ toast("Xóa Sub-Status thất bại: " + error.message, "err"); return; }
+  toast(`Đã xóa Sub-Status "${subStatus.name}"`, "ok");
+  await fetchSubStatusList();
+  renderAdminSubStatusTable();
+  renderCrTable();
 }
 
 async function deleteStatus(status){

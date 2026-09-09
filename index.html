@@ -7195,7 +7195,7 @@ function reportSetCell(cell, value, descriptor){
     if(cell.value instanceof Date) cell.numFmt = "dd/mm/yyyy hh:mm";
   }else if(typeof raw === "string" && /^https?:\/\//i.test(raw)){
     cell.value = { text: raw, hyperlink: raw };
-    cell.font = { color:"0563C1", underline:{type:"single"} };
+    cell.font = { color:{argb:"FF0563C1"}, underline:{type:"single"} };
   }else{
     cell.value = raw;
   }
@@ -7218,25 +7218,25 @@ function reportStyleSheet(ws, title, subtitle, columns){
   ws.getCell(3, 1).value = `Cập nhật: ${new Date().toLocaleString("vi-VN")}`;
 
   const reportTheme = {
-    navy:"0D2438",
-    navyMid:"102944",
-    surface:"123350",
-    accent:"3FD0C9",
-    accentShade:"24A39D",
-    text:"0A1E33",
-    row:"F4F8FB",
-    rowAccent:"E8F7F6",
-    border:"B9D2DA"
+    navy:"FF0D2438",
+    navyMid:"FF102944",
+    surface:"FF123350",
+    accent:"FF3FD0C9",
+    accentShade:"FF24A39D",
+    text:"FF0A1E33",
+    row:"FFF4F8FB",
+    rowAccent:"FFE8F7F6",
+    border:"FFB9D2DA"
   };
-  ws.getCell(1, 1).font = { name:"Aptos Display", size:16, bold:true, color:"FFFFFF" };
+  ws.getCell(1, 1).font = { name:"Aptos Display", size:16, bold:true, color:{argb:"FFFFFFFF"} };
   ws.getCell(1, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:reportTheme.navy} };
   ws.getCell(1, 1).alignment = { vertical:"middle", horizontal:"left" };
   ws.getRow(1).height = 29;
-  ws.getCell(2, 1).font = { name:"Aptos", size:10, color:"B9D9E0", italic:true };
+  ws.getCell(2, 1).font = { name:"Aptos", size:10, color:{argb:"FFFFFFFF"}, italic:true };
   ws.getCell(2, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:reportTheme.navyMid} };
   ws.getCell(2, 1).alignment = { vertical:"middle" };
   ws.getRow(2).height = 20;
-  ws.getCell(3, 1).font = { name:"Aptos", size:9, color:"9BB8C7" };
+  ws.getCell(3, 1).font = { name:"Aptos", size:9, color:{argb:"FFFFFFFF"} };
   ws.getCell(3, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:reportTheme.navyMid} };
   ws.getCell(3, 1).alignment = { vertical:"middle" };
   ws.getRow(3).height = 18;
@@ -7245,14 +7245,14 @@ function reportStyleSheet(ws, title, subtitle, columns){
   columns.forEach((column, index)=>{
     const cell = header.getCell(index + 1);
     cell.value = column.label;
-    cell.font = { name:"Aptos", size:10, bold:true, color:"FFFFFF" };
+    cell.font = { name:"Aptos", size:10, bold:true, color:{argb:"FFFFFFFF"} };
     cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:reportTheme.surface} };
     cell.alignment = { vertical:"middle", horizontal:"center", wrapText:true };
     cell.border = {
       top:{style:"thin",color:{argb:reportTheme.accentShade}},
       bottom:{style:"medium",color:{argb:reportTheme.accent}},
-      left:{style:"thin",color:{argb:"2D5368"}},
-      right:{style:"thin",color:{argb:"2D5368"}}
+      left:{style:"thin",color:{argb:"FF2D5368"}},
+      right:{style:"thin",color:{argb:"FF2D5368"}}
     };
   });
   header.height = 32;
@@ -7265,7 +7265,7 @@ function reportStyleSheet(ws, title, subtitle, columns){
   ws.eachRow((row, rowNumber)=>{
     if(rowNumber < 6) return;
     row.eachCell(cell=>{
-      cell.font = { name:"Aptos", size:10, color:reportTheme.text };
+      cell.font = { name:"Aptos", size:10, color:{argb:reportTheme.text} };
     });
   });
 }
@@ -7317,7 +7317,7 @@ function reportWhiteHeaderText(ws, lastColumn){
         size: rowNumber === 1 ? 16 : (rowNumber === 5 ? 10 : 9),
         bold: rowNumber === 1 || rowNumber === 5,
         italic: rowNumber === 2,
-        color: "FFFFFF"
+        color: {argb:"FFFFFFFF"}
       };
     }
   });
@@ -7420,9 +7420,9 @@ async function downloadProgressReport(){
       row.height = 72;
       row.eachCell(cell=>{
         cell.alignment = { vertical:"top", wrapText:true };
-        cell.font = { name:"Aptos", size:10, color:"0A1E33" };
-        cell.border = { bottom:{style:"thin", color:{argb:"B9D2DA"}} };
-        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"E8F7F6"} };
+        cell.font = { name:"Aptos", size:10, color:{argb:"FF0A1E33"} };
+        cell.border = { bottom:{style:"thin", color:{argb:"FFB9D2DA"}} };
+        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"FFE8F7F6"} };
       });
     });
     reportAddTable(crSheet, "CRProgressTable", 5 + (STATE.crList || []).length, crColumns.length);
@@ -7479,9 +7479,9 @@ async function downloadProgressReport(){
         : 72;
       row.eachCell(cell=>{
         cell.alignment = { vertical:"top", wrapText:true };
-        cell.font = { name:"Aptos", size:10, color:"0A1E33" };
-        cell.border = { bottom:{style:"thin", color:{argb:"B9D2DA"}} };
-        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"E8F7F6"} };
+        cell.font = { name:"Aptos", size:10, color:{argb:"FF0A1E33"} };
+        cell.border = { bottom:{style:"thin", color:{argb:"FFB9D2DA"}} };
+        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"FFE8F7F6"} };
       });
       evidence.images.forEach((image, imageIndex)=>{
         const imageColumn = uatDataColumnCount + imageIndex + 1;

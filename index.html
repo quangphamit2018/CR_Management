@@ -3957,6 +3957,10 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
           <span class="refresh-label">Làm mới</span>
         </button>
+         <button class="btn btn-ghost btn-sm tb-btn view-action hidden" data-for="dashboard" id="btnProgressReport" type="button" title="Tải báo cáo tiến độ CR và UAT">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/></svg>
+           <span class="report-label">Tải báo cáo</span>
+         </button>
         <button class="btn btn-ghost btn-sm view-action hidden" data-for="crlog" id="btnCrTemplate" type="button" title="Tải file Excel mẫu để điền thông tin CR">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 15V3M7 10l5 5 5-5"/><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/></svg>
           Tải template
@@ -5569,6 +5573,7 @@ function initShell(){
     toast("Đang làm mới dữ liệu...", "info");
     refreshAll();
   });
+  $("#btnProgressReport").addEventListener("click", downloadProgressReport);
 
   $("#lbClose").addEventListener("click", closeLightbox);
   $("#lightbox").addEventListener("click", e=>{ if(e.target.id === "lightbox") closeLightbox(); });
@@ -7059,6 +7064,373 @@ async function downloadCrTemplate(){
     toast("Tạo file template thất bại: " + err.message, "err");
   }finally{
     if(btn){ btn.disabled = false; }
+  }
+}
+
+/* ---- Báo cáo tiến độ CR / UAT / Release -----------------------------------
+   Báo cáo lấy trực tiếp từ ba dataset nghiệp vụ đang nằm trong STATE.
+   Dashboard chỉ là lớp hiển thị và tuyệt đối không được dùng làm nguồn dữ liệu.
+   Evidence ảnh được tải lại từ Storage và nhúng nguyên bản vào sheet UAT.
+---------------------------------------------------------------------------- */
+function reportExcelDate(value){
+  if(!value) return "";
+  if(value instanceof Date) return isNaN(value.getTime()) ? "" : value;
+  const raw = String(value);
+  const date = new Date(raw.length <= 10 ? `${raw}T00:00:00` : raw);
+  return isNaN(date.getTime()) ? raw : date;
+}
+
+function reportBase64(buffer){
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  for(let i = 0; i < bytes.length; i += chunkSize){
+    binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+  }
+  return btoa(binary);
+}
+
+function reportImageDimensions(dataUri){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=> resolve({
+      width: img.naturalWidth || img.width || 1,
+      height: img.naturalHeight || img.height || 1,
+      image: img
+    });
+    img.onerror = ()=> resolve(null);
+    img.src = dataUri;
+  });
+}
+
+async function reportLoadImage(file){
+  let url = "";
+  try{
+    url = await getSignedUrl(file.file_path);
+    if(!url || url === "#") return null;
+    const response = await fetch(url, { cache:"no-store" });
+    if(!response.ok) return null;
+    const blob = await response.blob();
+    const mime = String(file.file_type || blob.type || "").toLowerCase();
+    const rawData = `data:${mime || "application/octet-stream"};base64,${reportBase64(await blob.arrayBuffer())}`;
+    const dimensions = await reportImageDimensions(rawData);
+    if(!dimensions) return null;
+
+    // ExcelJS embeds PNG/JPEG. Other browser image formats are converted only
+    // for the workbook payload; the source file remains unchanged in Storage.
+    let dataUri = rawData;
+    let extension = /jpe?g/i.test(mime) ? "jpeg" : "png";
+    if(!/png|jpe?g/i.test(mime)){
+      const canvas = document.createElement("canvas");
+      canvas.width = dimensions.width;
+      canvas.height = dimensions.height;
+      const ctx = canvas.getContext("2d");
+      if(!ctx) return null;
+      ctx.drawImage(dimensions.image, 0, 0);
+      dataUri = canvas.toDataURL("image/png");
+      extension = "png";
+    }
+
+    const maxWidth = 260;
+    const maxHeight = 170;
+    const scale = Math.min(1, maxWidth / dimensions.width, maxHeight / dimensions.height);
+    return {
+      file,
+      url,
+      dataUri,
+      extension,
+      width: Math.max(1, Math.round(dimensions.width * scale)),
+      height: Math.max(1, Math.round(dimensions.height * scale))
+    };
+  }catch(error){
+    console.warn("Không thể tải evidence cho báo cáo:", file?.file_name, error);
+    return null;
+  }
+}
+
+function reportColumnLetter(number){
+  let result = "";
+  let n = number;
+  while(n > 0){
+    const remainder = (n - 1) % 26;
+    result = String.fromCharCode(65 + remainder) + result;
+    n = Math.floor((n - 1) / 26);
+  }
+  return result;
+}
+
+function reportCellValue(value){
+  if(value === null || value === undefined) return "";
+  return typeof value === "string" ? value : value;
+}
+
+function reportSetCell(cell, value, descriptor){
+  const raw = reportCellValue(value);
+  if(raw === ""){
+    cell.value = "";
+  }else if(descriptor?.date){
+    cell.value = reportExcelDate(raw);
+    if(cell.value instanceof Date) cell.numFmt = "dd/mm/yyyy";
+  }else if(typeof raw === "string" && /^https?:\/\//i.test(raw)){
+    cell.value = { text: raw, hyperlink: raw };
+    cell.font = { color:"0563C1", underline:{type:"single"} };
+  }else{
+    cell.value = raw;
+  }
+}
+
+function reportStyleSheet(ws, title, subtitle, columns){
+  const lastColumn = columns.length;
+  ws.columns = columns.map(column=>({ width: column.width || 20 }));
+  ws.mergeCells(1, 1, 1, lastColumn);
+  ws.mergeCells(2, 1, 2, lastColumn);
+  ws.mergeCells(3, 1, 3, lastColumn);
+  ws.getCell(1, 1).value = title;
+  ws.getCell(2, 1).value = subtitle;
+  ws.getCell(3, 1).value = `Cập nhật: ${new Date().toLocaleString("vi-VN")}`;
+
+  ws.getCell(1, 1).font = { name:"Aptos Display", size:16, bold:true, color:"FFFFFF" };
+  ws.getCell(1, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:"16324F"} };
+  ws.getCell(1, 1).alignment = { vertical:"middle", horizontal:"left" };
+  ws.getRow(1).height = 29;
+  ws.getCell(2, 1).font = { name:"Aptos", size:10, color:"DDEBF5", italic:true };
+  ws.getCell(2, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:"16324F"} };
+  ws.getCell(2, 1).alignment = { vertical:"middle" };
+  ws.getRow(2).height = 20;
+  ws.getCell(3, 1).font = { name:"Aptos", size:9, color:"DDEBF5" };
+  ws.getCell(3, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:"16324F"} };
+  ws.getCell(3, 1).alignment = { vertical:"middle" };
+  ws.getRow(3).height = 18;
+
+  const header = ws.getRow(5);
+  columns.forEach((column, index)=>{
+    const cell = header.getCell(index + 1);
+    cell.value = column.label;
+    cell.font = { name:"Aptos", size:10, bold:true, color:"FFFFFF" };
+    cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"0E6B73"} };
+    cell.alignment = { vertical:"middle", horizontal:"center", wrapText:true };
+    cell.border = {
+      top:{style:"thin",color:{argb:"0A5158"}},
+      bottom:{style:"thin",color:{argb:"0A5158"}},
+      left:{style:"thin",color:{argb:"FFFFFF"}},
+      right:{style:"thin",color:{argb:"FFFFFF"}}
+    };
+  });
+  header.height = 32;
+  ws.views = [{ state:"frozen", ySplit:5 }];
+  ws.autoFilter = { from:{row:5, column:1}, to:{row:5, column:lastColumn} };
+  ws.pageSetup = { orientation:"landscape", fitToPage:true, fitToWidth:1, fitToHeight:0, paperSize:9 };
+  ws.pageMargins = { left:0.25, right:0.25, top:0.5, bottom:0.5, header:0.2, footer:0.2 };
+  ws.headerFooter = { oddFooter:{ center:"Trang &P / &N" } };
+}
+
+function reportAddTable(ws, name, lastRow, lastColumn){
+  if(lastRow < 6) return;
+  ws.addTable({
+    name,
+    ref:`A5:${reportColumnLetter(lastColumn)}${lastRow}`,
+    headerRow:true,
+    style:{ theme:"TableStyleMedium2", showFirstColumn:false, showLastColumn:false, showRowStripes:true, showColumnStripes:false }
+  });
+}
+
+async function downloadProgressReport(){
+  const btn = $("#btnProgressReport");
+  if(!btn || btn.disabled) return;
+  if(typeof ExcelJS === "undefined"){
+    toast("Không tải được thư viện Excel (ExcelJS). Kiểm tra kết nối mạng rồi thử lại.", "err");
+    return;
+  }
+  btn.disabled = true;
+  btn.classList.add("is-loading");
+  btn.setAttribute("aria-busy", "true");
+  const label = $(".report-label", btn);
+  const originalLabel = label?.textContent || "Tải báo cáo";
+  if(label) label.textContent = "Đang tạo...";
+
+  try{
+    // Load every evidence record by Test Case ID. No Dashboard aggregates are
+    // read here; the three report sheets are built from raw STATE records.
+    const evidenceMap = new Map();
+    let maxImageCount = 0;
+    await Promise.all((STATE.tcList || []).map(async testcase=>{
+      const files = testcase.id ? await fetchTcAttachments(testcase.id) : [];
+      const images = [];
+      for(const file of files){
+        const mime = String(file.file_type || "").toLowerCase();
+        if(mime.startsWith("image/")){
+          const image = await reportLoadImage(file);
+          if(image) images.push(image);
+        }
+      }
+      evidenceMap.set(String(testcase.id), { files, images });
+      maxImageCount = Math.max(maxImageCount, images.length);
+    }));
+    maxImageCount = Math.max(maxImageCount, 1);
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "CR Control";
+    workbook.lastModifiedBy = "CR Control";
+    workbook.created = new Date();
+    workbook.modified = new Date();
+    workbook.properties = { title:"CR Progress Report", subject:"CR / UAT / Release progress" };
+
+    const crColumns = [
+      {label:"No", width:7, value:c=>crLogNo(c)},
+      {label:"CR ID", width:13, value:c=>c.cr_id},
+      {label:"Old Name From InterK", width:24, value:c=>c.old_name},
+      {label:"Rename Folder", width:28, value:c=>c.rename_folder},
+      {label:"App", width:16, value:c=>c.app},
+      {label:"Requester", width:18, value:c=>c.requester},
+      {label:"Department", width:16, value:c=>c.department},
+      {label:"Request Date", width:14, date:true, value:c=>c.request_date},
+      {label:"Category", width:17, value:c=>c.category},
+      {label:"Priority", width:12, value:c=>c.priority},
+      {label:"Description BRD", width:40, value:c=>c.description_brd},
+      {label:"Description FSD", width:40, value:c=>c.description_fsd},
+      {label:"Status", width:17, value:c=>c.status},
+      {label:"Sub-Status", width:18, value:c=>c.sub_status},
+      {label:"BRD Link", width:28, value:c=>c.brd_link},
+      {label:"FSD Link", width:28, value:c=>c.fsd_link},
+      {label:"Quotation Link", width:28, value:c=>c.quotation_link},
+      {label:"Owner", width:18, value:c=>c.owner},
+      {label:"Approved Date", width:14, date:true, value:c=>c.approved_date},
+      {label:"Approved Status", width:17, value:c=>c.approved_status},
+      {label:"Deadline", width:14, date:true, value:c=>c.deadline},
+      {label:"Loop Mail Header", width:38, value:c=>c.loop_mail_header},
+      {label:"Progress", width:42, value:c=>c.progress},
+      {label:"Note", width:38, value:c=>c.note},
+      {label:"Tổng test", width:11, value:c=>STATE.tcList.filter(t=>t.cr_id===c.cr_id).length},
+      {label:"Pass", width:9, value:c=>STATE.tcList.filter(t=>t.cr_id===c.cr_id && String(t.pass_fail||"").toLowerCase()==="pass").length},
+      {label:"Fail", width:9, value:c=>STATE.tcList.filter(t=>t.cr_id===c.cr_id && String(t.pass_fail||"").toLowerCase()==="fail").length},
+      {label:"Chưa hoàn tất", width:14, value:c=>{
+        const linked = STATE.tcList.filter(t=>t.cr_id===c.cr_id);
+        return linked.filter(t=>!["pass","fail"].includes(String(t.pass_fail||"").toLowerCase())).length;
+      }}
+    ];
+    const crSheet = workbook.addWorksheet("CR_Log");
+    reportStyleSheet(crSheet, "CR PROGRESS REPORT", "Nguồn dữ liệu: CR Log và các UAT Test Case liên kết", crColumns);
+    (STATE.crList || []).forEach((record, index)=>{
+      const row = crSheet.addRow([]);
+      crColumns.forEach((column, columnIndex)=> reportSetCell(row.getCell(columnIndex + 1), column.value(record), column));
+      row.height = 42;
+      row.eachCell(cell=>{
+        cell.alignment = { vertical:"top", wrapText:true };
+        cell.border = { bottom:{style:"hair", color:{argb:"D9E6EC"}} };
+        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"F5F9FB"} };
+      });
+    });
+    reportAddTable(crSheet, "CRProgressTable", 5 + (STATE.crList || []).length, crColumns.length);
+
+    const uatColumns = [
+      {label:"CR ID", width:13, value:t=>t.cr_id},
+      {label:"Test Case ID", width:22, value:t=>t.test_case_id},
+      {label:"Scenario", width:30, value:t=>t.scenario},
+      {label:"Description", width:38, value:t=>t.description},
+      {label:"Expectation", width:38, value:t=>t.expectation},
+      {label:"Step by Step", width:42, value:t=>t.step_by_step},
+      {label:"Data test", width:34, value:t=>t.data_test},
+      {label:"Actual Result", width:38, value:t=>t.actual_result},
+      {label:"Pass/Fail", width:14, value:t=>t.pass_fail},
+      {label:"Owner Scenario", width:18, value:t=>t.owner_scenario},
+      {label:"Testor", width:18, value:t=>t.testor},
+      {label:"Testing Date", width:14, date:true, value:t=>t.testing_date},
+      {label:"Owner Confirm", width:18, value:t=>t.owner_confirm},
+      {label:"Confirmed Date", width:14, date:true, value:t=>t.confirmed_date},
+      {label:"Note", width:34, value:t=>t.note},
+      {label:"Evidence Count", width:14, value:t=>evidenceMap.get(String(t.id))?.files.length || 0},
+      {label:"Evidence Files", width:34, value:t=>(evidenceMap.get(String(t.id))?.files || []).map(file=>{
+        const step = file.evidence_step ? `[${file.evidence_step}] ` : "";
+        return step + (file.file_name || "");
+      }).join("\n")}
+    ];
+    for(let i=1; i<=maxImageCount; i++) uatColumns.push({label:`Evidence Image ${i}`, width:38});
+
+    const uatSheet = workbook.addWorksheet("UAT_Testcase");
+    reportStyleSheet(uatSheet, "UAT TEST CASE & EVIDENCE", "Nguồn dữ liệu: UAT Test Case; ảnh được nhúng theo đúng Test Case ID", uatColumns);
+    (STATE.tcList || []).forEach((testcase, index)=>{
+      const evidence = evidenceMap.get(String(testcase.id)) || { files:[], images:[] };
+      const row = uatSheet.addRow([]);
+      uatColumns.forEach((column, columnIndex)=>{
+        if(columnIndex < 17) reportSetCell(row.getCell(columnIndex + 1), column.value(testcase), column);
+      });
+      row.getCell(16).value = evidence.files.length;
+      row.getCell(17).value = evidence.files.map(file=>{
+        const step = file.evidence_step ? `[${file.evidence_step}] ` : "";
+        return step + (file.file_name || "");
+      }).join("\n");
+      row.height = evidence.images.length ? 138 : 42;
+      row.eachCell(cell=>{
+        cell.alignment = { vertical:"top", wrapText:true };
+        cell.border = { bottom:{style:"hair", color:{argb:"D9E6EC"}} };
+        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"F5F9FB"} };
+      });
+      evidence.images.forEach((image, imageIndex)=>{
+        const imageColumn = 18 + imageIndex;
+        const imageId = workbook.addImage({ base64:image.dataUri, extension:image.extension });
+        row.getCell(imageColumn).value = image.file.file_name || `Evidence ${imageIndex + 1}`;
+        row.getCell(imageColumn).alignment = { vertical:"bottom", horizontal:"center", wrapText:true };
+        uatSheet.addImage(imageId, {
+          tl:{ col:imageColumn - 1 + 0.06, row:row.number - 1 + 0.05 },
+          ext:{ width:image.width, height:image.height }
+        });
+      });
+    });
+    reportAddTable(uatSheet, "UatEvidenceTable", 5 + (STATE.tcList || []).length, uatColumns.length);
+
+    const releaseColumns = [
+      {label:"CR ID", width:13, value:r=>r.cr_id},
+      {label:"Release ID", width:18, value:r=>r.release_id},
+      {label:"Tên Release / Version", width:30, value:r=>r.release_name},
+      {label:"Môi trường", width:16, value:r=>r.environment},
+      {label:"Ngày dự kiến", width:14, date:true, value:r=>r.planned_date},
+      {label:"Ngày thực tế", width:14, date:true, value:r=>r.actual_date},
+      {label:"Trạng thái", width:18, value:r=>r.status},
+      {label:"Go-live Checklist", width:18, value:r=>r.checklist_golive},
+      {label:"Release Owner", width:18, value:r=>r.release_owner},
+      {label:"Sign-off by", width:18, value:r=>r.signoff_by},
+      {label:"Ngày sign-off", width:14, date:true, value:r=>r.signoff_date},
+      {label:"Danh sách tính năng", width:38, value:r=>r.features},
+      {label:"Deploy Plan", width:38, value:r=>r.deploy_plan},
+      {label:"Rollback Plan", width:38, value:r=>r.rollback_plan},
+      {label:"Note", width:34, value:r=>r.note}
+    ];
+    const releaseSheet = workbook.addWorksheet("Release_PRD");
+    reportStyleSheet(releaseSheet, "RELEASE / PRD REPORT", "Nguồn dữ liệu: Release / PRD liên kết với CR", releaseColumns);
+    (STATE.relList || []).forEach((record, index)=>{
+      const row = releaseSheet.addRow([]);
+      releaseColumns.forEach((column, columnIndex)=> reportSetCell(row.getCell(columnIndex + 1), column.value(record), column));
+      row.height = 42;
+      row.eachCell(cell=>{
+        cell.alignment = { vertical:"top", wrapText:true };
+        cell.border = { bottom:{style:"hair", color:{argb:"D9E6EC"}} };
+        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"F5F9FB"} };
+      });
+    });
+    reportAddTable(releaseSheet, "ReleasePrdTable", 5 + (STATE.relList || []).length, releaseColumns.length);
+
+    const timestamp = new Date();
+    const pad = number=>String(number).padStart(2, "0");
+    const filename = `CR_Progress_Report_${timestamp.getFullYear()}${pad(timestamp.getMonth()+1)}${pad(timestamp.getDate())}_${pad(timestamp.getHours())}${pad(timestamp.getMinutes())}.xlsx`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    toast(`Đã tải báo cáo gồm ${STATE.crList.length} CR, ${STATE.tcList.length} test case và ${STATE.relList.length} release.`, "ok");
+  }catch(error){
+    console.error(error);
+    toast("Tạo báo cáo thất bại: " + (error?.message || error), "err");
+  }finally{
+    btn.disabled = false;
+    btn.classList.remove("is-loading");
+    btn.removeAttribute("aria-busy");
+    if(label) label.textContent = originalLabel;
   }
 }
 

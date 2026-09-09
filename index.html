@@ -7304,6 +7304,23 @@ function reportAddTable(ws, name, lastRow, lastColumn){
     columns,
     rows
   });
+  reportWhiteHeaderText(ws, lastColumn);
+}
+
+function reportWhiteHeaderText(ws, lastColumn){
+  const headerRows = [1, 2, 3, 5];
+  headerRows.forEach(rowNumber=>{
+    for(let columnIndex = 1; columnIndex <= lastColumn; columnIndex++){
+      const cell = ws.getCell(rowNumber, columnIndex);
+      cell.font = {
+        name: rowNumber === 1 ? "Aptos Display" : "Aptos",
+        size: rowNumber === 1 ? 16 : (rowNumber === 5 ? 10 : 9),
+        bold: rowNumber === 1 || rowNumber === 5,
+        italic: rowNumber === 2,
+        color: "FFFFFF"
+      };
+    }
+  });
 }
 
 async function downloadProgressReport(){

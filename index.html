@@ -7103,6 +7103,12 @@ function reportImageDimensions(dataUri){
   });
 }
 
+function reportIsImageFile(file){
+  const mime = String(file?.file_type || "").toLowerCase();
+  const name = String(file?.file_name || "").toLowerCase();
+  return mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(name);
+}
+
 async function reportLoadImage(file){
   let url = "";
   try{
@@ -7111,7 +7117,17 @@ async function reportLoadImage(file){
     const response = await fetch(url, { cache:"no-store" });
     if(!response.ok) return null;
     const blob = await response.blob();
-    const mime = String(file.file_type || blob.type || "").toLowerCase();
+    const fileName = String(file.file_name || "").toLowerCase();
+    const extensionMime = /\.jpe?g$/i.test(fileName) ? "image/jpeg"
+      : /\.png$/i.test(fileName) ? "image/png"
+      : /\.gif$/i.test(fileName) ? "image/gif"
+      : /\.webp$/i.test(fileName) ? "image/webp"
+      : /\.svg$/i.test(fileName) ? "image/svg+xml"
+      : /\.bmp$/i.test(fileName) ? "image/bmp" : "";
+    const declaredMime = String(file.file_type || "").toLowerCase();
+    const mime = declaredMime.startsWith("image/") ? declaredMime
+      : (String(blob.type || "").toLowerCase().startsWith("image/") ? String(blob.type).toLowerCase() : extensionMime);
+    if(!mime.startsWith("image/")) return null;
     const rawData = `data:${mime || "application/octet-stream"};base64,${reportBase64(await blob.arrayBuffer())}`;
     const dimensions = await reportImageDimensions(rawData);
     if(!dimensions) return null;
@@ -7171,6 +7187,9 @@ function reportSetCell(cell, value, descriptor){
   }else if(descriptor?.date){
     cell.value = reportExcelDate(raw);
     if(cell.value instanceof Date) cell.numFmt = "dd/mm/yyyy";
+  }else if(descriptor?.dateTime){
+    cell.value = reportExcelDate(raw);
+    if(cell.value instanceof Date) cell.numFmt = "dd/mm/yyyy hh:mm";
   }else if(typeof raw === "string" && /^https?:\/\//i.test(raw)){
     cell.value = { text: raw, hyperlink: raw };
     cell.font = { color:"0563C1", underline:{type:"single"} };
@@ -7226,10 +7245,37 @@ function reportStyleSheet(ws, title, subtitle, columns){
 
 function reportAddTable(ws, name, lastRow, lastColumn){
   if(lastRow < 6) return;
+  const columns = [];
+  const usedNames = new Set();
+  for(let index = 1; index <= lastColumn; index++){
+    const sourceName = String(ws.getCell(5, index).value || `Column ${index}`).trim();
+    let columnName = sourceName || `Column ${index}`;
+    let suffix = 2;
+    while(usedNames.has(columnName)){
+      columnName = `${sourceName || `Column ${index}`} ${suffix++}`;
+    }
+    usedNames.add(columnName);
+    columns.push({ name:columnName });
+  }
+  const rows = [];
+  for(let rowIndex = 6; rowIndex <= lastRow; rowIndex++){
+    const row = [];
+    for(let columnIndex = 1; columnIndex <= lastColumn; columnIndex++){
+      const value = ws.getCell(rowIndex, columnIndex).value;
+      if(value && typeof value === "object" && !Array.isArray(value) && "hyperlink" in value){
+        row.push(value.text || value.hyperlink || "");
+      }else{
+        row.push(value === undefined ? null : value);
+      }
+    }
+    rows.push(row);
+  }
   ws.addTable({
     name,
     ref:`A5:${reportColumnLetter(lastColumn)}${lastRow}`,
     headerRow:true,
+    columns,
+    rows,
     style:{ theme:"TableStyleMedium2", showFirstColumn:false, showLastColumn:false, showRowStripes:true, showColumnStripes:false }
   });
 }
@@ -7257,8 +7303,7 @@ async function downloadProgressReport(){
       const files = testcase.id ? await fetchTcAttachments(testcase.id) : [];
       const images = [];
       for(const file of files){
-        const mime = String(file.file_type || "").toLowerCase();
-        if(mime.startsWith("image/")){
+        if(reportIsImageFile(file)){
           const image = await reportLoadImage(file);
           if(image) images.push(image);
         }
@@ -7306,7 +7351,10 @@ async function downloadProgressReport(){
       {label:"Chưa hoàn tất", width:14, value:c=>{
         const linked = STATE.tcList.filter(t=>t.cr_id===c.cr_id);
         return linked.filter(t=>!["pass","fail"].includes(String(t.pass_fail||"").toLowerCase())).length;
-      }}
+      }},
+      {label:"Record ID", width:28, value:c=>c.id},
+      {label:"Created At", width:20, dateTime:true, value:c=>c.created_at},
+      {label:"Updated At", width:20, dateTime:true, value:c=>c.updated_at}
     ];
     const crSheet = workbook.addWorksheet("CR_Log");
     reportStyleSheet(crSheet, "CR PROGRESS REPORT", "Nguồn dữ liệu: CR Log và các UAT Test Case liên kết", crColumns);
@@ -7342,8 +7390,12 @@ async function downloadProgressReport(){
       {label:"Evidence Files", width:34, value:t=>(evidenceMap.get(String(t.id))?.files || []).map(file=>{
         const step = file.evidence_step ? `[${file.evidence_step}] ` : "";
         return step + (file.file_name || "");
-      }).join("\n")}
+      }).join("\n")},
+      {label:"Record ID", width:28, value:t=>t.id},
+      {label:"Created At", width:20, dateTime:true, value:t=>t.created_at},
+      {label:"Updated At", width:20, dateTime:true, value:t=>t.updated_at}
     ];
+    const uatDataColumnCount = uatColumns.length;
     for(let i=1; i<=maxImageCount; i++) uatColumns.push({label:`Evidence Image ${i}`, width:38});
 
     const uatSheet = workbook.addWorksheet("UAT_Testcase");
@@ -7352,13 +7404,8 @@ async function downloadProgressReport(){
       const evidence = evidenceMap.get(String(testcase.id)) || { files:[], images:[] };
       const row = uatSheet.addRow([]);
       uatColumns.forEach((column, columnIndex)=>{
-        if(columnIndex < 17) reportSetCell(row.getCell(columnIndex + 1), column.value(testcase), column);
+        if(column.value) reportSetCell(row.getCell(columnIndex + 1), column.value(testcase), column);
       });
-      row.getCell(16).value = evidence.files.length;
-      row.getCell(17).value = evidence.files.map(file=>{
-        const step = file.evidence_step ? `[${file.evidence_step}] ` : "";
-        return step + (file.file_name || "");
-      }).join("\n");
       row.height = evidence.images.length ? 138 : 42;
       row.eachCell(cell=>{
         cell.alignment = { vertical:"top", wrapText:true };
@@ -7366,7 +7413,7 @@ async function downloadProgressReport(){
         if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"F5F9FB"} };
       });
       evidence.images.forEach((image, imageIndex)=>{
-        const imageColumn = 18 + imageIndex;
+        const imageColumn = uatDataColumnCount + imageIndex + 1;
         const imageId = workbook.addImage({ base64:image.dataUri, extension:image.extension });
         row.getCell(imageColumn).value = image.file.file_name || `Evidence ${imageIndex + 1}`;
         row.getCell(imageColumn).alignment = { vertical:"bottom", horizontal:"center", wrapText:true };
@@ -7393,7 +7440,10 @@ async function downloadProgressReport(){
       {label:"Danh sách tính năng", width:38, value:r=>r.features},
       {label:"Deploy Plan", width:38, value:r=>r.deploy_plan},
       {label:"Rollback Plan", width:38, value:r=>r.rollback_plan},
-      {label:"Note", width:34, value:r=>r.note}
+      {label:"Note", width:34, value:r=>r.note},
+      {label:"Record ID", width:28, value:r=>r.id},
+      {label:"Created At", width:20, dateTime:true, value:r=>r.created_at},
+      {label:"Updated At", width:20, dateTime:true, value:r=>r.updated_at}
     ];
     const releaseSheet = workbook.addWorksheet("Release_PRD");
     reportStyleSheet(releaseSheet, "RELEASE / PRD REPORT", "Nguồn dữ liệu: Release / PRD liên kết với CR", releaseColumns);

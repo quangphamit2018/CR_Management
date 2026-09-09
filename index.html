@@ -3962,10 +3962,10 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/></svg>
            <span class="report-label">Tải báo cáo</span>
          </button>
-         <button class="btn btn-ghost btn-sm tb-btn view-action hidden" data-for="dashboard" id="btnEvidenceZip" type="button" title="Tải toàn bộ ảnh evidence theo CR và Step">
-           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 7.5A2.5 2.5 0 016.5 5h2l1.2-1.5h4.6L15.5 5h2A2.5 2.5 0 0120 7.5v9A2.5 2.5 0 0117.5 19h-11A2.5 2.5 0 014 16.5z"/><circle cx="12" cy="12" r="3.5"/><path d="M18 8h.01"/></svg>
-           <span class="evidence-zip-label">Tải ảnh</span>
-         </button>
+        <button class="btn btn-ghost btn-sm tb-btn view-action hidden" data-for="dashboard,uat" id="btnEvidenceZip" type="button" title="Tải toàn bộ ảnh evidence theo cấu trúc thư mục">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16a1 1 0 001-1v-4H3v4a1 1 0 001 1z"/><path d="M8 17h8"/></svg>
+          <span class="evidence-zip-label">Tải ảnh</span>
+        </button>
         <button class="btn btn-ghost btn-sm view-action hidden" data-for="crlog" id="btnCrTemplate" type="button" title="Tải file Excel mẫu để điền thông tin CR">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 15V3M7 10l5 5 5-5"/><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/></svg>
           Tải template
@@ -5573,13 +5573,13 @@ function initShell(){
   $("#btnCrImport").addEventListener("click", openImportModal);
   $("#btnAddTc").addEventListener("click", ()=> openTcModal(null));
   $("#btnAddRel").addEventListener("click", ()=> openRelModal(null));
+  $("#btnEvidenceZip").addEventListener("click", downloadEvidenceImagesZip);
   $("#btnDashRefresh").addEventListener("click", ()=>{
     if(STATE.refreshing) return;
     toast("Đang làm mới dữ liệu...", "info");
     refreshAll();
   });
   $("#btnProgressReport").addEventListener("click", downloadProgressReport);
-  $("#btnEvidenceZip").addEventListener("click", downloadEvidenceZip);
 
   $("#lbClose").addEventListener("click", closeLightbox);
   $("#lightbox").addEventListener("click", e=>{ if(e.target.id === "lightbox") closeLightbox(); });
@@ -5922,7 +5922,10 @@ function setView(view){
   $("#view-"+view).classList.remove("hidden");
   $("#topbarTitle").textContent = VIEW_META[view].title;
   $("#topbarSub").textContent = VIEW_META[view].sub;
-  $all(".view-action").forEach(b=> b.classList.toggle("hidden", b.dataset.for !== view));
+  $all(".view-action").forEach(b=> {
+    const views = String(b.dataset.for || "").split(",").map(item=>item.trim());
+    b.classList.toggle("hidden", !views.includes(view));
+  });
   if(view === "admin") loadAndRenderAdmin();
 }
 
@@ -6351,6 +6354,148 @@ async function fetchTcAttachments(testcase_id){
   const { data, error } = await STATE.sb.from("cr_attachments").select("*").eq("testcase_id", testcase_id).order("uploaded_at", { ascending:false });
   if(error){ toast("Lỗi tải evidence: " + error.message, "err"); return []; }
   return data || [];
+}
+
+function zipFolderName(value, fallback){
+  const raw = String(value || fallback || "Chưa đặt tên")
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[. ]+$/g, "");
+  return raw || fallback || "Chưa đặt tên";
+}
+
+function evidenceCrFolderName(crId){
+  const cr = (STATE.crList || []).find(item=>String(item.cr_id) === String(crId)) || {};
+  const configuredName = String(cr.rename_folder || "").trim();
+  if(configuredName){
+    const fullName = /^\[CR_[^\]]+\]/i.test(configuredName)
+      ? configuredName
+      : `[${crId}] ${configuredName}`;
+    return zipFolderName(fullName, `[${crId}]`);
+  }
+  const description = String(cr.old_name || cr.app || crId || "CR").trim();
+  return zipFolderName(`[${crId}] ${description}`, `[${crId}]`);
+}
+
+function evidenceTestCaseFolderName(testcase){
+  const id = String(testcase.test_case_id || `UAT_${testcase.cr_id || "CR"}_UNKNOWN`).trim();
+  const scenario = String(testcase.scenario || "").trim();
+  return zipFolderName(`[${id}]${scenario ? ` ${scenario}` : ""}`, `[${id}]`);
+}
+
+function zipFileName(value, fallback){
+  const name = zipFolderName(value, fallback);
+  return name || fallback || "evidence";
+}
+
+async function downloadEvidenceImagesZip(){
+  const btn = $("#btnEvidenceZip");
+  if(!btn || btn.disabled) return;
+  if(typeof JSZip === "undefined"){
+    toast("Không tải được thư viện tạo ZIP. Kiểm tra kết nối mạng rồi thử lại.", "err");
+    return;
+  }
+  if(!(STATE.tcList || []).length){
+    toast("Chưa có Test Case UAT để tải ảnh evidence.", "info");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.classList.add("is-loading");
+  btn.setAttribute("aria-busy", "true");
+  const label = $(".evidence-zip-label", btn);
+  const originalLabel = label?.textContent || "Tải ảnh";
+  const setLabel = text=>{ if(label) label.textContent = text; };
+
+  try{
+    setLabel("Đang tìm ảnh...");
+    const records = [];
+    await Promise.all((STATE.tcList || []).map(async testcase=>{
+      const files = await fetchTcAttachments(testcase.id);
+      files
+        .filter(file=>fileKind(file.file_name, file.file_type) === "image")
+        .forEach(file=>records.push({ testcase, file }));
+    }));
+
+    if(!records.length){
+      toast("Không tìm thấy ảnh evidence để tải.", "info");
+      return;
+    }
+
+    const zip = new JSZip();
+    const usedNames = new Map();
+    let addedCount = 0;
+    let failedCount = 0;
+
+    for(let index = 0; index < records.length; index++){
+      const { testcase, file } = records[index];
+      setLabel(`Đang tải ${index + 1}/${records.length}...`);
+      try{
+        const signedUrl = await getSignedUrl(file.file_path);
+        if(!signedUrl || signedUrl === "#") throw new Error("Không tạo được đường dẫn tải ảnh");
+        const response = await fetch(signedUrl, { cache:"no-store" });
+        if(!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        // Đưa Blob gốc vào ZIP, không resize, convert hay re-encode ảnh.
+        const crFolder = evidenceCrFolderName(testcase.cr_id);
+        const testcaseFolder = evidenceTestCaseFolderName(testcase);
+        const stepFolder = zipFolderName(file.evidence_step || "Khác", "Khác");
+        const folder = `${crFolder}/${testcaseFolder}/${stepFolder}`;
+        const baseName = zipFileName(file.file_name, `evidence-${file.id || index + 1}`);
+        const extension = baseName.match(/(\.[^.]*)$/)?.[1] || "";
+        const stem = extension ? baseName.slice(0, -extension.length) : baseName;
+        const nameKey = folder.toLowerCase();
+        const folderNames = usedNames.get(nameKey) || new Set();
+        let finalName = baseName;
+        let duplicateNumber = 2;
+        while(folderNames.has(finalName.toLowerCase())){
+          finalName = `${stem} (${duplicateNumber++})${extension}`;
+        }
+        folderNames.add(finalName.toLowerCase());
+        usedNames.set(nameKey, folderNames);
+        zip.file(`${folder}/${finalName}`, await response.blob(), { compression:"STORE" });
+        addedCount++;
+      }catch(error){
+        failedCount++;
+        console.warn("Không thể tải ảnh evidence", file, error);
+      }
+    }
+
+    if(!addedCount){
+      toast("Không thể tải ảnh evidence nào. Vui lòng thử lại.", "err");
+      return;
+    }
+
+    setLabel("Đang đóng gói...");
+    const zipBlob = await zip.generateAsync(
+      { type:"blob", compression:"STORE", streamFiles:true },
+      metadata=>{
+        setLabel(`Đang đóng gói ${Math.round(metadata.percent)}%...`);
+      }
+    );
+    const url = URL.createObjectURL(zipBlob);
+    const anchor = document.createElement("a");
+    const now = new Date();
+    const pad = value=>String(value).padStart(2, "0");
+    anchor.href = url;
+    anchor.download = `CR_Evidence_Images_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.zip`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+
+    const suffix = failedCount ? ` Bỏ qua ${failedCount} ảnh lỗi.` : "";
+    toast(`Đã tải ${addedCount} ảnh gốc vào file ZIP theo cấu trúc CR / UAT / Evidence Step.${suffix}`, failedCount ? "info" : "ok");
+  }catch(error){
+    console.error(error);
+    toast("Tạo file ZIP thất bại: " + (error?.message || error), "err");
+  }finally{
+    btn.disabled = false;
+    btn.classList.remove("is-loading");
+    btn.removeAttribute("aria-busy");
+    setLabel(originalLabel);
+  }
 }
 
 function renderNavCounts(){
@@ -7560,133 +7705,6 @@ async function downloadProgressReport(){
   }catch(error){
     console.error(error);
     toast("Tạo báo cáo thất bại: " + (error?.message || error), "err");
-  }finally{
-    btn.disabled = false;
-    btn.classList.remove("is-loading");
-    btn.removeAttribute("aria-busy");
-    if(label) label.textContent = originalLabel;
-  }
-}
-
-function evidenceZipSafeName(value, fallback){
-  const cleaned = String(value || "")
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/[. ]+$/g, "")
-    .trim()
-    .slice(0, 150);
-  return cleaned || fallback;
-}
-
-function evidenceZipUniqueName(folderPath, fileName, usedNames){
-  if(!usedNames.has(folderPath)) usedNames.set(folderPath, new Set());
-  const names = usedNames.get(folderPath);
-  const dot = fileName.lastIndexOf(".");
-  const base = dot > 0 ? fileName.slice(0, dot) : fileName;
-  const extension = dot > 0 ? fileName.slice(dot) : "";
-  let candidate = fileName;
-  let index = 2;
-  while(names.has(candidate)){
-    candidate = `${base} (${index++})${extension}`;
-  }
-  names.add(candidate);
-  return candidate;
-}
-
-async function downloadEvidenceZip(){
-  const btn = $("#btnEvidenceZip");
-  if(!btn || btn.disabled) return;
-  if(typeof JSZip === "undefined"){
-    toast("Không tải được thư viện ZIP. Kiểm tra kết nối mạng rồi thử lại.", "err");
-    return;
-  }
-
-  const label = $(".evidence-zip-label", btn);
-  const originalLabel = label?.textContent || "Tải ảnh";
-  btn.disabled = true;
-  btn.classList.add("is-loading");
-  btn.setAttribute("aria-busy", "true");
-  if(label) label.textContent = "Đang tải ảnh...";
-
-  try{
-    const crMap = new Map((STATE.crList || []).map(cr=>[String(cr.cr_id), cr]));
-    const zip = new JSZip();
-    const usedNames = new Map();
-    let imageCount = 0;
-    let skippedCount = 0;
-    const testcases = STATE.tcList || [];
-
-    for(let testcaseIndex = 0; testcaseIndex < testcases.length; testcaseIndex++){
-      const testcase = testcases[testcaseIndex];
-      const files = testcase.id ? await fetchTcAttachments(testcase.id) : [];
-      const imageFiles = files.filter(reportIsImageFile);
-      const cr = crMap.get(String(testcase.cr_id));
-      const crId = String(testcase.cr_id || "CR_Unknown").trim() || "CR_Unknown";
-      const crTitle = cr ? crCellTitle(cr) : "";
-      const crFolder = evidenceZipSafeName(
-        crTitle && crTitle !== "—" ? `[${crId}] ${crTitle}` : `[${crId}]`,
-        `[${crId}]`
-      );
-
-      for(let fileIndex = 0; fileIndex < imageFiles.length; fileIndex++){
-        const file = imageFiles[fileIndex];
-        if(label) label.textContent = `Đang tải ảnh ${imageCount + 1}...`;
-        try{
-          const signedUrl = await getSignedUrl(file.file_path);
-          if(!signedUrl || signedUrl === "#") throw new Error("signed URL unavailable");
-          const response = await fetch(signedUrl, { cache:"no-store" });
-          if(!response.ok) throw new Error(`HTTP ${response.status}`);
-          const buffer = await response.arrayBuffer();
-          if(!buffer.byteLength) throw new Error("empty image");
-
-          const stepFolder = evidenceZipSafeName(file.evidence_step || "Evidence", "Evidence");
-          const originalName = evidenceZipSafeName(
-            file.file_name || `evidence_${testcase.test_case_id || testcase.id || fileIndex + 1}`,
-            `evidence_${imageCount + 1}`
-          );
-          const folderPath = `${crFolder}/${stepFolder}`;
-          const uniqueName = evidenceZipUniqueName(folderPath, originalName, usedNames);
-
-          // STORE keeps the original bytes in the ZIP without re-encoding or
-          // downsampling the source image.
-          zip.file(`${folderPath}/${uniqueName}`, buffer, {
-            binary:true,
-            compression:"STORE"
-          });
-          imageCount++;
-        }catch(error){
-          skippedCount++;
-          console.warn("Không thể tải ảnh gốc vào ZIP:", file?.file_name, error);
-        }
-      }
-    }
-
-    if(!imageCount){
-      toast("Không tìm thấy ảnh evidence để tải xuống.", "info");
-      return;
-    }
-
-    const blob = await zip.generateAsync({
-      type:"blob",
-      compression:"STORE",
-      streamFiles:true
-    });
-    const timestamp = new Date();
-    const pad = number=>String(number).padStart(2, "0");
-    const filename = `CR_Evidence_${timestamp.getFullYear()}${pad(timestamp.getMonth()+1)}${pad(timestamp.getDate())}_${pad(timestamp.getHours())}${pad(timestamp.getMinutes())}.zip`;
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-    const suffix = skippedCount ? `; bỏ qua ${skippedCount} ảnh lỗi` : "";
-    toast(`Đã tải ${imageCount} ảnh gốc theo thư mục CR và Step${suffix}.`, "ok");
-  }catch(error){
-    console.error(error);
-    toast("Tải ảnh thất bại: " + (error?.message || error), "err");
   }finally{
     btn.disabled = false;
     btn.classList.remove("is-loading");

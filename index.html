@@ -9475,9 +9475,21 @@ function openStatusModal(status){
   $("#statusModalName").focus();
 }
 
+async function syncCrLogRenamedValue(field, oldName, newName){
+  if(!oldName || oldName === newName) return null;
+  const { error } = await STATE.sb
+    .from("cr_log")
+    .update({ [field]: newName })
+    .eq(field, oldName);
+  return error || null;
+}
+
 async function saveStatus(){
   if(STATE.userRole !== "admin") return;
   const overlay = $("#subStatusModalOverlay");
+  const existingStatus = STATE.statusList.find(s=>String(s.id) === String(STATE.editingStatusId));
+  const oldName = existingStatus?.name || "";
+  const wasEdit = !!existingStatus;
   const name = ($("#statusModalName").value || "").trim().replace(/\s+/g, " ");
   const sortOrder = Number($("#statusModalOrder").value);
   const backgroundColor = normalizeHexColor($("#statusModalBackgroundColor").value, "#eef4fa");
@@ -9499,10 +9511,22 @@ async function saveStatus(){
     toast("Lưu Status thất bại: " + result.error.message, "err");
     return;
   }
+  const syncError = wasEdit ? await syncCrLogRenamedValue("status", oldName, name) : null;
+  if(syncError){
+    await STATE.sb.from("cr_statuses").update({
+      name: oldName,
+      sort_order: existingStatus.sort_order,
+      background_color: existingStatus.background_color || "#eef4fa",
+      text_color: existingStatus.text_color || COLOR.status?.[oldName] || "#4c6478"
+    }).eq("id", existingStatus.id);
+    toast("Đổi tên Status thất bại vì chưa thể đồng bộ CR Log: " + syncError.message, "err");
+    return;
+  }
   overlay.classList.remove("show");
   if(!STATE.editingStatusId && $("#statusNameInput")) $("#statusNameInput").value = "";
   toast(STATE.editingStatusId ? `Đã cập nhật Status "${name}"` : `Đã thêm Status "${name}"`, "ok");
   await fetchStatusList();
+  if(wasEdit) await fetchCrList();
   renderAdminStatusTable();
   renderDashboard();
   renderCrTable();
@@ -9591,6 +9615,9 @@ function openSubStatusModal(subStatus){
 async function saveSubStatus(){
   if(STATE.userRole !== "admin") return;
   const overlay = $("#subStatusModalOverlay");
+  const existingSubStatus = STATE.subStatusList.find(s=>String(s.id) === String(STATE.editingSubStatusId));
+  const oldName = existingSubStatus?.name || "";
+  const wasEdit = !!existingSubStatus;
   const name = ($("#subStatusModalName").value || "").trim().replace(/\s+/g, " ");
   const sortOrder = Number($("#subStatusModalOrder").value);
   const backgroundColor = normalizeHexColor($("#subStatusModalBackgroundColor").value, "#eef4fa");
@@ -9618,6 +9645,18 @@ async function saveSubStatus(){
     toast("Lưu Sub-Status thất bại: " + result.error.message, "err");
     return;
   }
+  const syncError = wasEdit ? await syncCrLogRenamedValue("sub_status", oldName, name) : null;
+  if(syncError){
+    await STATE.sb.from("cr_sub_statuses").update({
+      name: oldName,
+      sort_order: existingSubStatus.sort_order,
+      color: existingSubStatus.color || existingSubStatus.text_color || defaultSubStatusColor(oldName),
+      background_color: existingSubStatus.background_color || "#eef4fa",
+      text_color: existingSubStatus.text_color || existingSubStatus.color || defaultSubStatusColor(oldName)
+    }).eq("id", existingSubStatus.id);
+    toast("Đổi tên Sub-Status thất bại vì chưa thể đồng bộ CR Log: " + syncError.message, "err");
+    return;
+  }
   overlay.classList.remove("show");
   if(!STATE.editingSubStatusId){
     if($("#subStatusNameInput")) $("#subStatusNameInput").value = "";
@@ -9625,6 +9664,7 @@ async function saveSubStatus(){
   }
   toast(STATE.editingSubStatusId ? `Đã cập nhật Sub-Status "${name}"` : `Đã thêm Sub-Status "${name}"`, "ok");
   await fetchSubStatusList();
+  if(wasEdit) await fetchCrList();
   renderAdminSubStatusTable();
   renderCrTable();
   if(STATE.drawerCrId){

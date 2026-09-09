@@ -16,6 +16,7 @@
      SheetJS (xlsx.full.min.js ở trên) bản miễn phí không hỗ trợ ghi Data Validation
      khi export nên vẫn giữ nguyên để ĐỌC file import như cũ, không đổi hành vi import. -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 /* ==========================================================================
    DESIGN TOKENS
@@ -3961,6 +3962,10 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/></svg>
            <span class="report-label">Tải báo cáo</span>
          </button>
+         <button class="btn btn-ghost btn-sm tb-btn view-action hidden" data-for="dashboard" id="btnEvidenceZip" type="button" title="Tải toàn bộ ảnh evidence theo CR và Step">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 7.5A2.5 2.5 0 016.5 5h2l1.2-1.5h4.6L15.5 5h2A2.5 2.5 0 0120 7.5v9A2.5 2.5 0 0117.5 19h-11A2.5 2.5 0 014 16.5z"/><circle cx="12" cy="12" r="3.5"/><path d="M18 8h.01"/></svg>
+           <span class="evidence-zip-label">Tải ảnh</span>
+         </button>
         <button class="btn btn-ghost btn-sm view-action hidden" data-for="crlog" id="btnCrTemplate" type="button" title="Tải file Excel mẫu để điền thông tin CR">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 15V3M7 10l5 5 5-5"/><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/></svg>
           Tải template
@@ -5574,6 +5579,7 @@ function initShell(){
     refreshAll();
   });
   $("#btnProgressReport").addEventListener("click", downloadProgressReport);
+  $("#btnEvidenceZip").addEventListener("click", downloadEvidenceZip);
 
   $("#lbClose").addEventListener("click", closeLightbox);
   $("#lightbox").addEventListener("click", e=>{ if(e.target.id === "lightbox") closeLightbox(); });
@@ -7554,6 +7560,133 @@ async function downloadProgressReport(){
   }catch(error){
     console.error(error);
     toast("Tạo báo cáo thất bại: " + (error?.message || error), "err");
+  }finally{
+    btn.disabled = false;
+    btn.classList.remove("is-loading");
+    btn.removeAttribute("aria-busy");
+    if(label) label.textContent = originalLabel;
+  }
+}
+
+function evidenceZipSafeName(value, fallback){
+  const cleaned = String(value || "")
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/[. ]+$/g, "")
+    .trim()
+    .slice(0, 150);
+  return cleaned || fallback;
+}
+
+function evidenceZipUniqueName(folderPath, fileName, usedNames){
+  if(!usedNames.has(folderPath)) usedNames.set(folderPath, new Set());
+  const names = usedNames.get(folderPath);
+  const dot = fileName.lastIndexOf(".");
+  const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+  const extension = dot > 0 ? fileName.slice(dot) : "";
+  let candidate = fileName;
+  let index = 2;
+  while(names.has(candidate)){
+    candidate = `${base} (${index++})${extension}`;
+  }
+  names.add(candidate);
+  return candidate;
+}
+
+async function downloadEvidenceZip(){
+  const btn = $("#btnEvidenceZip");
+  if(!btn || btn.disabled) return;
+  if(typeof JSZip === "undefined"){
+    toast("Không tải được thư viện ZIP. Kiểm tra kết nối mạng rồi thử lại.", "err");
+    return;
+  }
+
+  const label = $(".evidence-zip-label", btn);
+  const originalLabel = label?.textContent || "Tải ảnh";
+  btn.disabled = true;
+  btn.classList.add("is-loading");
+  btn.setAttribute("aria-busy", "true");
+  if(label) label.textContent = "Đang tải ảnh...";
+
+  try{
+    const crMap = new Map((STATE.crList || []).map(cr=>[String(cr.cr_id), cr]));
+    const zip = new JSZip();
+    const usedNames = new Map();
+    let imageCount = 0;
+    let skippedCount = 0;
+    const testcases = STATE.tcList || [];
+
+    for(let testcaseIndex = 0; testcaseIndex < testcases.length; testcaseIndex++){
+      const testcase = testcases[testcaseIndex];
+      const files = testcase.id ? await fetchTcAttachments(testcase.id) : [];
+      const imageFiles = files.filter(reportIsImageFile);
+      const cr = crMap.get(String(testcase.cr_id));
+      const crId = String(testcase.cr_id || "CR_Unknown").trim() || "CR_Unknown";
+      const crTitle = cr ? crCellTitle(cr) : "";
+      const crFolder = evidenceZipSafeName(
+        crTitle && crTitle !== "—" ? `[${crId}] ${crTitle}` : `[${crId}]`,
+        `[${crId}]`
+      );
+
+      for(let fileIndex = 0; fileIndex < imageFiles.length; fileIndex++){
+        const file = imageFiles[fileIndex];
+        if(label) label.textContent = `Đang tải ảnh ${imageCount + 1}...`;
+        try{
+          const signedUrl = await getSignedUrl(file.file_path);
+          if(!signedUrl || signedUrl === "#") throw new Error("signed URL unavailable");
+          const response = await fetch(signedUrl, { cache:"no-store" });
+          if(!response.ok) throw new Error(`HTTP ${response.status}`);
+          const buffer = await response.arrayBuffer();
+          if(!buffer.byteLength) throw new Error("empty image");
+
+          const stepFolder = evidenceZipSafeName(file.evidence_step || "Evidence", "Evidence");
+          const originalName = evidenceZipSafeName(
+            file.file_name || `evidence_${testcase.test_case_id || testcase.id || fileIndex + 1}`,
+            `evidence_${imageCount + 1}`
+          );
+          const folderPath = `${crFolder}/${stepFolder}`;
+          const uniqueName = evidenceZipUniqueName(folderPath, originalName, usedNames);
+
+          // STORE keeps the original bytes in the ZIP without re-encoding or
+          // downsampling the source image.
+          zip.file(`${folderPath}/${uniqueName}`, buffer, {
+            binary:true,
+            compression:"STORE"
+          });
+          imageCount++;
+        }catch(error){
+          skippedCount++;
+          console.warn("Không thể tải ảnh gốc vào ZIP:", file?.file_name, error);
+        }
+      }
+    }
+
+    if(!imageCount){
+      toast("Không tìm thấy ảnh evidence để tải xuống.", "info");
+      return;
+    }
+
+    const blob = await zip.generateAsync({
+      type:"blob",
+      compression:"STORE",
+      streamFiles:true
+    });
+    const timestamp = new Date();
+    const pad = number=>String(number).padStart(2, "0");
+    const filename = `CR_Evidence_${timestamp.getFullYear()}${pad(timestamp.getMonth()+1)}${pad(timestamp.getDate())}_${pad(timestamp.getHours())}${pad(timestamp.getMinutes())}.zip`;
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    const suffix = skippedCount ? `; bỏ qua ${skippedCount} ảnh lỗi` : "";
+    toast(`Đã tải ${imageCount} ảnh gốc theo thư mục CR và Step${suffix}.`, "ok");
+  }catch(error){
+    console.error(error);
+    toast("Tải ảnh thất bại: " + (error?.message || error), "err");
   }finally{
     btn.disabled = false;
     btn.classList.remove("is-loading");

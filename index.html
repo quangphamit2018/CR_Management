@@ -7147,8 +7147,11 @@ async function reportLoadImage(file){
       extension = "png";
     }
 
-    const maxWidth = 260;
-    const maxHeight = 170;
+    // Keep the original binary untouched and only constrain the on-sheet
+    // display size. A large anchor prevents Excel's Save as Picture from
+    // producing a tiny, visibly degraded thumbnail.
+    const maxWidth = 820;
+    const maxHeight = 500;
     const scale = Math.min(1, maxWidth / dimensions.width, maxHeight / dimensions.height);
     return {
       file,
@@ -7199,8 +7202,14 @@ function reportSetCell(cell, value, descriptor){
 }
 
 function reportStyleSheet(ws, title, subtitle, columns){
+  const options = arguments[3] || {};
   const lastColumn = columns.length;
-  ws.columns = columns.map(column=>({ width: column.width || 20 }));
+  const defaultWidth = options.defaultWidth || 20;
+  const specialWidths = options.specialWidths || {};
+  ws.columns = columns.map((column, index)=>{
+    const letter = reportColumnLetter(index + 1);
+    return { width: specialWidths[letter] || defaultWidth };
+  });
   ws.mergeCells(1, 1, 1, lastColumn);
   ws.mergeCells(2, 1, 2, lastColumn);
   ws.mergeCells(3, 1, 3, lastColumn);
@@ -7208,16 +7217,27 @@ function reportStyleSheet(ws, title, subtitle, columns){
   ws.getCell(2, 1).value = subtitle;
   ws.getCell(3, 1).value = `Cập nhật: ${new Date().toLocaleString("vi-VN")}`;
 
+  const reportTheme = {
+    navy:"0D2438",
+    navyMid:"102944",
+    surface:"123350",
+    accent:"3FD0C9",
+    accentShade:"24A39D",
+    text:"0A1E33",
+    row:"F4F8FB",
+    rowAccent:"E8F7F6",
+    border:"B9D2DA"
+  };
   ws.getCell(1, 1).font = { name:"Aptos Display", size:16, bold:true, color:"FFFFFF" };
-  ws.getCell(1, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:"16324F"} };
+  ws.getCell(1, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:reportTheme.navy} };
   ws.getCell(1, 1).alignment = { vertical:"middle", horizontal:"left" };
   ws.getRow(1).height = 29;
-  ws.getCell(2, 1).font = { name:"Aptos", size:10, color:"DDEBF5", italic:true };
-  ws.getCell(2, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:"16324F"} };
+  ws.getCell(2, 1).font = { name:"Aptos", size:10, color:"B9D9E0", italic:true };
+  ws.getCell(2, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:reportTheme.navyMid} };
   ws.getCell(2, 1).alignment = { vertical:"middle" };
   ws.getRow(2).height = 20;
-  ws.getCell(3, 1).font = { name:"Aptos", size:9, color:"DDEBF5" };
-  ws.getCell(3, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:"16324F"} };
+  ws.getCell(3, 1).font = { name:"Aptos", size:9, color:"9BB8C7" };
+  ws.getCell(3, 1).fill = { type:"pattern", pattern:"solid", fgColor:{argb:reportTheme.navyMid} };
   ws.getCell(3, 1).alignment = { vertical:"middle" };
   ws.getRow(3).height = 18;
 
@@ -7226,13 +7246,13 @@ function reportStyleSheet(ws, title, subtitle, columns){
     const cell = header.getCell(index + 1);
     cell.value = column.label;
     cell.font = { name:"Aptos", size:10, bold:true, color:"FFFFFF" };
-    cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"0E6B73"} };
+    cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:reportTheme.surface} };
     cell.alignment = { vertical:"middle", horizontal:"center", wrapText:true };
     cell.border = {
-      top:{style:"thin",color:{argb:"0A5158"}},
-      bottom:{style:"thin",color:{argb:"0A5158"}},
-      left:{style:"thin",color:{argb:"FFFFFF"}},
-      right:{style:"thin",color:{argb:"FFFFFF"}}
+      top:{style:"thin",color:{argb:reportTheme.accentShade}},
+      bottom:{style:"medium",color:{argb:reportTheme.accent}},
+      left:{style:"thin",color:{argb:"2D5368"}},
+      right:{style:"thin",color:{argb:"2D5368"}}
     };
   });
   header.height = 32;
@@ -7241,6 +7261,13 @@ function reportStyleSheet(ws, title, subtitle, columns){
   ws.pageSetup = { orientation:"landscape", fitToPage:true, fitToWidth:1, fitToHeight:0, paperSize:9 };
   ws.pageMargins = { left:0.25, right:0.25, top:0.5, bottom:0.5, header:0.2, footer:0.2 };
   ws.headerFooter = { oddFooter:{ center:"Trang &P / &N" } };
+  ws.properties = { defaultRowHeight:56 };
+  ws.eachRow((row, rowNumber)=>{
+    if(rowNumber < 6) return;
+    row.eachCell(cell=>{
+      cell.font = { name:"Aptos", size:10, color:reportTheme.text };
+    });
+  });
 }
 
 function reportAddTable(ws, name, lastRow, lastColumn){
@@ -7275,8 +7302,7 @@ function reportAddTable(ws, name, lastRow, lastColumn){
     ref:`A5:${reportColumnLetter(lastColumn)}${lastRow}`,
     headerRow:true,
     columns,
-    rows,
-    style:{ theme:"TableStyleMedium2", showFirstColumn:false, showLastColumn:false, showRowStripes:true, showColumnStripes:false }
+    rows
   });
 }
 
@@ -7299,19 +7325,26 @@ async function downloadProgressReport(){
     // read here; the three report sheets are built from raw STATE records.
     const evidenceMap = new Map();
     let maxImageCount = 0;
+    let maxImageDisplayWidth = 0;
     await Promise.all((STATE.tcList || []).map(async testcase=>{
       const files = testcase.id ? await fetchTcAttachments(testcase.id) : [];
       const images = [];
       for(const file of files){
         if(reportIsImageFile(file)){
           const image = await reportLoadImage(file);
-          if(image) images.push(image);
+           if(image){
+             images.push(image);
+             maxImageDisplayWidth = Math.max(maxImageDisplayWidth, image.width);
+           }
         }
       }
       evidenceMap.set(String(testcase.id), { files, images });
       maxImageCount = Math.max(maxImageCount, images.length);
     }));
     maxImageCount = Math.max(maxImageCount, 1);
+    const evidenceColumnWidth = maxImageDisplayWidth
+      ? Math.max(48, Math.ceil(maxImageDisplayWidth / 6.5) + 4)
+      : 48;
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "CR Control";
@@ -7357,15 +7390,22 @@ async function downloadProgressReport(){
       {label:"Updated At", width:20, dateTime:true, value:c=>c.updated_at}
     ];
     const crSheet = workbook.addWorksheet("CR_Log");
-    reportStyleSheet(crSheet, "CR PROGRESS REPORT", "Nguồn dữ liệu: CR Log và các UAT Test Case liên kết", crColumns);
+    reportStyleSheet(
+      crSheet,
+      "CR PROGRESS REPORT",
+      "Nguồn dữ liệu: CR Log và các UAT Test Case liên kết",
+      crColumns,
+      { defaultWidth:20, specialWidths:{ K:52, L:52, W:52 } }
+    );
     (STATE.crList || []).forEach((record, index)=>{
       const row = crSheet.addRow([]);
       crColumns.forEach((column, columnIndex)=> reportSetCell(row.getCell(columnIndex + 1), column.value(record), column));
-      row.height = 42;
+      row.height = 72;
       row.eachCell(cell=>{
         cell.alignment = { vertical:"top", wrapText:true };
-        cell.border = { bottom:{style:"hair", color:{argb:"D9E6EC"}} };
-        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"F5F9FB"} };
+        cell.font = { name:"Aptos", size:10, color:"0A1E33" };
+        cell.border = { bottom:{style:"thin", color:{argb:"B9D2DA"}} };
+        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"E8F7F6"} };
       });
     });
     reportAddTable(crSheet, "CRProgressTable", 5 + (STATE.crList || []).length, crColumns.length);
@@ -7399,18 +7439,32 @@ async function downloadProgressReport(){
     for(let i=1; i<=maxImageCount; i++) uatColumns.push({label:`Evidence Image ${i}`, width:38});
 
     const uatSheet = workbook.addWorksheet("UAT_Testcase");
-    reportStyleSheet(uatSheet, "UAT TEST CASE & EVIDENCE", "Nguồn dữ liệu: UAT Test Case; ảnh được nhúng theo đúng Test Case ID", uatColumns);
+    const uatSpecialWidths = { F:52, G:52, H:52, O:52 };
+    for(let i=0; i<maxImageCount; i++){
+      uatSpecialWidths[reportColumnLetter(uatDataColumnCount + i + 1)] = evidenceColumnWidth;
+    }
+    reportStyleSheet(
+      uatSheet,
+      "UAT TEST CASE & EVIDENCE",
+      "Nguồn dữ liệu: UAT Test Case; ảnh được nhúng theo đúng Test Case ID",
+      uatColumns,
+      { defaultWidth:20, specialWidths:uatSpecialWidths }
+    );
     (STATE.tcList || []).forEach((testcase, index)=>{
       const evidence = evidenceMap.get(String(testcase.id)) || { files:[], images:[] };
       const row = uatSheet.addRow([]);
       uatColumns.forEach((column, columnIndex)=>{
         if(column.value) reportSetCell(row.getCell(columnIndex + 1), column.value(testcase), column);
       });
-      row.height = evidence.images.length ? 138 : 42;
+      const maxRowImageHeight = evidence.images.reduce((height, image)=>Math.max(height, image.height), 0);
+      row.height = maxRowImageHeight
+        ? Math.min(400, Math.max(300, Math.ceil(maxRowImageHeight * 0.75) + 28))
+        : 72;
       row.eachCell(cell=>{
         cell.alignment = { vertical:"top", wrapText:true };
-        cell.border = { bottom:{style:"hair", color:{argb:"D9E6EC"}} };
-        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"F5F9FB"} };
+        cell.font = { name:"Aptos", size:10, color:"0A1E33" };
+        cell.border = { bottom:{style:"thin", color:{argb:"B9D2DA"}} };
+        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"E8F7F6"} };
       });
       evidence.images.forEach((image, imageIndex)=>{
         const imageColumn = uatDataColumnCount + imageIndex + 1;
@@ -7446,15 +7500,22 @@ async function downloadProgressReport(){
       {label:"Updated At", width:20, dateTime:true, value:r=>r.updated_at}
     ];
     const releaseSheet = workbook.addWorksheet("Release_PRD");
-    reportStyleSheet(releaseSheet, "RELEASE / PRD REPORT", "Nguồn dữ liệu: Release / PRD liên kết với CR", releaseColumns);
+    reportStyleSheet(
+      releaseSheet,
+      "RELEASE / PRD REPORT",
+      "Nguồn dữ liệu: Release / PRD liên kết với CR",
+      releaseColumns,
+      { defaultWidth:20 }
+    );
     (STATE.relList || []).forEach((record, index)=>{
       const row = releaseSheet.addRow([]);
       releaseColumns.forEach((column, columnIndex)=> reportSetCell(row.getCell(columnIndex + 1), column.value(record), column));
-      row.height = 42;
+      row.height = 72;
       row.eachCell(cell=>{
         cell.alignment = { vertical:"top", wrapText:true };
-        cell.border = { bottom:{style:"hair", color:{argb:"D9E6EC"}} };
-        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"F5F9FB"} };
+        cell.font = { name:"Aptos", size:10, color:"0A1E33" };
+        cell.border = { bottom:{style:"thin", color:{argb:"B9D2DA"}} };
+        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"E8F7F6"} };
       });
     });
     reportAddTable(releaseSheet, "ReleasePrdTable", 5 + (STATE.relList || []).length, releaseColumns.length);

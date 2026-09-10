@@ -4630,9 +4630,10 @@ const CR_COLUMNS = [
   { key:"priority",  label:"Priority" },
   { key:"status",    label:"Status" },
   { key:"sub_status", label:"Sub-Status" },
-  { key:"deadline",  label:"Deadline" },
   { key:"brd",       label:"BRD" },
   { key:"fsd",       label:"FSD" },
+  { key:"deadline",  label:"Deadline" },
+  { key:"note",      label:"Note" },
 ];
 function defaultCrColumnState(){
   const o = {}; CR_COLUMNS.forEach(c=> o[c.key] = true); return o;
@@ -4702,7 +4703,7 @@ STATE.relColumns = loadRelColumnPrefs();
 const COL_WIDTH_DEFAULTS = {
   cr: {
     __check:44, cr_id:106, title:280, requester:130, category:140,
-    priority:110, status:140, sub_status:170, deadline:130, brd:92, fsd:92, __actions:112,
+    priority:110, status:140, sub_status:170, brd:92, fsd:92, deadline:130, note:260, __actions:112,
   },
   tc: {
     __check:44, cr_id:106, test_case_id:140, scenario:260, owner_scenario:160,
@@ -6966,6 +6967,7 @@ function crRowCellHtml(colKey, c, overdue){
     case "priority": return `<td>${badge("priority", c.priority)}</td>`;
     case "status": return `<td>${badge("status", c.status)}</td>`;
     case "sub_status": return `<td>${c.sub_status ? badge("sub_status", c.sub_status) : '<span class="cell-dim">—</span>'}</td>`;
+    case "note": return `<td class="cell-dim" title="${esc(c.note || '')}">${esc(c.note || '—')}</td>`;
     case "deadline": return `<td class="cell-dim">${
         c.deadline
           ? (overdue

@@ -689,12 +689,43 @@ tbody tr:hover .row-actions{ opacity:1; }
 .crlog-kpis .kpi-card{ padding:14px 16px; }
 .crlog-kpis .kpi-value{ font-size:24px; }
 
-.crlog-panel{ flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; }
+.crlog-panel{
+  flex:1 1 auto; width:100%; max-width:100%; min-width:0; min-height:0;
+  display:flex; flex-direction:column;
+}
 .crlog-panel .list-panel-head{ flex-shrink:0; }
 .crlog-table-wrap{
   flex:1 1 auto; min-width:0; min-height:0; width:100%; max-width:100%;
   overflow-x:auto; overflow-y:auto; position:relative;
   overscroll-behavior:contain;
+}
+/* The global scrollbar theme is dark-theme oriented and uses a nearly white
+   thumb. These views have a light background, so make the horizontal scrollbar
+   visibly discoverable instead of leaving users with a clipped right edge and
+   no apparent way to reach the remaining columns. */
+.view .crlog-table-wrap{
+  scrollbar-color:#9aafbc #edf3f6;
+  scrollbar-width:auto;
+}
+.view .crlog-table-wrap::-webkit-scrollbar{ width:12px; height:12px; }
+.view .crlog-table-wrap::-webkit-scrollbar-track{
+  background:#edf3f6; border-radius:8px;
+}
+.view .crlog-table-wrap::-webkit-scrollbar-thumb{
+  background:#9aafbc; border:2px solid #edf3f6; border-radius:8px;
+}
+.view .crlog-table-wrap::-webkit-scrollbar-thumb:hover{ background:#718b9b; }
+@media(min-width:641px){
+  /* Reserve a real horizontal scrollbar on desktop/tablet instead of relying
+     on an OS overlay scrollbar that may remain invisible until interaction. */
+  .view .crlog-table-wrap{
+    overflow-x:scroll;
+    scrollbar-gutter:stable;
+  }
+}
+@media(max-width:640px){
+  /* Tables are replaced by mobile cards at this breakpoint. */
+  .view .crlog-table-wrap{ overflow-x:hidden; }
 }
 
 .list-panel-foot{
@@ -798,7 +829,8 @@ td.cell-id .id-chip{
 #view-uat .crlog-panel{ min-width:0; }
 #view-uat .crlog-table-wrap{
   flex:1 1 auto; min-width:0; min-height:0; width:100%; max-width:100%;
-  overflow-x:auto; overflow-y:auto; position:relative;
+  overflow-x:scroll; overflow-y:auto; position:relative;
+  scrollbar-gutter:stable;
 }
 #view-uat .uat-kpis .kpi-card{ padding:14px 16px; }
 #view-uat .uat-kpis .kpi-value{ font-size:24px; }

@@ -399,7 +399,7 @@ body.sidebar-collapsed .conn-pill{ display:none; }
 .topbar-actions{ margin-left:auto; display:flex; gap:10px; align-items:center; }
 
 /* Every workspace view scrolls independently within the fixed sidebar/topbar frame */
-.view{ padding:28px 32px 60px; flex:1; min-height:0; overflow-y:auto;
+.view{ padding:28px 32px 60px; flex:1; min-width:0; min-height:0; overflow-y:auto;
   background: linear-gradient(165deg, #ffffff 0%, #f1f6f9 52%, #e9f3f4 100%); color:#22394e; }
 .view-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
 .view-head.view-head-end{ justify-content:flex-end; }
@@ -509,7 +509,7 @@ table{ width:100%; border-collapse:collapse; min-width:900px; }
    column never squeezes its neighbours — the table simply grows past the
    wrapper's width and .table-wrap (overflow:auto) scrolls horizontally. */
 #crTable, #tcTable, #relTable{
-  table-layout:fixed; width:auto; min-width:100%;
+  table-layout:fixed; width:max-content; min-width:100%;
 }
 thead th{
   text-align:left; font-size: var(--text-table-head-size); text-transform:uppercase; letter-spacing:.06em;
@@ -622,7 +622,7 @@ tbody tr:hover .row-actions{ opacity:1; }
    CR LOG — enterprise data-management workspace
    ========================================================================== */
 .view#view-crlog{
-  display:flex; flex-direction:column; overflow:hidden; padding-bottom:18px;
+  display:flex; flex-direction:column; overflow:hidden; padding-bottom:18px; min-width:0;
   /* Nền sáng dùng chung từ .view */}
 
 /* ---- Light-theme overrides, áp dụng cho mọi view ---- */
@@ -683,15 +683,19 @@ tbody tr:hover .row-actions{ opacity:1; }
 .view .empty-state h4{ color:#43586e; }
 .view .loading-row{ color:#8498ad; }
 .view .spinner{ border-color: rgba(10,30,51,0.10); border-top-color:#0e9a94; }
-.crlog-shell{ display:flex; flex-direction:column; height:100%; min-height:0; gap:16px; }
+.crlog-shell{ display:flex; flex-direction:column; height:100%; min-width:0; min-height:0; gap:16px; }
 
 .crlog-kpis{ flex-shrink:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; }
 .crlog-kpis .kpi-card{ padding:14px 16px; }
 .crlog-kpis .kpi-value{ font-size:24px; }
 
-.crlog-panel{ flex:1; min-height:0; display:flex; flex-direction:column; }
+.crlog-panel{ flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; }
 .crlog-panel .list-panel-head{ flex-shrink:0; }
-.crlog-table-wrap{ flex:1; min-height:0; overflow:auto; position:relative; }
+.crlog-table-wrap{
+  flex:1 1 auto; min-width:0; min-height:0; width:100%; max-width:100%;
+  overflow-x:auto; overflow-y:auto; position:relative;
+  overscroll-behavior:contain;
+}
 
 .list-panel-foot{
   flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -789,8 +793,13 @@ td.cell-id .id-chip{
 
 /* UAT uses the same workspace grammar as CR Log: KPI strip, command toolbar,
    selectable rows, density controls and mobile cards. */
-#view-uat .crlog-shell{ gap:16px; }
-#view-uat .crlog-table-wrap{ flex:1; min-height:0; overflow:auto; position:relative; }
+#view-uat{ min-width:0; }
+#view-uat .crlog-shell{ gap:16px; min-width:0; }
+#view-uat .crlog-panel{ min-width:0; }
+#view-uat .crlog-table-wrap{
+  flex:1 1 auto; min-width:0; min-height:0; width:100%; max-width:100%;
+  overflow-x:auto; overflow-y:auto; position:relative;
+}
 #view-uat .uat-kpis .kpi-card{ padding:14px 16px; }
 #view-uat .uat-kpis .kpi-value{ font-size:24px; }
 #view-uat .cell-result{ min-width:116px; }

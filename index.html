@@ -700,14 +700,21 @@ tbody tr:hover .row-actions{ opacity:1; }
   overscroll-behavior:contain;
 }
 /* The global scrollbar theme is dark-theme oriented and uses a nearly white
-   thumb. These views have a light background, so make the horizontal scrollbar
-   visibly discoverable instead of leaving users with a clipped right edge and
-   no apparent way to reach the remaining columns. */
+   thumb. These views have a light background. The NATIVE horizontal
+   scrollbar is intentionally collapsed to 0 height below (::-webkit-scrollbar
+   height:0 / scrollbar-width:thin) because on many real OS/browser setups
+   (trackpads, macOS "overlay" scrollbars, some Windows configurations) a
+   native scrollbar renders invisibly until the user is actively hovering or
+   mid-scroll — so people never notice there are more columns off-screen.
+   Horizontal scrolling itself (wheel, trackpad swipe, keyboard, shift+wheel)
+   still works via overflow-x:scroll; what the user *sees* is the custom,
+   always-visible .hscroll-bar drawn by updateHScrollUI() further down in the
+   script, which stays on screen and is directly draggable. */
 .view .crlog-table-wrap{
   scrollbar-color:#9aafbc #edf3f6;
-  scrollbar-width:auto;
+  scrollbar-width:thin;
 }
-.view .crlog-table-wrap::-webkit-scrollbar{ width:12px; height:12px; }
+.view .crlog-table-wrap::-webkit-scrollbar{ width:12px; height:0; }
 .view .crlog-table-wrap::-webkit-scrollbar-track{
   background:#edf3f6; border-radius:8px;
 }
@@ -716,16 +723,62 @@ tbody tr:hover .row-actions{ opacity:1; }
 }
 .view .crlog-table-wrap::-webkit-scrollbar-thumb:hover{ background:#718b9b; }
 @media(min-width:641px){
-  /* Reserve a real horizontal scrollbar on desktop/tablet instead of relying
-     on an OS overlay scrollbar that may remain invisible until interaction. */
+  /* Keep horizontal scrolling active on desktop/tablet; the visible
+     scrollbar bar is the custom one, not the native one (see above). */
   .view .crlog-table-wrap{
     overflow-x:scroll;
-    scrollbar-gutter:stable;
   }
 }
 @media(max-width:640px){
   /* Tables are replaced by mobile cards at this breakpoint. */
   .view .crlog-table-wrap{ overflow-x:hidden; }
+}
+
+/* ---------------------------------------------------------------------------
+   Custom always-visible horizontal scrollbar (CR Log / UAT / Release tables)
+   .crlog-table-outer is a static (non-scrolling) positioning context that
+   wraps the real scrolling element (.crlog-table-wrap). The bar and the
+   left/right fade hints live OUTSIDE the scrolling box, as absolutely
+   positioned overlay siblings, so they never move with the horizontal
+   scroll — only their own state (position/width/visibility) is updated by
+   updateHScrollUI() in the script whenever the wrap actually scrolls or is
+   resized. This guarantees a persistent, draggable, visible affordance
+   regardless of OS/browser native-scrollbar visibility rules.
+--------------------------------------------------------------------------- */
+.crlog-table-outer{
+  position:relative; flex:1 1 auto; min-width:0; min-height:0;
+  display:flex; flex-direction:column;
+}
+.crlog-table-outer .crlog-table-wrap{ flex:1 1 auto; min-height:0; }
+.hscroll-bar{
+  position:absolute; left:0; right:0; bottom:3px; height:10px; z-index:9;
+  display:none; pointer-events:none; padding:0 3px; box-sizing:border-box;
+}
+.hscroll-bar.is-active{ display:block; }
+.hscroll-bar-track{
+  position:relative; width:100%; height:100%;
+  background:#e4edf1; border:1px solid #d3e0e6; border-radius:6px; pointer-events:auto;
+}
+.hscroll-bar-thumb{
+  position:absolute; top:-1px; height:100%; min-width:40px;
+  background:#9aafbc; border-radius:6px; cursor:grab;
+  transition:background .12s ease;
+}
+.hscroll-bar-thumb:hover{ background:#718b9b; }
+.hscroll-bar-thumb.is-dragging{ background:#5c7686; cursor:grabbing; }
+
+/* Left/right fade hints — only shown on the side(s) that still hide columns,
+   so they disappear once the user has scrolled all the way to that edge. */
+.hscroll-fade{
+  position:absolute; top:0; bottom:10px; width:26px; z-index:8;
+  pointer-events:none; opacity:0; transition:opacity .15s ease;
+}
+.hscroll-fade.is-visible{ opacity:1; }
+.hscroll-fade-left{ left:0; background:linear-gradient(90deg, rgba(20,40,55,0.12), rgba(20,40,55,0)); }
+.hscroll-fade-right{ right:0; background:linear-gradient(270deg, rgba(20,40,55,0.12), rgba(20,40,55,0)); }
+
+@media(max-width:640px){
+  .hscroll-bar, .hscroll-fade{ display:none !important; }
 }
 
 .list-panel-foot{
@@ -4133,13 +4186,22 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
             </div>
           </div>
 
-          <div class="table-wrap crlog-table-wrap" id="crTableWrap">
-            <table id="crTable" class="density-comfortable">
-              <colgroup id="crColgroup"></colgroup>
-              <thead><tr id="crTheadRow"></tr></thead>
-              <tbody id="crTableBody"></tbody>
-            </table>
-            <div class="cr-mobile-list" id="crMobileList"></div>
+          <div class="crlog-table-outer" id="crTableOuter">
+            <div class="table-wrap crlog-table-wrap" id="crTableWrap">
+              <table id="crTable" class="density-comfortable">
+                <colgroup id="crColgroup"></colgroup>
+                <thead><tr id="crTheadRow"></tr></thead>
+                <tbody id="crTableBody"></tbody>
+              </table>
+              <div class="cr-mobile-list" id="crMobileList"></div>
+            </div>
+            <div class="hscroll-fade hscroll-fade-left" id="crHscrollFadeL"></div>
+            <div class="hscroll-fade hscroll-fade-right" id="crHscrollFadeR"></div>
+            <div class="hscroll-bar" id="crHscrollBar">
+              <div class="hscroll-bar-track" id="crHscrollTrack">
+                <div class="hscroll-bar-thumb" id="crHscrollThumb"></div>
+              </div>
+            </div>
           </div>
 
           <div class="list-panel-foot">
@@ -4207,13 +4269,22 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
             </div>
           </div>
 
-          <div class="table-wrap crlog-table-wrap" id="tcTableWrap">
-            <table id="tcTable" class="density-comfortable">
-              <colgroup id="tcColgroup"></colgroup>
-              <thead><tr id="tcTheadRow"></tr></thead>
-              <tbody id="tcTableBody"></tbody>
-            </table>
-            <div class="cr-mobile-list uat-mobile-list" id="tcMobileList"></div>
+          <div class="crlog-table-outer" id="tcTableOuter">
+            <div class="table-wrap crlog-table-wrap" id="tcTableWrap">
+              <table id="tcTable" class="density-comfortable">
+                <colgroup id="tcColgroup"></colgroup>
+                <thead><tr id="tcTheadRow"></tr></thead>
+                <tbody id="tcTableBody"></tbody>
+              </table>
+              <div class="cr-mobile-list uat-mobile-list" id="tcMobileList"></div>
+            </div>
+            <div class="hscroll-fade hscroll-fade-left" id="tcHscrollFadeL"></div>
+            <div class="hscroll-fade hscroll-fade-right" id="tcHscrollFadeR"></div>
+            <div class="hscroll-bar" id="tcHscrollBar">
+              <div class="hscroll-bar-track" id="tcHscrollTrack">
+                <div class="hscroll-bar-thumb" id="tcHscrollThumb"></div>
+              </div>
+            </div>
           </div>
 
           <div class="list-panel-foot">
@@ -4281,13 +4352,22 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
             </div>
           </div>
 
-          <div class="table-wrap crlog-table-wrap" id="relTableWrap">
-            <table id="relTable" class="density-comfortable">
-              <colgroup id="relColgroup"></colgroup>
-              <thead><tr id="relTheadRow"></tr></thead>
-              <tbody id="relTableBody"></tbody>
-            </table>
-            <div class="cr-mobile-list rel-mobile-list" id="relMobileList"></div>
+          <div class="crlog-table-outer" id="relTableOuter">
+            <div class="table-wrap crlog-table-wrap" id="relTableWrap">
+              <table id="relTable" class="density-comfortable">
+                <colgroup id="relColgroup"></colgroup>
+                <thead><tr id="relTheadRow"></tr></thead>
+                <tbody id="relTableBody"></tbody>
+              </table>
+              <div class="cr-mobile-list rel-mobile-list" id="relMobileList"></div>
+            </div>
+            <div class="hscroll-fade hscroll-fade-left" id="relHscrollFadeL"></div>
+            <div class="hscroll-fade hscroll-fade-right" id="relHscrollFadeR"></div>
+            <div class="hscroll-bar" id="relHscrollBar">
+              <div class="hscroll-bar-track" id="relHscrollTrack">
+                <div class="hscroll-bar-thumb" id="relHscrollThumb"></div>
+              </div>
+            </div>
           </div>
 
           <div class="list-panel-foot">
@@ -4692,6 +4772,7 @@ function attachColumnResize(tableEl, kind){
         const delta = ev.clientX - startX;
         const newWidth = Math.max(COL_WIDTH_MIN, Math.round(startWidth + delta));
         liveCol.style.width = newWidth + "px";
+        updateHScrollUI(kind); // dragging a column changes the table's total width live
       }
       function onUp(){
         document.removeEventListener("mousemove", onMove);
@@ -4703,6 +4784,7 @@ function attachColumnResize(tableEl, kind){
           STATE.colWidths[kind][key] = finalWidth;
           saveColWidths(kind);
         }
+        updateHScrollUI(kind);
       }
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
@@ -4720,8 +4802,110 @@ function attachColumnResize(tableEl, kind){
       liveCol.style.width = def + "px";
       STATE.colWidths[kind][key] = def;
       saveColWidths(kind);
+      updateHScrollUI(kind);
     });
   });
+  updateHScrollUI(kind);
+}
+
+/* ---------------------------------------------------------------------------
+   Custom always-visible horizontal scrollbar for the CR Log / UAT / Release
+   tables. See the .hscroll-bar / .hscroll-fade CSS comment for why this
+   exists: native OS/browser horizontal scrollbars are often invisible
+   overlays, so people never discover there are more columns off-screen.
+   This draws a persistent draggable bar synced with the wrap's real
+   scrollLeft, plus small fade hints on whichever edge still hides columns.
+--------------------------------------------------------------------------- */
+const HSCROLL_IDS = {
+  cr:  { wrap:"crTableWrap",  bar:"crHscrollBar",  track:"crHscrollTrack",  thumb:"crHscrollThumb",  fadeL:"crHscrollFadeL",  fadeR:"crHscrollFadeR" },
+  tc:  { wrap:"tcTableWrap",  bar:"tcHscrollBar",  track:"tcHscrollTrack",  thumb:"tcHscrollThumb",  fadeL:"tcHscrollFadeL",  fadeR:"tcHscrollFadeR" },
+  rel: { wrap:"relTableWrap", bar:"relHscrollBar", track:"relHscrollTrack", thumb:"relHscrollThumb", fadeL:"relHscrollFadeL", fadeR:"relHscrollFadeR" },
+};
+const HSCROLL_WIRED = {};
+
+function updateHScrollUI(kind){
+  const ids = HSCROLL_IDS[kind];
+  if(!ids) return;
+  const wrap = document.getElementById(ids.wrap);
+  const bar = document.getElementById(ids.bar);
+  const track = document.getElementById(ids.track);
+  const thumb = document.getElementById(ids.thumb);
+  const fadeL = document.getElementById(ids.fadeL);
+  const fadeR = document.getElementById(ids.fadeR);
+  if(!wrap || !bar || !track || !thumb) return;
+  const maxScrollLeft = wrap.scrollWidth - wrap.clientWidth;
+  const scrollable = maxScrollLeft > 2;
+  bar.classList.toggle("is-active", scrollable);
+  if(fadeL) fadeL.classList.toggle("is-visible", scrollable && wrap.scrollLeft > 2);
+  if(fadeR) fadeR.classList.toggle("is-visible", scrollable && wrap.scrollLeft < maxScrollLeft - 2);
+  if(!scrollable) return;
+  const trackWidth = track.clientWidth;
+  const thumbWidth = Math.min(trackWidth, Math.max(40, (wrap.clientWidth / wrap.scrollWidth) * trackWidth));
+  const maxThumbLeft = Math.max(0, trackWidth - thumbWidth);
+  const thumbLeft = maxScrollLeft > 0 ? (wrap.scrollLeft / maxScrollLeft) * maxThumbLeft : 0;
+  thumb.style.width = thumbWidth + "px";
+  thumb.style.left = thumbLeft + "px";
+}
+
+/* Wires scroll-sync + drag-to-scroll + click-track-to-jump for one table.
+   Safe to call on every thead re-render — actual listener binding only
+   happens once per kind (guarded by HSCROLL_WIRED), later calls just
+   refresh the bar's current geometry/visibility. */
+function wireHScroll(kind){
+  const ids = HSCROLL_IDS[kind];
+  if(!ids) return;
+  const wrap = document.getElementById(ids.wrap);
+  const track = document.getElementById(ids.track);
+  const thumb = document.getElementById(ids.thumb);
+  if(!wrap || !track || !thumb) return;
+
+  if(!HSCROLL_WIRED[kind]){
+    HSCROLL_WIRED[kind] = true;
+
+    wrap.addEventListener("scroll", ()=> updateHScrollUI(kind), { passive:true });
+
+    thumb.addEventListener("mousedown", (e)=>{
+      e.preventDefault();
+      thumb.classList.add("is-dragging");
+      const startX = e.clientX;
+      const startScrollLeft = wrap.scrollLeft;
+      const trackWidth = track.clientWidth;
+      const thumbWidth = thumb.getBoundingClientRect().width;
+      const maxThumbLeft = Math.max(0, trackWidth - thumbWidth);
+      const maxScrollLeft = wrap.scrollWidth - wrap.clientWidth;
+      function onMove(ev){
+        if(maxThumbLeft <= 0) return;
+        const deltaPx = ev.clientX - startX;
+        const deltaScroll = (deltaPx / maxThumbLeft) * maxScrollLeft;
+        wrap.scrollLeft = Math.max(0, Math.min(maxScrollLeft, startScrollLeft + deltaScroll));
+      }
+      function onUp(){
+        thumb.classList.remove("is-dragging");
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      }
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+
+    // Clicking the track itself (not the thumb) jumps the view toward that point.
+    track.addEventListener("mousedown", (e)=>{
+      if(e.target === thumb) return;
+      const rect = track.getBoundingClientRect();
+      const ratio = (e.clientX - rect.left) / rect.width;
+      const maxScrollLeft = wrap.scrollWidth - wrap.clientWidth;
+      wrap.scrollLeft = Math.max(0, Math.min(maxScrollLeft, ratio * wrap.scrollWidth - wrap.clientWidth / 2));
+    });
+
+    if(typeof ResizeObserver !== "undefined"){
+      // Catches sidebar collapse, focus mode, window resize, column show/hide —
+      // anything that changes the wrap's own width without a scroll event.
+      const ro = new ResizeObserver(()=> updateHScrollUI(kind));
+      ro.observe(wrap);
+    }
+    window.addEventListener("resize", ()=> updateHScrollUI(kind));
+  }
+  updateHScrollUI(kind);
 }
 
 /* ---------------------------------------------------------------------------
@@ -6807,6 +6991,7 @@ function renderCrThead(){
   bindSortHeaders(tr, "cr");
   renderColgroup("cr", ["__check", "cr_id", ...cols.map(c=>c.key), "__actions"]);
   attachColumnResize($("#crTable"), "cr");
+  wireHScroll("cr");
   const selectAll = $("#crSelectAll");
   if(selectAll) selectAll.addEventListener("change", e=>{
     const rows = filteredCrList();
@@ -8847,6 +9032,7 @@ function renderTcThead(){
   bindSortHeaders(tr, "tc");
   renderColgroup("tc", ["__check", "cr_id", ...cols.map(c=>c.key), "__actions"]);
   attachColumnResize($("#tcTable"), "tc");
+  wireHScroll("tc");
   const selectAll = $("#tcSelectAll");
   if(selectAll) selectAll.addEventListener("change", e=>{
     const rows = filteredTcList();
@@ -9406,6 +9592,7 @@ function renderRelThead(){
   bindSortHeaders(tr, "rel");
   renderColgroup("rel", ["__check", "cr_id", ...cols.map(c=>c.key), "__actions"]);
   attachColumnResize($("#relTable"), "rel");
+  wireHScroll("rel");
   const selectAll = $("#relSelectAll");
   if(selectAll) selectAll.addEventListener("change", e=>{
     const rows = filteredRelList();

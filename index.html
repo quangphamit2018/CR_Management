@@ -560,6 +560,15 @@ td.cell-id{ font-family: var(--font-mono); font-weight:700; color: var(--accent)
 td.cell-title{ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 td.cell-dim{ color: var(--text-secondary); }
 td.cell-actions{ text-align:right; white-space:nowrap; }
+.doc-status-cell{ text-align:center; }
+.doc-status{
+  display:inline-flex; align-items:center; justify-content:center; gap:5px;
+  min-width:64px; font-size:11.5px; font-weight:800; line-height:1;
+  padding:5px 8px; border-radius:999px; white-space:nowrap;
+}
+.doc-status.is-present{ color:#087f72; background:rgba(28,178,157,.14); }
+.doc-status.is-missing{ color:var(--text-faint); background:rgba(120,144,162,.10); font-weight:700; }
+.doc-status-icon{ font-size:14px; line-height:10px; }
 .row-actions{ display:flex; gap:6px; justify-content:flex-end; opacity:0; transition:opacity var(--duration-fast) var(--ease-standard); }
 tbody tr:hover .row-actions{ opacity:1; }
 .icon-btn{
@@ -866,6 +875,8 @@ td.cell-id .id-chip{
 .cr-card-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .cr-card-title{ font-size:13.5px; font-weight:700; color: var(--text-primary); }
 .cr-card-meta{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color: var(--text-secondary); }
+.doc-mobile-present{ color:#087f72; font-weight:800; }
+.doc-mobile-missing{ color:var(--text-faint); }
 .cr-card-badges{ display:flex; flex-wrap:wrap; gap:6px; }
 .cr-card-actions{ display:flex; gap:8px; justify-content:flex-end; }
 
@@ -4469,6 +4480,7 @@ const STATE = {
   refreshing: false,
   attachCache: {},        // cr_id -> [attachments]
   attachmentIndex: {},    // attachment id -> latest attachment metadata
+  crDocumentStatus: {},   // cr_id -> { BRD:boolean, FSD:boolean } from CR-level attachments
   crSelection: new Set(), // cr_id values currently selected in CR Log table
   crColumns: null,        // populated by loadCrColumnPrefs()
   crDensity: localStorage.getItem("crDensity") || "comfortable",
@@ -4498,6 +4510,8 @@ const CR_COLUMNS = [
   { key:"status",    label:"Status" },
   { key:"sub_status", label:"Sub-Status" },
   { key:"deadline",  label:"Deadline" },
+  { key:"brd",       label:"BRD" },
+  { key:"fsd",       label:"FSD" },
 ];
 function defaultCrColumnState(){
   const o = {}; CR_COLUMNS.forEach(c=> o[c.key] = true); return o;
@@ -4567,7 +4581,7 @@ STATE.relColumns = loadRelColumnPrefs();
 const COL_WIDTH_DEFAULTS = {
   cr: {
     __check:44, cr_id:106, title:280, requester:130, category:140,
-    priority:110, status:140, sub_status:170, deadline:130, __actions:112,
+    priority:110, status:140, sub_status:170, deadline:130, brd:92, fsd:92, __actions:112,
   },
   tc: {
     __check:44, cr_id:106, test_case_id:140, scenario:260, owner_scenario:160,
@@ -5324,7 +5338,9 @@ function subscribeRealtime(){
     .on("postgres_changes", { event:"*", schema:"public", table:"evidence_steps" }, debouncedRefresh)
     .subscribe();
   STATE.sb.channel("realtime-cr_attachments")
-    .on("postgres_changes", { event:"*", schema:"public", table:"cr_attachments" }, ()=>{
+    .on("postgres_changes", { event:"*", schema:"public", table:"cr_attachments" }, async ()=>{
+      await fetchCrDocumentStatus();
+      renderCrTable();
       if(STATE.drawerCrId){
         const drawerId = STATE.drawerCrId;
         const drawerSeq = STATE.drawerOpenSeq;
@@ -6177,7 +6193,7 @@ async function refreshAll(){
   setRefreshLoading(true);
   if(initialLoad) showLoadingSkeletons();
   try{
-    await Promise.all([fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchCrList(), fetchTcList(), fetchRelList()]);
+    await Promise.all([fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchCrList(), fetchCrDocumentStatus(), fetchTcList(), fetchRelList()]);
     renderNavCounts();
     renderDashboard();
     renderCrTable();
@@ -6196,6 +6212,28 @@ async function fetchCrList(){
   if(error){ toast("Lỗi tải CR Log: " + error.message, "err"); STATE.crList = []; STATE.loadErrors.cr = error.message; return; }
   STATE.loadErrors.cr = null;
   STATE.crList = data || [];
+}
+async function fetchCrDocumentStatus(){
+  const { data, error } = await STATE.sb
+    .from("cr_attachments")
+    .select("cr_id,category,testcase_id");
+  if(error){
+    console.warn("Không tải được trạng thái tài liệu BRD/FSD:", error.message);
+    STATE.crDocumentStatus = {};
+    return;
+  }
+  const status = {};
+  (data || []).forEach(file=>{
+    // Evidence của UAT cũng nằm trong cr_attachments nhưng không phải tài liệu
+    // cấp CR, vì vậy chỉ tính file không gắn với một Test Case.
+    if(file.testcase_id) return;
+    const crId = String(file.cr_id || "");
+    const category = String(file.category || "").trim().toUpperCase();
+    if(!crId || !["BRD","FSD"].includes(category)) return;
+    if(!status[crId]) status[crId] = { BRD:false, FSD:false };
+    status[crId][category] = true;
+  });
+  STATE.crDocumentStatus = status;
 }
 async function fetchTcList(){
   const { data, error } = await STATE.sb.from("uat_testcase").select("*").order("created_at", { ascending:false });
@@ -6676,6 +6714,25 @@ function renderCrKpis(){
 
 function crCellTitle(c){ return c.rename_folder || c.old_name || c.app || "—"; }
 
+function crHasDocument(c, type){
+  return !!STATE.crDocumentStatus?.[String(c?.cr_id || "")]?.[type];
+}
+
+function crDocumentStatusHtml(c, type){
+  const present = crHasDocument(c, type);
+  const label = present ? "Có file" : "Chưa có";
+  return `<td class="doc-status-cell" title="${type} ${present ? "đã được đính kèm" : "chưa được đính kèm"}">
+    <span class="doc-status ${present ? "is-present" : "is-missing"}">
+      <span class="doc-status-icon" aria-hidden="true">${present ? "✓" : "—"}</span>
+      <span>${label}</span>
+    </span>
+  </td>`;
+}
+
+function crDocumentStatusLabel(c, type){
+  return crHasDocument(c, type) ? "Có" : "Chưa có";
+}
+
 function crRowCellHtml(colKey, c, overdue){
   switch(colKey){
     case "title": return `<td class="cell-title" title="${esc(c.rename_folder || c.old_name || '')}">${esc(crCellTitle(c))}</td>`;
@@ -6691,6 +6748,8 @@ function crRowCellHtml(colKey, c, overdue){
               : fmtDate(c.deadline))
           : "—"
       }</td>`;
+    case "brd": return crDocumentStatusHtml(c, "BRD");
+    case "fsd": return crDocumentStatusHtml(c, "FSD");
     default: return "";
   }
 }
@@ -6816,6 +6875,10 @@ function renderCrMobileList(rows){
       <div class="cr-card-meta">
         <span>${esc(c.requester || "—")}</span>
         <span>${c.deadline ? (overdue? `<span class="deadline-overdue"><span class="dl-warn">!</span>${fmtDate(c.deadline)}</span>` : fmtDate(c.deadline)) : "—"}</span>
+      </div>
+      <div class="cr-card-meta">
+        <span class="${crHasDocument(c, "BRD") ? "doc-mobile-present" : "doc-mobile-missing"}">BRD ${crHasDocument(c, "BRD") ? "✓" : "—"}</span>
+        <span class="${crHasDocument(c, "FSD") ? "doc-mobile-present" : "doc-mobile-missing"}">FSD ${crHasDocument(c, "FSD") ? "✓" : "—"}</span>
       </div>
       <div class="cr-card-actions">
         <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -7489,6 +7552,9 @@ async function downloadProgressReport(){
   if(label) label.textContent = "Đang tạo...";
 
   try{
+    // Tải lại trạng thái tài liệu ngay trước khi xuất để báo cáo không bị
+    // trễ nếu người dùng vừa upload/đổi loại file BRD hoặc FSD.
+    await fetchCrDocumentStatus();
     // Load every evidence record by Test Case ID. No Dashboard aggregates are
     // read here; the three report sheets are built from raw STATE records.
     const evidenceMap = new Map();
@@ -7543,6 +7609,8 @@ async function downloadProgressReport(){
       {label:"Approved Date", width:14, date:true, value:c=>c.approved_date},
       {label:"Approved Status", width:17, value:c=>c.approved_status},
       {label:"Deadline", width:14, date:true, value:c=>c.deadline},
+      {label:"BRD", width:11, value:c=>crDocumentStatusLabel(c, "BRD")},
+      {label:"FSD", width:11, value:c=>crDocumentStatusLabel(c, "FSD")},
       {label:"Loop Mail Header", width:38, value:c=>c.loop_mail_header},
       {label:"Progress", width:42, value:c=>c.progress},
       {label:"Note", width:38, value:c=>c.note},
@@ -7563,7 +7631,7 @@ async function downloadProgressReport(){
       "CR PROGRESS REPORT",
       "Nguồn dữ liệu: CR Log và các UAT Test Case liên kết",
       crColumns,
-      { defaultWidth:20, specialWidths:{ K:52, L:52, W:52 } }
+      { defaultWidth:20, specialWidths:{ K:52, L:52, Y:52, Z:52 } }
     );
     (STATE.crList || []).forEach((record, index)=>{
       const row = crSheet.addRow([]);
@@ -8504,6 +8572,8 @@ async function handleFileUpload(cr_id, testcase_id, evidence_step, files, catego
   } else {
     await fetchAttachments(cr_id);
     renderDrawerFiles(cr_id);
+    await fetchCrDocumentStatus();
+    renderCrTable();
   }
 }
 
@@ -8517,6 +8587,8 @@ async function deleteAttachment(id, path, cr_id, testcase_id){
   } else if(cr_id){
     await fetchAttachments(cr_id);
     renderDrawerFiles(cr_id);
+    await fetchCrDocumentStatus();
+    renderCrTable();
   }
 }
 
@@ -8613,6 +8685,8 @@ async function saveAttachmentMeta(file){
   }else if(file.cr_id){
     await fetchAttachments(file.cr_id);
     await renderDrawerFiles(file.cr_id);
+    await fetchCrDocumentStatus();
+    renderCrTable();
   }
 }
 

@@ -444,6 +444,7 @@ body.focus-mode .view#view-release .rel-kpis{ display:none; }
 .kpi-card.danger .kpi-value{ color: var(--danger); }
 .kpi-card.warn .kpi-value{ color: var(--accent-2); }
 .kpi-card.success .kpi-value{ color: var(--success); }
+.kpi-card.info .kpi-value{ color: var(--info); }
 .kpi-icon{ position:absolute; right:14px; top:14px; width:30px; height:30px; opacity:.4; }
 
 .dash-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:16px; }
@@ -632,6 +633,30 @@ tbody tr:hover .row-actions{ opacity:1; }
 .view .kpi-card .kpi-value{ color:#0a1e33; }
 .view .kpi-card .kpi-foot{ color:#8498ad; }
 .view .kpi-card.accent .kpi-value{ color:#0e9a94; }
+.view .kpi-card.info .kpi-value{ color:#3e6fd6; }
+
+.view .dash-section-head h3{ color:#0a1e33; }
+.view .dash-section-head h3 .total{ color:#8498ad; }
+.view .dash-section-hint{ color:#8498ad; }
+
+.view .stat-tile{ background:#f8fbfc; border-color:#dde7ec; }
+.view .stat-tile:hover{ background:#ffffff; }
+.view .stat-tile-label{ color:#5f7690; }
+.view .stat-tile-value{ color:#0a1e33; }
+.view .stat-tile-pct{ color:#8498ad; }
+.view .stat-tile-track{ background:#e7eef1; }
+
+.view .substat-pill{ background:#f8fbfc; border-color:#dde7ec; }
+.view .substat-pill:hover{ background:#ffffff; }
+.view .substat-label{ color:#5f7690; }
+.view .substat-value{ color:#0a1e33; background:#eef3f6; }
+
+.view .tc-summary-table thead th{ color:#8498ad; border-bottom-color:#e4ebf0; }
+.view .tc-summary-table tbody td{ border-bottom-color:#edf2f5; color:#22394e; }
+.view .tc-summary-row:hover{ background:#f0f7f7; }
+.view .tc-cr-title{ color:#5f7690; }
+.view .tc-progress-track{ background:#e7eef1; }
+.view .tc-progress-label{ color:#5f7690; }
 
 .view .list-panel{ background:#ffffff; border-color:#dde7ec; }
 .view .list-panel-head{ border-bottom-color:#e4ebf0; }
@@ -1714,6 +1739,9 @@ body.sidebar-collapsed .nav-item::before{ left:-2px; }
   .file-grid{ grid-template-columns:repeat(auto-fill, minmax(105px,1fr)); }
   .bulk-actions{ flex-wrap:wrap; }
   .row-actions{ opacity:1; } /* no hover on touch — always show actions */
+  .stat-tile-grid{ grid-template-columns:1fr 1fr; }
+  .tc-summary-head{ padding:16px 16px 0; }
+  .tc-summary-table{ min-width:640px; }
 }
 
 /* ==========================================================================
@@ -1736,6 +1764,7 @@ body.sidebar-collapsed .nav-item::before{ left:-2px; }
 .kpi-card.danger .kpi-icon{ background: var(--danger-dim); color: var(--danger); }
 .kpi-card.warn .kpi-icon{ background: var(--warning-dim); color: var(--accent-2); }
 .kpi-card.success .kpi-icon{ background: var(--success-dim); color: var(--success); }
+.kpi-card.info .kpi-icon{ background: var(--info-dim); color: var(--info); }
 .kpi-card .kpi-pct{
   font-size:11px; font-weight:700; padding:3px 7px; border-radius:20px; flex-shrink:0;
   background: var(--bg-surface-soft); color: var(--text-secondary); white-space:nowrap;
@@ -1752,6 +1781,81 @@ body.sidebar-collapsed .nav-item::before{ left:-2px; }
 }
 .chart-block .bar-label{ font-weight:600; color: var(--text-secondary); }
 .chart-block .bar-num{ font-variant-numeric:tabular-nums; color: var(--text-primary); }
+
+/* ---- Dashboard sections: status tiles / sub-status pills / TC summary --- */
+.dash-section{ margin-bottom: var(--space-6); }
+.dash-section-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  margin-bottom:16px; flex-wrap:wrap;
+}
+.dash-section-head h3{
+  font-size: var(--text-section-title-size); font-weight: var(--text-section-title-weight);
+  display:flex; align-items:center; gap:8px;
+}
+.dash-section-head h3 .total{ font-size: var(--text-caption-size); color: var(--text-muted); font-weight:500; }
+.dash-section-hint{ font-size:11.5px; color: var(--text-faint); }
+
+.stat-tile-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(190px,1fr)); gap:12px; }
+.stat-tile{
+  display:flex; flex-direction:column; gap:9px; text-align:left; font-family:inherit; color:inherit;
+  background: var(--bg-surface-soft); border:1px solid var(--border); border-radius: var(--radius-md);
+  padding:14px 16px; cursor:pointer;
+  transition: var(--transition-hover), transform var(--duration-fast) var(--ease-standard), box-shadow var(--duration-base) var(--ease-standard);
+}
+.stat-tile:hover{ transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--tile-color, var(--border-light)); }
+.stat-tile:active{ transform: scale(0.98); }
+.stat-tile.is-empty{ opacity:.5; }
+.stat-tile-top{ display:flex; align-items:center; gap:8px; }
+.stat-tile-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.stat-tile-label{ font-size:12.5px; font-weight:700; color: var(--text-secondary); }
+.stat-tile-value{ font-family: var(--font-head); font-size:24px; font-weight:800; line-height:1; }
+.stat-tile-track{ height:6px; border-radius:6px; background: rgba(255,255,255,0.06); overflow:hidden; }
+.stat-tile-fill{ height:100%; border-radius:6px; transition: width .5s ease; }
+.stat-tile-pct{ font-size:11px; color: var(--text-faint); font-weight:600; align-self:flex-end; }
+
+.substat-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+.substat-pill{
+  display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:20px; font-family:inherit;
+  background: var(--bg-surface-soft); border:1px solid var(--border); cursor:pointer;
+  transition: var(--transition-hover), transform var(--duration-fast) var(--ease-standard);
+}
+.substat-pill:hover{ transform: translateY(-1px); background: var(--bg-surface-soft-hover); border-color: var(--pill-color, var(--border-light)); }
+.substat-pill:active{ transform: scale(0.97); }
+.substat-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.substat-label{ font-size:12.5px; font-weight:600; color: var(--text-secondary); }
+.substat-value{
+  font-family: var(--font-head); font-size:12.5px; font-weight:800; color: var(--text-primary);
+  background: rgba(255,255,255,0.08); padding:1px 8px; border-radius:12px;
+}
+
+.tc-summary-panel{ overflow:hidden; }
+.tc-summary-head{ padding:20px 20px 0; margin-bottom:0; }
+.tc-summary-table-wrap{ overflow-x:auto; padding:16px 6px 6px; }
+.tc-summary-table{ width:100%; border-collapse:collapse; min-width:760px; }
+.tc-summary-table thead th{
+  text-align:left; font-size: var(--text-table-head-size); font-weight: var(--text-table-head-weight);
+  text-transform:uppercase; letter-spacing:.04em; color: var(--text-faint);
+  padding:0 16px 10px; border-bottom:1px solid var(--border); white-space:nowrap;
+}
+.tc-summary-table .tc-num-head, .tc-summary-table td.tc-num{ text-align:center; }
+.tc-summary-table .tc-progress-head{ text-align:left; min-width:150px; }
+.tc-summary-table tbody td{
+  padding:12px 16px; border-bottom:1px solid var(--border); font-size: var(--text-table-cell-size); vertical-align:middle;
+}
+.tc-summary-row{ cursor:pointer; transition: background var(--duration-fast) var(--ease-standard); }
+.tc-summary-row:hover{ background: var(--bg-surface-soft); }
+.tc-summary-row:last-child td{ border-bottom:none; }
+.tc-cr-id{ font-family: var(--font-mono); font-weight:700; color: var(--accent); white-space:nowrap; }
+.tc-cr-title{ max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color: var(--text-secondary); }
+.tc-num{ font-variant-numeric:tabular-nums; font-weight:700; }
+.tc-pass{ color: var(--success); }
+.tc-fail{ color: var(--danger); }
+.tc-blocked{ color: var(--orange); }
+.tc-notstarted{ color: var(--text-faint); }
+.tc-progress-cell{ display:flex; align-items:center; gap:8px; }
+.tc-progress-track{ flex:1; min-width:70px; height:8px; border-radius:6px; background: rgba(255,255,255,0.06); overflow:hidden; }
+.tc-progress-fill{ height:100%; border-radius:6px; background: linear-gradient(90deg, var(--success), var(--accent)); transition: width .5s ease; }
+.tc-progress-label{ width:36px; text-align:right; font-size:11.5px; font-weight:700; color: var(--text-secondary); }
 
 /* ---- Dashboard "recent activity": scannable rows with status rail ------- */
 .recent-item{
@@ -4149,17 +4253,23 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
     <section class="view" id="view-dashboard">
       <div class="kpi-grid" id="kpiGrid"></div>
 
-      <div class="dash-grid">
-        <div class="dash-col">
-          <div class="panel panel-pad chart-block">
-            <h3>Theo trạng thái <span class="total" id="statTotalStatus"></span></h3>
-            <div id="chartStatus"></div>
-          </div>
-          <div class="panel panel-pad chart-block">
-            <h3>CR gần đây</h3>
-            <div class="recent-list" id="recentList"></div>
-          </div>
+      <div class="panel panel-pad dash-section" id="dashStatusSection">
+        <div class="dash-section-head">
+          <h3>Theo trạng thái <span class="total" id="statusSectionTotal"></span></h3>
+          <span class="dash-section-hint">Bấm vào một trạng thái để xem danh sách CR tương ứng</span>
         </div>
+        <div class="stat-tile-grid" id="statusGrid"></div>
+      </div>
+
+      <div class="panel panel-pad dash-section" id="dashSubStatusSection">
+        <div class="dash-section-head">
+          <h3>Theo Sub-Status <span class="total" id="subStatusSectionTotal"></span></h3>
+          <span class="dash-section-hint">Bước xử lý chi tiết bên trong từng Status — bấm để lọc CR</span>
+        </div>
+        <div class="substat-grid" id="subStatusGrid"></div>
+      </div>
+
+      <div class="dash-grid">
         <div class="dash-col">
           <div class="panel panel-pad chart-block">
             <h3>Theo mức ưu tiên</h3>
@@ -4169,6 +4279,37 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
             <h3>Theo loại</h3>
             <div id="chartCategory"></div>
           </div>
+        </div>
+        <div class="dash-col">
+          <div class="panel panel-pad chart-block">
+            <h3>CR gần đây</h3>
+            <div class="recent-list" id="recentList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel dash-section tc-summary-panel" id="dashTcSection">
+        <div class="dash-section-head tc-summary-head">
+          <h3>Test Case theo CR <span class="total" id="tcSectionTotal"></span></h3>
+          <span class="dash-section-hint">Tổng Test Case UAT và kết quả theo từng CR — bấm một dòng để mở chi tiết CR</span>
+        </div>
+        <div class="tc-summary-table-wrap">
+          <table class="tc-summary-table">
+            <thead>
+              <tr>
+                <th>CR ID</th>
+                <th>Tiêu đề</th>
+                <th>Status</th>
+                <th class="tc-num-head">Tổng TC</th>
+                <th class="tc-num-head">Pass</th>
+                <th class="tc-num-head">Fail</th>
+                <th class="tc-num-head">Blocked</th>
+                <th class="tc-num-head">Chưa chạy</th>
+                <th class="tc-progress-head">Tỉ lệ Pass</th>
+              </tr>
+            </thead>
+            <tbody id="tcSummaryBody"></tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -6617,13 +6758,22 @@ function skeletonDashboardRecent(){
     </div>`).join("")}
   </div>`;
 }
+function skeletonStatTiles(count){
+  return Array.from({length:count}).map(()=> `<div class="skeleton skeleton-kpi sm"></div>`).join("");
+}
+function skeletonSubstatPills(count){
+  return Array.from({length:count}).map(()=> `<div class="skeleton skeleton-chip"></div>`).join("");
+}
 function showLoadingSkeletons(){
-  skeletonKpiRow($("#kpiGrid"), 4);
+  skeletonKpiRow($("#kpiGrid"), 5);
   skeletonKpiRow($("#crKpis"), 4);
-  if($("#chartStatus")) $("#chartStatus").innerHTML = skeletonDashboardChart();
+  if($("#statusGrid")) $("#statusGrid").innerHTML = skeletonStatTiles(10);
+  if($("#subStatusGrid")) $("#subStatusGrid").innerHTML = skeletonSubstatPills(8);
   if($("#chartPriority")) $("#chartPriority").innerHTML = skeletonDashboardChart();
   if($("#chartCategory")) $("#chartCategory").innerHTML = skeletonDashboardChart();
   if($("#recentList")) $("#recentList").innerHTML = skeletonDashboardRecent();
+  const tcSummaryTbody = $("#tcSummaryBody");
+  if(tcSummaryTbody) skeletonTableRows(tcSummaryTbody, 9, 5);
   const crTbody = $("#crTableBody");
   if(crTbody) skeletonTableRows(crTbody, 7, 6);
   const tcTbody = $("#tcTableBody");
@@ -7005,21 +7155,25 @@ function populateCrDropdowns(){
 --------------------------------------------------------------------------- */
 function renderDashboard(){
   const list = STATE.crList;
+  const tcList = STATE.tcList || [];
   const total = list.length;
   const overdue = list.filter(isOverdue).length;
   const inflight = list.filter(c=> ["In Progress","UAT","In Review"].includes(c.status)).length;
   const released = list.filter(c=> c.status === "Released").length;
   const pct = n => total ? Math.round((n/total)*100) : 0;
+  const tcPass = tcList.filter(t=> t.pass_fail === "Pass").length;
+  const tcPct = tcList.length ? Math.round((tcPass/tcList.length)*100) : 0;
 
   $("#kpiGrid").innerHTML = `
     ${kpiCard("Tổng số CR", total, "Toàn bộ Change Request đã ghi nhận", "", KPI_ICONS.total)}
     ${kpiCard("Đang xử lý", inflight, "In Progress / UAT / In Review", "accent", KPI_ICONS.inflight, pct(inflight))}
     ${kpiCard("Trễ hạn", overdue, "Deadline đã qua, chưa Released/Closed", "danger", KPI_ICONS.overdue, pct(overdue))}
     ${kpiCard("Đã Released", released, "Đã hoàn tất release", "success", KPI_ICONS.released, pct(released))}
+    ${kpiCard("Tổng Test Case", tcList.length, `Pass ${tcPass}/${tcList.length}`, "info", KPI_ICONS.testcase, tcList.length ? tcPct : null)}
   `;
 
-  $("#statTotalStatus").textContent = total + " CR";
-  $("#chartStatus").innerHTML = barChart(CR_LISTS.status, list, "status");
+  renderDashboardStatusSection(list);
+  renderDashboardSubStatusSection(list);
   $("#chartPriority").innerHTML = barChart(CR_LISTS.priority, list, "priority");
   $("#chartCategory").innerHTML = barChart(CR_LISTS.category, list, "category");
 
@@ -7033,6 +7187,116 @@ function renderDashboard(){
     </div>
   `).join("") : emptyRow("Chưa có Change Request nào");
   $all(".recent-item[data-cr]").forEach(el=> el.addEventListener("click", ()=> openDrawer(el.dataset.cr)));
+
+  renderDashboardTcSummary(list, tcList);
+}
+
+/* Điều hướng từ Dashboard sang CR Log đã lọc theo Status hoặc Sub-Status.
+   Status dùng đúng bộ lọc filterStatus có sẵn; Sub-Status tái dùng ô tìm
+   kiếm CR Log (đã bao gồm sub_status trong chuỗi tìm kiếm) để không phải
+   thay đổi cấu trúc filter hiện có. */
+function goToCrLogFiltered(type, value){
+  setView("crlog");
+  if(type === "status"){
+    STATE.filters.status = value;
+    if($("#filterStatus")) $("#filterStatus").value = value;
+  } else if(type === "sub_status"){
+    STATE.filters.search = String(value||"").toLowerCase();
+    if($("#crSearchInput")) $("#crSearchInput").value = value;
+  }
+  renderCrTable();
+}
+
+/* ---- "Theo trạng thái": lưới thẻ có thể bấm, mỗi thẻ = 1 Status --------- */
+function renderDashboardStatusSection(list){
+  const host = $("#statusGrid");
+  const total = list.length;
+  if($("#statusSectionTotal")) $("#statusSectionTotal").textContent = total + " CR";
+  if(!host) return;
+  const counts = {};
+  CR_LISTS.status.forEach(s=> counts[s] = 0);
+  list.forEach(c=>{ if(c.status) counts[c.status] = (counts[c.status]||0) + 1; });
+  host.innerHTML = CR_LISTS.status.map(s=>{
+    const n = counts[s] || 0;
+    const p = total ? Math.round((n/total)*100) : 0;
+    const c = colorFor("status", s);
+    return `<button type="button" class="stat-tile${n ? "" : " is-empty"}" data-status="${esc(s)}" style="--tile-color:${c}">
+      <span class="stat-tile-top">
+        <span class="stat-tile-dot" style="background:${c}"></span>
+        <span class="stat-tile-label">${esc(s)}</span>
+      </span>
+      <span class="stat-tile-value">${n}</span>
+      <span class="stat-tile-track"><span class="stat-tile-fill" style="width:${p}%; background:${c};"></span></span>
+      <span class="stat-tile-pct">${p}% tổng số CR</span>
+    </button>`;
+  }).join("");
+  $all(".stat-tile[data-status]", host).forEach(el=> el.addEventListener("click", ()=> goToCrLogFiltered("status", el.dataset.status)));
+}
+
+/* ---- "Theo Sub-Status": pill có thể bấm, chỉ hiện các giá trị đang dùng - */
+function renderDashboardSubStatusSection(list){
+  const host = $("#subStatusGrid");
+  const withSubStatus = list.filter(c=> c.sub_status).length;
+  if($("#subStatusSectionTotal")) $("#subStatusSectionTotal").textContent = withSubStatus + " CR có Sub-Status";
+  if(!host) return;
+  const catalog = (CR_LISTS.subStatus && CR_LISTS.subStatus.length)
+    ? CR_LISTS.subStatus
+    : [...new Set(list.map(c=> c.sub_status).filter(Boolean))];
+  const counts = {};
+  catalog.forEach(s=> counts[s] = 0);
+  list.forEach(c=>{ if(c.sub_status) counts[c.sub_status] = (counts[c.sub_status]||0) + 1; });
+  const used = catalog.filter(s=> counts[s] > 0).sort((a,b)=> counts[b] - counts[a]);
+  host.innerHTML = used.length ? used.map(s=>{
+    const n = counts[s];
+    const c = colorFor("sub_status", s);
+    return `<button type="button" class="substat-pill" data-substatus="${esc(s)}" style="--pill-color:${c}">
+      <span class="substat-dot" style="background:${c}"></span>
+      <span class="substat-label">${esc(s)}</span>
+      <span class="substat-value">${n}</span>
+    </button>`;
+  }).join("") : emptyRow("Chưa có CR nào được gán Sub-Status");
+  $all(".substat-pill[data-substatus]", host).forEach(el=> el.addEventListener("click", ()=> goToCrLogFiltered("sub_status", el.dataset.substatus)));
+}
+
+/* ---- "Test Case theo CR": tổng test case + kết quả UAT theo từng CR ----- */
+function renderDashboardTcSummary(list, tcList){
+  const body = $("#tcSummaryBody");
+  if($("#tcSectionTotal")) $("#tcSectionTotal").textContent = tcList.length + " Test Case";
+  if(!body) return;
+  const crMap = {};
+  list.forEach(c=> crMap[c.cr_id] = c);
+  const groups = {};
+  tcList.forEach(t=>{
+    const key = t.cr_id || "—";
+    if(!groups[key]) groups[key] = { cr_id:key, total:0, pass:0, fail:0, blocked:0, notStarted:0 };
+    const g = groups[key];
+    g.total++;
+    const r = t.pass_fail || "Not Started";
+    if(r === "Pass") g.pass++;
+    else if(r === "Fail") g.fail++;
+    else if(r === "Blocked") g.blocked++;
+    else g.notStarted++;
+  });
+  const rows = Object.values(groups).sort((a,b)=> b.total - a.total);
+  body.innerHTML = rows.length ? rows.map(g=>{
+    const cr = crMap[g.cr_id];
+    const p = g.total ? Math.round((g.pass/g.total)*100) : 0;
+    return `<tr class="tc-summary-row" data-cr="${esc(g.cr_id)}">
+      <td class="tc-cr-id">${esc(g.cr_id)}</td>
+      <td class="tc-cr-title" title="${esc(cr ? crCellTitle(cr) : "")}">${esc(cr ? crCellTitle(cr) : "—")}</td>
+      <td>${cr ? badge("status", cr.status) : "—"}</td>
+      <td class="tc-num">${g.total}</td>
+      <td class="tc-num tc-pass">${g.pass}</td>
+      <td class="tc-num tc-fail">${g.fail}</td>
+      <td class="tc-num tc-blocked">${g.blocked}</td>
+      <td class="tc-num tc-notstarted">${g.notStarted}</td>
+      <td class="tc-progress-cell">
+        <div class="tc-progress-track"><div class="tc-progress-fill" style="width:${p}%"></div></div>
+        <span class="tc-progress-label">${p}%</span>
+      </td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="9"><div class="empty-state" style="padding:24px 10px;"><p>Chưa có Test Case nào</p></div></td></tr>`;
+  $all(".tc-summary-row[data-cr]", body).forEach(el=> el.addEventListener("click", ()=> openDrawer(el.dataset.cr)));
 }
 
 function kpiCard(label, value, foot, cls, icon, pct){
@@ -7052,6 +7316,7 @@ const KPI_ICONS = {
   inflight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>`,
   overdue: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
   released: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>`,
+  testcase: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,
 };
 
 /* Relative time — presentational only, used for the recent-activity list and

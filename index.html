@@ -447,20 +447,6 @@ body.focus-mode .view#view-release .rel-kpis{ display:none; }
 .kpi-card.info .kpi-value{ color: var(--info); }
 .kpi-icon{ position:absolute; right:14px; top:14px; width:30px; height:30px; opacity:.4; }
 
-.dash-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:16px; }
-@media (max-width:1080px){ .dash-grid{ grid-template-columns:1fr; } }
-.dash-col{ display:flex; flex-direction:column; gap:16px; }
-
-.chart-block h3{ font-size: var(--text-section-title-size); font-weight: var(--text-section-title-weight); margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
-.chart-block h3 .total{ font-size: var(--text-caption-size); color: var(--text-muted); font-weight:500; }
-.bar-row{ display:flex; align-items:center; gap:12px; margin-bottom:11px; }
-.bar-row:last-child{ margin-bottom:0; }
-.bar-label{ width:118px; flex-shrink:0; font-size:12.5px; color: var(--text-dim); display:flex; align-items:center; gap:7px; }
-.bar-dot{ width:8px; height:8px; border-radius:2px; flex-shrink:0; }
-.bar-track{ flex:1; height:9px; background: rgba(255,255,255,0.05); border-radius:6px; overflow:hidden; }
-.bar-fill{ height:100%; border-radius:6px; transition: width .5s ease; }
-.bar-num{ width:26px; text-align:right; font-size:12.5px; font-weight:700; font-variant-numeric: tabular-nums; }
-
 .recent-list{ display:flex; flex-direction:column; }
 .recent-item{
   display:flex; align-items:center; gap:12px; padding:11px 0;
@@ -643,8 +629,6 @@ tbody tr:hover .row-actions{ opacity:1; }
 .view .stat-tile:hover{ background:#ffffff; }
 .view .stat-tile-label{ color:#5f7690; }
 .view .stat-tile-value{ color:#0a1e33; }
-.view .stat-tile-pct{ color:#8498ad; }
-.view .stat-tile-track{ background:#e7eef1; }
 
 .view .substat-pill{ background:#f8fbfc; border-color:#dde7ec; }
 .view .substat-pill:hover{ background:#ffffff; }
@@ -1018,11 +1002,6 @@ td.cell-id .id-chip{
 .view .view-head h2{ color:#0a1e33; }
 .view .view-head p{ color:#5f7690; }
 .view .panel{ background:#ffffff; border-color:#dde7ec; }
-.view .chart-block h3{ color:#0a1e33; }
-.view .chart-block h3 .total{ color:#8498ad; }
-.view .bar-label{ color:#43586e; }
-.view .bar-track{ background: rgba(13,40,64,0.07); }
-.view .bar-num{ color:#0a1e33; }
 .view .recent-item{ border-bottom-color:#edf2f5; }
 .view .recent-item .recent-id{ color:#5f7690; background:#f2f6f8; }
 .view .recent-title{ color:#22394e; }
@@ -1773,15 +1752,6 @@ body.sidebar-collapsed .nav-item::before{ left:-2px; }
 .kpi-card .kpi-label{ margin-top:2px; margin-bottom:0; order:3; }
 .kpi-card .kpi-foot{ min-height:15px; }
 
-/* ---- Dashboard charts: same counts/percentages, calmer premium styling - */
-.chart-block .bar-row{ margin-bottom:13px; }
-.chart-block .bar-track{ height:8px; background: rgba(255,255,255,0.045); }
-.chart-block .bar-fill{
-  position:relative; transition: width .6s var(--ease-decel);
-}
-.chart-block .bar-label{ font-weight:600; color: var(--text-secondary); }
-.chart-block .bar-num{ font-variant-numeric:tabular-nums; color: var(--text-primary); }
-
 /* ---- Dashboard sections: status tiles / sub-status pills / TC summary --- */
 .dash-section{ margin-bottom: var(--space-6); }
 .dash-section-head{
@@ -1808,10 +1778,9 @@ body.sidebar-collapsed .nav-item::before{ left:-2px; }
 .stat-tile-top{ display:flex; align-items:center; gap:8px; }
 .stat-tile-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 .stat-tile-label{ font-size:12.5px; font-weight:700; color: var(--text-secondary); }
-.stat-tile-value{ font-family: var(--font-head); font-size:24px; font-weight:800; line-height:1; }
-.stat-tile-track{ height:6px; border-radius:6px; background: rgba(255,255,255,0.06); overflow:hidden; }
-.stat-tile-fill{ height:100%; border-radius:6px; transition: width .5s ease; }
-.stat-tile-pct{ font-size:11px; color: var(--text-faint); font-weight:600; align-self:flex-end; }
+.stat-tile-bottom{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.stat-tile-value{ font-family: var(--font-head); font-size:26px; font-weight:800; line-height:1; }
+.stat-tile-pct{ font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; }
 
 .substat-grid{ display:flex; flex-wrap:wrap; gap:10px; }
 .substat-pill{
@@ -2170,8 +2139,6 @@ tbody tr.detail-selected:hover{ background:
 }
 
 /* Dashboard/data skeletons preserve the real chart and recent-list geometry. */
-.skeleton-dashboard-chart{ display:flex; flex-direction:column; gap:13px; padding-top:3px; }
-.skeleton-dashboard-bar{ height:10px; border-radius:6px; }
 .skeleton-dashboard-recent{ display:flex; flex-direction:column; gap:13px; }
 .skeleton-dashboard-recent-row{
   display:grid; grid-template-columns:58px 1fr 62px; gap:10px; align-items:center;
@@ -4269,23 +4236,11 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
         <div class="substat-grid" id="subStatusGrid"></div>
       </div>
 
-      <div class="dash-grid">
-        <div class="dash-col">
-          <div class="panel panel-pad chart-block">
-            <h3>Theo mức ưu tiên</h3>
-            <div id="chartPriority"></div>
-          </div>
-          <div class="panel panel-pad chart-block">
-            <h3>Theo loại</h3>
-            <div id="chartCategory"></div>
-          </div>
+      <div class="panel panel-pad dash-section" id="dashRecentSection">
+        <div class="dash-section-head">
+          <h3>CR gần đây</h3>
         </div>
-        <div class="dash-col">
-          <div class="panel panel-pad chart-block">
-            <h3>CR gần đây</h3>
-            <div class="recent-list" id="recentList"></div>
-          </div>
-        </div>
+        <div class="recent-list" id="recentList"></div>
       </div>
 
       <div class="panel dash-section tc-summary-panel" id="dashTcSection">
@@ -6746,11 +6701,6 @@ function skeletonTableRows(tbody, colCount, rowCount){
       ${Array.from({length:colCount}).map(()=> `<td><div class="skeleton skeleton-line w-80"></div></td>`).join("")}
     </tr>`).join("");
 }
-function skeletonDashboardChart(){
-  return `<div class="skeleton-dashboard-chart">
-    ${[72,48,86,61,38].map(width=>`<div class="skeleton skeleton-dashboard-bar" style="width:${width}%"></div>`).join("")}
-  </div>`;
-}
 function skeletonDashboardRecent(){
   return `<div class="skeleton-dashboard-recent">
     ${Array.from({length:5}).map(()=>`<div class="skeleton-dashboard-recent-row">
@@ -6769,8 +6719,6 @@ function showLoadingSkeletons(){
   skeletonKpiRow($("#crKpis"), 4);
   if($("#statusGrid")) $("#statusGrid").innerHTML = skeletonStatTiles(10);
   if($("#subStatusGrid")) $("#subStatusGrid").innerHTML = skeletonSubstatPills(8);
-  if($("#chartPriority")) $("#chartPriority").innerHTML = skeletonDashboardChart();
-  if($("#chartCategory")) $("#chartCategory").innerHTML = skeletonDashboardChart();
   if($("#recentList")) $("#recentList").innerHTML = skeletonDashboardRecent();
   const tcSummaryTbody = $("#tcSummaryBody");
   if(tcSummaryTbody) skeletonTableRows(tcSummaryTbody, 9, 5);
@@ -7174,8 +7122,6 @@ function renderDashboard(){
 
   renderDashboardStatusSection(list);
   renderDashboardSubStatusSection(list);
-  $("#chartPriority").innerHTML = barChart(CR_LISTS.priority, list, "priority");
-  $("#chartCategory").innerHTML = barChart(CR_LISTS.category, list, "category");
 
   const recent = [...list].sort((a,b)=> new Date(b.updated_at||b.created_at) - new Date(a.updated_at||a.created_at)).slice(0,6);
   $("#recentList").innerHTML = recent.length ? recent.map(c=>`
@@ -7243,9 +7189,10 @@ function renderDashboardStatusSection(list){
         <span class="stat-tile-dot" style="background:${c}"></span>
         <span class="stat-tile-label">${esc(s)}</span>
       </span>
-      <span class="stat-tile-value">${n}</span>
-      <span class="stat-tile-track"><span class="stat-tile-fill" style="width:${p}%; background:${c};"></span></span>
-      <span class="stat-tile-pct">${p}% tổng số CR</span>
+      <span class="stat-tile-bottom">
+        <span class="stat-tile-value">${n}</span>
+        <span class="stat-tile-pct" style="background:${hexToRgba(c,.14)}; color:${c};">${p}%</span>
+      </span>
     </button>`;
   }).join("");
   $all(".stat-tile[data-status]", host).forEach(el=> el.addEventListener("click", ()=> goToCrLogFiltered("status", el.dataset.status)));
@@ -7352,23 +7299,6 @@ function relTime(d){
   const day = Math.floor(hr/24);
   if(day < 7) return `${day} ngày trước`;
   return fmtDate(d);
-}
-
-function barChart(keys, list, field){
-  const total = list.length || 1;
-  const counts = {};
-  keys.forEach(k=> counts[k]=0);
-  list.forEach(item=>{ const v = item[field]; if(v!==undefined && v!==null && v!=="") counts[v] = (counts[v]||0)+1; });
-  return keys.map(k=>{
-    const n = counts[k]||0;
-    const pct = Math.round((n/total)*100);
-    const c = colorFor(field==="status"?"status":field, k);
-    return `<div class="bar-row">
-      <div class="bar-label"><span class="bar-dot" style="background:${c}"></span>${esc(k)}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${c};"></div></div>
-      <div class="bar-num">${n}</div>
-    </div>`;
-  }).join("");
 }
 
 function emptyRow(msg){

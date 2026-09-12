@@ -7194,9 +7194,25 @@ function renderDashboard(){
 /* Điều hướng từ Dashboard sang CR Log đã lọc theo Status hoặc Sub-Status.
    Status dùng đúng bộ lọc filterStatus có sẵn; Sub-Status tái dùng ô tìm
    kiếm CR Log (đã bao gồm sub_status trong chuỗi tìm kiếm) để không phải
-   thay đổi cấu trúc filter hiện có. */
+   thay đổi cấu trúc filter hiện có.
+   QUAN TRỌNG: luôn xóa sạch mọi filter + control UI cũ trước khi áp filter
+   mới, để 2 lần bấm liên tiếp từ Dashboard (vd: Sub-Status rồi tới Status)
+   không bị cộng dồn điều kiện lọc với nhau. */
 function goToCrLogFiltered(type, value){
   setView("crlog");
+
+  // Reset toàn bộ state filter CR Log về mặc định
+  STATE.filters = { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" };
+
+  // Đồng bộ lại mọi control UI của bộ lọc CR Log về trạng thái mặc định
+  if($("#filterStatus")) $("#filterStatus").value = "";
+  if($("#filterPriority")) $("#filterPriority").value = "";
+  if($("#filterCategory")) $("#filterCategory").value = "";
+  if($("#filterRequester")) $("#filterRequester").value = "";
+  if($("#filterOverdueOnly")) $("#filterOverdueOnly").checked = false;
+  if($("#crSearchInput")) $("#crSearchInput").value = "";
+
+  // Áp đúng 1 filter được yêu cầu từ Dashboard
   if(type === "status"){
     STATE.filters.status = value;
     if($("#filterStatus")) $("#filterStatus").value = value;
@@ -7204,6 +7220,8 @@ function goToCrLogFiltered(type, value){
     STATE.filters.search = String(value||"").toLowerCase();
     if($("#crSearchInput")) $("#crSearchInput").value = value;
   }
+
+  if(typeof updateMoreFiltersBadge === "function") updateMoreFiltersBadge();
   renderCrTable();
 }
 

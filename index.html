@@ -8276,6 +8276,42 @@ async function downloadProgressReport(selectedCrIds = null){
     workbook.modified = new Date();
     workbook.properties = { title:"CR Progress Report", subject:"CR / UAT / Release progress" };
 
+    // ---- Sheet "Report_Weekly": tóm tắt nhanh đúng các CR đã chọn ở modal
+    // (chọn 1/nhiều/tất cả CR đều dùng chung selectedCrList) — dùng để gửi
+    // báo cáo tiến độ định kỳ, không cần mở toàn bộ sheet CR_Log chi tiết.
+    const weeklyColumns = [
+      {label:"CR ID",             width:13, value:c=>c.cr_id},
+      {label:"Rename Folder",     width:32, value:c=>c.rename_folder},
+      {label:"Priority",         width:12, value:c=>c.priority},
+      {label:"Status",           width:17, value:c=>c.status},
+      {label:"Sub-Status",       width:18, value:c=>c.sub_status},
+      {label:"Deadline",         width:14, date:true, value:c=>c.deadline},
+      {label:"BRD",              width:11, value:c=>crDocumentStatusLabel(c, "BRD")},
+      {label:"FSD",              width:11, value:c=>crDocumentStatusLabel(c, "FSD")},
+      {label:"Loop Mail Header", width:38, value:c=>c.loop_mail_header},
+      {label:"Progress",         width:44, value:c=>c.progress},
+    ];
+    const weeklySheet = workbook.addWorksheet("Report_Weekly");
+    reportStyleSheet(
+      weeklySheet,
+      "BÁO CÁO TUẦN (WEEKLY REPORT)",
+      "Tóm tắt nhanh theo CR đã chọn — dùng để gửi báo cáo tiến độ định kỳ",
+      weeklyColumns,
+      { defaultWidth:20, specialWidths:{ B:34, I:38, J:46 } }
+    );
+    selectedCrList.forEach((record, index)=>{
+      const row = weeklySheet.addRow([]);
+      weeklyColumns.forEach((column, columnIndex)=> reportSetCell(row.getCell(columnIndex + 1), column.value(record), column));
+      row.height = 60;
+      row.eachCell(cell=>{
+        cell.alignment = { vertical:"top", wrapText:true };
+        cell.font = { name:"Aptos", size:10, color:{argb:"FF0A1E33"} };
+        cell.border = { bottom:{style:"thin", color:{argb:"FFB9D2DA"}} };
+        if(index % 2 === 1) cell.fill = { type:"pattern", pattern:"solid", fgColor:{argb:"FFE8F7F6"} };
+      });
+    });
+    reportAddTable(weeklySheet, "WeeklyReportTable", 5 + selectedCrList.length, weeklyColumns.length);
+
     const crColumns = [
       {label:"No", width:7, value:c=>crLogNo(c)},
       {label:"CR ID", width:13, value:c=>c.cr_id},

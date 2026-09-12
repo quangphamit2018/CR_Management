@@ -1023,6 +1023,17 @@ td.cell-id .id-chip{
 .modal.modal-sm{ max-width:460px; }
 .modal.modal-lg{ max-width:960px; }
 .export-selection-modal{ max-width:760px; }
+.export-report-type{ margin-bottom:16px; }
+.export-report-type strong{ display:block; color:#18364f; font-size:12.5px; margin-bottom:8px; }
+.export-report-type-options{ display:flex; flex-wrap:wrap; gap:8px; }
+.export-report-type-options label{
+  display:flex; align-items:center; gap:7px; font-size:12.5px; color:#43586e;
+  padding:8px 12px; border:1px solid #e0eaee; border-radius:10px; cursor:pointer;
+  background:#fff; transition:border-color .15s, background .15s;
+}
+.export-report-type-options label:hover{ border-color:#9bded9; background:#f8fdfd; }
+.export-report-type-options label:has(input:checked){ border-color:#66cfc9; background:#effafa; color:#0e9a94; font-weight:700; }
+.export-report-type-options input{ accent-color:#0e9a94; width:14px; height:14px; flex-shrink:0; }
 .export-selection-modal .modal-body{ padding:20px 24px 22px; }
 .export-selection-intro{
   display:flex; align-items:flex-start; gap:12px; padding:13px 14px; margin-bottom:16px;
@@ -6865,6 +6876,17 @@ function zipFileName(value, fallback){
   return name || fallback || "evidence";
 }
 
+// 5 lựa chọn tải báo cáo — mỗi lựa chọn ứng với đúng 1 hoặc nhiều sheet Excel.
+// "all" giữ đúng hành vi mặc định trước đây (xuất đủ 4 sheet) để không đổi
+// trải nghiệm cho ai chưa để ý tới bộ lọc mới này.
+const REPORT_SHEET_OPTIONS = [
+  { value:"cr_log",        label:"CR_Log",         sheets:["cr_log"] },
+  { value:"uat_testcase",  label:"UAT_Testcase",   sheets:["uat_testcase"] },
+  { value:"release_prd",   label:"Release_PRD",    sheets:["release_prd"] },
+  { value:"report_weekly", label:"Report_Weekly",  sheets:["report_weekly"] },
+  { value:"all",           label:"Tải tất cả",     sheets:["report_weekly","cr_log","uat_testcase","release_prd"] },
+];
+
 function exportSelectionModalTemplate(mode){
   const isReport = mode === "report";
   const title = isReport ? "Tải báo cáo theo CR" : "Tải ảnh evidence theo CR";
@@ -6888,6 +6910,18 @@ function exportSelectionModalTemplate(mode){
           </svg>
           <span>${description}</span>
         </div>
+        ${isReport ? `
+        <div class="export-report-type">
+          <strong>Chọn sheet cần tải (giúp tải nhanh hơn nếu chỉ cần 1 loại dữ liệu)</strong>
+          <div class="export-report-type-options" id="exportReportTypeOptions">
+            ${REPORT_SHEET_OPTIONS.map((opt, i)=>`
+              <label>
+                <input type="radio" name="exportReportType" value="${esc(opt.value)}" ${opt.value==="all"?"checked":""}>
+                ${esc(opt.label)}
+              </label>
+            `).join("")}
+          </div>
+        </div>` : ""}
         <div class="export-selection-toolbar">
           <strong>Danh sách CR</strong>
           <div class="export-selection-actions">
@@ -6994,8 +7028,11 @@ function openExportSelectionModal(mode){
   confirm.addEventListener("click", ()=>{
     if(!selected.size) return;
     const selectedCrIds = Array.from(selected);
+    const reportType = isReport
+      ? (overlay.querySelector('input[name="exportReportType"]:checked')?.value || "all")
+      : null;
     close();
-    if(isReport) downloadProgressReport(selectedCrIds);
+    if(isReport) downloadProgressReport(selectedCrIds, reportType);
     else downloadEvidenceImagesZip(selectedCrIds);
   });
   render();
@@ -8247,7 +8284,7 @@ function reportWhiteHeaderText(ws, lastColumn){
   });
 }
 
-async function downloadProgressReport(selectedCrIds = null){
+async function downloadProgressReport(selectedCrIds = null, sheetFilter = "all"){
   const btn = $("#btnProgressReport");
   if(!btn || btn.disabled) return;
   if(typeof ExcelJS === "undefined"){
@@ -8262,18 +8299,25 @@ async function downloadProgressReport(selectedCrIds = null){
   if(label) label.textContent = "Đang tạo...";
 
   try{
+    const reportOption = REPORT_SHEET_OPTIONS.find(o=>o.value === sheetFilter) || REPORT_SHEET_OPTIONS.find(o=>o.value==="all");
+    const wantedSheets = new Set(reportOption.sheets);
+    const wantWeekly  = wantedSheets.has("report_weekly");
+    const wantCrLog   = wantedSheets.has("cr_log");
+    const wantUat     = wantedSheets.has("uat_testcase");
+    const wantRelease = wantedSheets.has("release_prd");
+
     const selectedIdSet = selectedCrIds == null
       ? null
       : new Set(selectedCrIds.map(id=>String(id)));
     const selectedCrList = (STATE.crList || []).filter(record=>
       !selectedIdSet || selectedIdSet.has(String(record.cr_id))
     );
-    const selectedTcList = (STATE.tcList || []).filter(testcase=>
+    const selectedTcList = (wantUat || wantCrLog) ? (STATE.tcList || []).filter(testcase=>
       !selectedIdSet || selectedIdSet.has(String(testcase.cr_id))
-    );
-    const selectedRelList = (STATE.relList || []).filter(record=>
+    ) : [];
+    const selectedRelList = wantRelease ? (STATE.relList || []).filter(record=>
       !selectedIdSet || selectedIdSet.has(String(record.cr_id))
-    );
+    ) : [];
     if(!selectedCrList.length){
       toast("Chưa chọn CR nào để tạo báo cáo.", "info");
       return;
@@ -8290,27 +8334,35 @@ async function downloadProgressReport(selectedCrIds = null){
     });
     // Tải lại trạng thái tài liệu ngay trước khi xuất để báo cáo không bị
     // trễ nếu người dùng vừa upload/đổi loại file BRD hoặc FSD.
-    await fetchCrDocumentStatus();
+    // Chỉ cần khi thật sự có cột BRD/FSD trong sheet sẽ xuất (Report_Weekly
+    // hoặc CR_Log) — bỏ qua khi chỉ tải UAT_Testcase/Release_PRD để nhanh hơn.
+    if(wantWeekly || wantCrLog){
+      await fetchCrDocumentStatus();
+    }
     // Load every evidence record by Test Case ID. No Dashboard aggregates are
     // read here; the three report sheets are built from raw STATE records.
+    // Đây là bước TỐN THỜI GIAN NHẤT (tải & giải mã từng ảnh evidence), nên
+    // chỉ chạy khi người dùng thật sự chọn tải sheet UAT_Testcase.
     const evidenceMap = new Map();
     let maxImageCount = 0;
     let maxImageDisplayWidth = 0;
-    await Promise.all(selectedTcList.map(async testcase=>{
-      const files = testcase.id ? await fetchTcAttachments(testcase.id) : [];
-      const images = [];
-      for(const file of files){
-        if(reportIsImageFile(file)){
-          const image = await reportLoadImage(file);
-           if(image){
-             images.push(image);
-             maxImageDisplayWidth = Math.max(maxImageDisplayWidth, image.width);
-           }
+    if(wantUat){
+      await Promise.all(selectedTcList.map(async testcase=>{
+        const files = testcase.id ? await fetchTcAttachments(testcase.id) : [];
+        const images = [];
+        for(const file of files){
+          if(reportIsImageFile(file)){
+            const image = await reportLoadImage(file);
+             if(image){
+               images.push(image);
+               maxImageDisplayWidth = Math.max(maxImageDisplayWidth, image.width);
+             }
+          }
         }
-      }
-      evidenceMap.set(String(testcase.id), { files, images });
-      maxImageCount = Math.max(maxImageCount, images.length);
-    }));
+        evidenceMap.set(String(testcase.id), { files, images });
+        maxImageCount = Math.max(maxImageCount, images.length);
+      }));
+    }
     maxImageCount = Math.max(maxImageCount, 1);
     const evidenceColumnWidth = maxImageDisplayWidth
       ? Math.max(48, Math.ceil(maxImageDisplayWidth / 6.5) + 4)
@@ -8326,6 +8378,7 @@ async function downloadProgressReport(selectedCrIds = null){
     // ---- Sheet "Report_Weekly": tóm tắt nhanh đúng các CR đã chọn ở modal
     // (chọn 1/nhiều/tất cả CR đều dùng chung selectedCrList) — dùng để gửi
     // báo cáo tiến độ định kỳ, không cần mở toàn bộ sheet CR_Log chi tiết.
+    if(wantWeekly){
     const weeklyColumns = [
       {label:"CR ID",             width:13, value:c=>c.cr_id},
       {label:"Rename Folder",     width:32, value:c=>c.rename_folder},
@@ -8358,7 +8411,9 @@ async function downloadProgressReport(selectedCrIds = null){
       });
     });
     reportAddTable(weeklySheet, "WeeklyReportTable", 5 + selectedCrList.length, weeklyColumns.length);
+    }
 
+    if(wantCrLog){
     const crColumns = [
       {label:"No", width:7, value:c=>crLogNo(c)},
       {label:"CR ID", width:13, value:c=>c.cr_id},
@@ -8417,7 +8472,9 @@ async function downloadProgressReport(selectedCrIds = null){
       });
     });
     reportAddTable(crSheet, "CRProgressTable", 5 + selectedCrList.length, crColumns.length);
+    }
 
+    if(wantUat){
     const uatColumns = [
       {label:"CR ID", width:13, value:t=>t.cr_id},
       {label:"Test Case ID", width:22, value:t=>t.test_case_id},
@@ -8486,7 +8543,9 @@ async function downloadProgressReport(selectedCrIds = null){
       });
     });
     reportAddTable(uatSheet, "UatEvidenceTable", 5 + selectedTcList.length, uatColumns.length);
+    }
 
+    if(wantRelease){
     const releaseColumns = [
       {label:"CR ID", width:13, value:r=>r.cr_id},
       {label:"Release ID", width:18, value:r=>r.release_id},
@@ -8527,10 +8586,12 @@ async function downloadProgressReport(selectedCrIds = null){
       });
     });
     reportAddTable(releaseSheet, "ReleasePrdTable", 5 + selectedRelList.length, releaseColumns.length);
+    }
 
     const timestamp = vnNowParts();
     const pad = number=>String(number).padStart(2, "0");
-    const filename = `CR_Progress_Report_${timestamp.year}${pad(timestamp.month)}${pad(timestamp.day)}_${pad(timestamp.hour)}${pad(timestamp.minute)}.xlsx`;
+    const filenamePrefix = sheetFilter === "all" ? "CR_Progress_Report" : `CR_${reportOption.label.replace(/\s+/g,"_")}_Report`;
+    const filename = `${filenamePrefix}_${timestamp.year}${pad(timestamp.month)}${pad(timestamp.day)}_${pad(timestamp.hour)}${pad(timestamp.minute)}.xlsx`;
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = URL.createObjectURL(blob);
@@ -8541,7 +8602,11 @@ async function downloadProgressReport(selectedCrIds = null){
     anchor.click();
     anchor.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 1000);
-    toast(`Đã tải báo cáo gồm ${selectedCrList.length} CR, ${selectedTcList.length} test case và ${selectedRelList.length} release.`, "ok");
+    const summaryParts = [];
+    summaryParts.push(`${selectedCrList.length} CR`);
+    if(wantUat) summaryParts.push(`${selectedTcList.length} test case`);
+    if(wantRelease) summaryParts.push(`${selectedRelList.length} release`);
+    toast(`Đã tải báo cáo (${reportOption.label}) gồm ${summaryParts.join(", ")}.`, "ok");
   }catch(error){
     console.error(error);
     toast("Tạo báo cáo thất bại: " + (error?.message || error), "err");

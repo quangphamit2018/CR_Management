@@ -311,7 +311,6 @@ h1,h2,h3,h4{ font-family: var(--font-head); font-weight:700; letter-spacing:-0.0
   transition: var(--transition-collapse);
   overflow:visible;
 }
-body.sidebar-collapsed .sidebar{ width: var(--sidebar-w-collapsed); padding-left:10px; padding-right:10px; }
 
 /* Nút 3 gạch (hamburger) trên topbar — desktop: ẩn/hiện hoàn toàn sidebar.
    (Mobile <900px giữ nguyên cơ chế off-canvas drawer sẵn có.) */
@@ -320,19 +319,8 @@ body.sidebar-hidden .modal-overlay.full,
 body.sidebar-hidden .drawer-overlay,
 body.sidebar-hidden .drawer{ left:0; }
 
-.sidebar-toggle{
-  position:absolute; top:26px; right:-13px; width:26px; height:26px; border-radius:50%;
-  background: var(--bg-sidebar-solid); border:1px solid var(--border); color: var(--text-secondary);
-  display:flex; align-items:center; justify-content:center; z-index:6;
-  box-shadow: var(--shadow-sm); transition: var(--transition-hover), transform var(--duration-fast) var(--ease-standard);
-}
-.sidebar-toggle:hover{ background: var(--bg-surface-hover); color: var(--text-primary); }
-.sidebar-toggle:active{ transform: scale(0.92); }
-.sidebar-toggle svg{ width:13px; height:13px; transition: transform var(--duration-slow) var(--ease-standard); }
-body.sidebar-collapsed .sidebar-toggle svg{ transform: rotate(180deg); }
-
 .sidebar .brand{ display:flex; align-items:center; gap:10px; padding:6px 8px 26px; overflow:hidden; transition: padding var(--duration-slow) var(--ease-standard); }
-body.sidebar-collapsed .sidebar .brand{ justify-content:center; padding:6px 0 26px; }
+
 .sidebar .brand .mark{
   width:34px; height:34px; border-radius:9px; flex-shrink:0;
   background: linear-gradient(135deg, var(--accent), var(--accent-shade));
@@ -342,11 +330,9 @@ body.sidebar-collapsed .sidebar .brand{ justify-content:center; padding:6px 0 26
 }
 .sidebar .brand .name{ font-family: var(--font-head); font-weight:800; font-size:16px; white-space:nowrap; }
 .sidebar .brand .tag{ font-size: var(--text-caption-size); color: var(--text-muted); white-space:nowrap; }
-body.sidebar-collapsed .sidebar .brand .name,
-body.sidebar-collapsed .sidebar .brand .tag{ display:none; }
 
 .nav-group-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color: var(--text-muted); padding:14px 12px 8px; font-weight:700; white-space:nowrap; overflow:hidden; }
-body.sidebar-collapsed .nav-group-label{ display:none; }
+
 .nav-item{
   display:flex; align-items:center; gap:11px;
   padding:10px 12px; border-radius:10px; color: var(--text-secondary);
@@ -364,9 +350,6 @@ body.sidebar-collapsed .nav-group-label{ display:none; }
   background: rgba(255,255,255,0.06); padding:1px 7px; border-radius:20px; flex-shrink:0;
 }
 .nav-item.active .count{ background: rgba(63,208,201,0.2); color: var(--accent); }
-body.sidebar-collapsed .nav-item{ justify-content:center; padding:11px 0; gap:0; }
-body.sidebar-collapsed .nav-item .nav-label,
-body.sidebar-collapsed .nav-item .count{ display:none; }
 
 .sidebar-foot{ margin-top:auto; padding-top:14px; border-top:1px solid var(--border); }
 .conn-pill{
@@ -375,10 +358,6 @@ body.sidebar-collapsed .nav-item .count{ display:none; }
   overflow:hidden; transition: padding var(--duration-slow) var(--ease-standard);
 }
 .conn-dot{ width:7px; height:7px; border-radius:50%; background: var(--success); box-shadow:0 0 0 3px var(--success-dim); flex-shrink:0; }
-/* Collapsed sidebar: the pill only ever showed a bare dot with no email/role
-   (both hidden below), which just looked like a stray unlabeled element —
-   so hide the whole pill instead of the empty shell. */
-body.sidebar-collapsed .conn-pill{ display:none; }
 
 .main{ flex:1; min-width:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
@@ -1001,7 +980,6 @@ td.cell-id .id-chip{
 }
 @keyframes spin{ to{ transform: rotate(360deg); } }
 
-
 /* ---- Light-theme bổ sung: dashboard panels, charts, headings ---- */
 .view .view-head h2{ color:#0a1e33; }
 .view .view-head p{ color:#5f7690; }
@@ -1104,7 +1082,7 @@ td.cell-id .id-chip{
   padding:0; background: var(--navy-deep); backdrop-filter:none; align-items:stretch; justify-content:stretch;
   left: var(--sidebar-w); transition: opacity var(--duration-base) var(--ease-standard), left var(--duration-slow) var(--ease-standard);
 }
-body.sidebar-collapsed .modal-overlay.full{ left: var(--sidebar-w-collapsed); }
+
 .modal-overlay.full .modal{
   width:100%; max-width:none; height:100%; max-height:none; border-radius:0; border:none; border-left:1px solid var(--border);
   transform:translateX(28px); box-shadow: var(--shadow-floating);
@@ -1176,7 +1154,7 @@ body.sidebar-collapsed .modal-overlay.full{ left: var(--sidebar-w-collapsed); }
   opacity:0; pointer-events:none; transition: opacity var(--duration-base) var(--ease-standard), left var(--duration-slow) var(--ease-standard);
 }
 .drawer-overlay.show{ opacity:1; pointer-events:auto; }
-body.sidebar-collapsed .drawer-overlay{ left: var(--sidebar-w-collapsed); }
+
 .drawer{
   position:fixed; top:0; right:0; bottom:0; left: var(--sidebar-w);
   background: #ffffff; border-left:1px solid var(--border); color:#16283c;
@@ -1204,7 +1182,7 @@ body.sidebar-collapsed .drawer-overlay{ left: var(--sidebar-w-collapsed); }
 .drawer .file-cat-row select{ background:#ffffff; color:var(--text-primary); }
 .drawer .file-cat-tag{ color:#fff; }
 .drawer .file-del{ color:#fff; }
-body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
+
 .drawer-head{ padding:22px clamp(20px, 4vw, 48px); border-bottom:1px solid var(--border); flex-shrink:0; position:sticky; top:0; background: var(--bg-topbar); backdrop-filter: blur(14px); z-index:2; }
 .drawer-head-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
 .drawer-head h2{ font-size: var(--text-page-title-size); margin-bottom:4px; }
@@ -1452,7 +1430,7 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
     transition: transform var(--duration-slow) var(--ease-standard);
   }
   body.mobile-nav-open .sidebar{ transform: translateX(0); }
-  .sidebar-toggle{ display:none; } /* collapse/expand is a desktop-only affordance */
+ /* collapse/expand is a desktop-only affordance */
 
   .mobile-nav-backdrop{
     display:none; position:fixed; inset:0; z-index:980;
@@ -1480,7 +1458,7 @@ body.sidebar-collapsed .drawer{ left: var(--sidebar-w-collapsed); }
 .mobile-nav-toggle:active{ transform:translateY(0) scale(0.94); }
 .mobile-nav-toggle svg{ width:18px; height:18px; }
 .mobile-nav-toggle-label{ display:none; }
-body.sidebar-collapsed .mobile-nav-toggle{ left:calc(var(--sidebar-w-collapsed) + 20px); }
+
 body.sidebar-hidden .mobile-nav-toggle{ left:20px; }
 @media(max-width:900px){
   .mobile-nav-toggle{ top:14px; left:14px; }
@@ -1527,7 +1505,7 @@ body.mobile-nav-open .mobile-nav-toggle:hover{
 }
 @media(min-width:901px){
   body.detail-nav-visible .mobile-nav-toggle{ left:calc(var(--sidebar-w) + 20px); }
-  body.sidebar-collapsed.detail-nav-visible .mobile-nav-toggle{ left:calc(var(--sidebar-w-collapsed) + 20px); }
+
   body.sidebar-hidden.detail-nav-visible .mobile-nav-toggle{ left:14px; }
 }
 
@@ -1602,7 +1580,6 @@ body.mobile-nav-open .mobile-nav-toggle:hover{
   transition: transform var(--duration-base) var(--ease-decel);
 }
 .nav-item.active::before{ transform: translateY(-50%) scaleY(1); }
-body.sidebar-collapsed .nav-item::before{ left:-2px; }
 
 /* ---- 5. Micro-interactions: icons, badges, tooltips --------------------- */
 .badge{ transition: background var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard); }
@@ -2021,11 +1998,7 @@ body.focus-mode .modal-overlay.full{ left:0 !important; }
   border:1px solid rgba(255,255,255,0.055);
   pointer-events:none;
 }
-.sidebar-toggle{
-  border-color:rgba(255,255,255,0.18);
-  box-shadow: 0 7px 16px -9px rgba(0,0,0,0.9),
-              inset 0 1px 0 rgba(255,255,255,0.11);
-}
+
 .topbar{
   background:
     linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0) 72%),
@@ -3539,7 +3512,6 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   }
 }
 
-
 /* ==========================================================================
    AUTH EXPERIENCE — calm, premium entry point + purposeful motion
    ========================================================================== */
@@ -3979,23 +3951,6 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 .import-stat.danger b{ color:#d0524e; }
 @media(max-width:640px){ .import-summary{ grid-template-columns:repeat(2,1fr); } }
 
-/* ---------------------------------------------------------------------------
-   RELEASE / PRD — SUB-TABS ("Danh sách Release" / "Tạo BRD")
---------------------------------------------------------------------------- */
-.rel-subtabs{
-  display:flex; gap:6px; margin-bottom:14px; border-bottom:1px solid #e3ebf0; padding-bottom:0;
-}
-.rel-subtab-btn{
-  appearance:none; border:none; background:transparent; cursor:pointer;
-  font-family:var(--font-body); font-size:13.5px; font-weight:700; color:#7890a2;
-  padding:10px 16px; border-radius:10px 10px 0 0; position:relative; top:1px;
-  border-bottom:2px solid transparent; transition:color .15s ease, border-color .15s ease;
-}
-.rel-subtab-btn:hover{ color:#16344e; }
-.rel-subtab-btn.active{ color:var(--accent,#0e9a94); border-bottom-color:var(--accent,#0e9a94); }
-.rel-subpanel{ display:none; }
-.rel-subpanel.active{ display:block; }
-
 /* ---- Danh sách BRD (dạng thẻ) --------------------------------------------- */
 .brd-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
 .brd-toolbar .brd-count{ font-size:13px; color:#7890a2; font-weight:600; }
@@ -4199,6 +4154,11 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
       <span class="nav-label">Release / PRD</span>
       <span class="count" id="navCountRel">0</span>
     </div>
+    <div class="nav-item" data-view="brd" title="Tạo BRD">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>
+      <span class="nav-label">Tạo BRD</span>
+      <span class="count" id="navCountBrd">0</span>
+    </div>
 
     <div class="nav-item hidden" data-view="admin" id="navAdmin" title="Quản trị người dùng">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
@@ -4267,7 +4227,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Thêm Release
         </button>
-        <button class="btn btn-primary view-action hidden" data-for="release" id="btnAddBrd" style="display:none;">
+        <button class="btn btn-primary view-action hidden" data-for="brd" id="btnAddBrd">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Tạo BRD mới
         </button>
@@ -4501,12 +4461,6 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 
     <!-- ============ RELEASE VIEW ============ -->
     <section class="view hidden" id="view-release">
-      <div class="rel-subtabs" id="relSubtabs">
-        <button class="rel-subtab-btn active" data-subtab="list" type="button">Danh sách Release</button>
-        <button class="rel-subtab-btn" data-subtab="brd" type="button">Tạo BRD</button>
-      </div>
-
-      <div class="rel-subpanel active" id="relSubpanelList">
       <div class="crlog-shell release-shell">
         <div class="crlog-kpis rel-kpis" id="relKpis"></div>
 
@@ -4586,14 +4540,14 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
           </div>
         </div>
       </div>
-      </div><!-- /relSubpanelList -->
+    </section>
 
-      <div class="rel-subpanel" id="relSubpanelBrd">
-        <div class="brd-toolbar">
-          <div class="brd-count"><b id="brdCount">0</b> BRD đã tạo</div>
-        </div>
-        <div class="brd-grid" id="brdGrid"></div>
-      </div><!-- /relSubpanelBrd -->
+    <!-- ============ TẠO BRD VIEW (nav riêng) ============ -->
+    <section class="view hidden" id="view-brd">
+      <div class="brd-toolbar">
+        <div class="brd-count"><b id="brdCount">0</b> BRD đã tạo</div>
+      </div>
+      <div class="brd-grid" id="brdGrid"></div>
     </section>
 
     <!-- ============ ADMIN VIEW ============ -->
@@ -4782,7 +4736,7 @@ window.CR_LISTS = {
    0. STATE
 --------------------------------------------------------------------------- */
 const VIEW_STORAGE_KEY = "crControlCurrentView";
-const VALID_VIEWS = new Set(["dashboard", "crlog", "uat", "release", "admin"]);
+const VALID_VIEWS = new Set(["dashboard", "crlog", "uat", "release", "brd", "admin"]);
 function getSavedView(){
   try{
     const saved = localStorage.getItem(VIEW_STORAGE_KEY);
@@ -4818,7 +4772,6 @@ const STATE = {
   editingRelId: null,
   editingBrdId: null,
   editingUserId: null,
-  relSubTab: "list",      // "list" | "brd" — sub-tab bên trong view Release/PRD
   brdVersionRows: [],     // dòng lịch sử phiên bản đang soạn trong form BRD (mảng object)
   drawerCrId: null,       // cr_id (text) currently shown in drawer
   drawerOpenSeq: 0,       // invalidates stale attachment renders when switching records quickly
@@ -5815,6 +5768,7 @@ const VIEW_META = {
   crlog:     { title:"CR Log", sub:"Sổ đăng ký toàn bộ Change Request", search:false },
   uat:       { title:"UAT Test Case", sub:"Test case UAT cho từng Change Request", search:false },
   release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:false },
+  brd:       { title:"Tạo BRD", sub:"Nhập thông tin và xuất file BRD theo template chuẩn", search:false },
   admin:     { title:"Quản trị", sub:"Quản lý người dùng, Status và Evidence Step", search:false },
 };
 
@@ -6040,7 +5994,6 @@ function initShell(){
   $("#btnAddTc").addEventListener("click", ()=> openTcModal(null));
   $("#btnAddRel").addEventListener("click", ()=> openRelModal(null));
   $("#btnAddBrd").addEventListener("click", ()=> openBrdModal(null));
-  initRelSubtabs();
   $("#btnEvidenceZip").addEventListener("click", ()=> openExportSelectionModal("images"));
   $("#btnDashRefresh").addEventListener("click", ()=>{
     if(STATE.refreshing) return;
@@ -6395,6 +6348,7 @@ function setView(view){
     b.classList.toggle("hidden", !views.includes(view));
   });
   if(view === "admin") loadAndRenderAdmin();
+  if(view === "brd") fetchBrdList().then(renderBrdList);
 }
 
 /* ---------------------------------------------------------------------------
@@ -6645,7 +6599,7 @@ async function refreshAll(){
   setRefreshLoading(true);
   if(initialLoad) showLoadingSkeletons();
   try{
-    await Promise.all([fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchCrList(), fetchCrDocumentStatus(), fetchTcList(), fetchRelList()]);
+    await Promise.all([fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchCrList(), fetchCrDocumentStatus(), fetchTcList(), fetchRelList(), fetchBrdList()]);
     renderNavCounts();
     renderDashboard();
     renderCrTable();
@@ -7141,6 +7095,7 @@ function renderNavCounts(){
   $("#navCountCr").textContent = STATE.crList.length;
   $("#navCountUat").textContent = STATE.tcList.length;
   $("#navCountRel").textContent = STATE.relList.length;
+  $("#navCountBrd").textContent = STATE.brdList.length;
 }
 
 function populateCrDropdowns(){
@@ -10393,28 +10348,11 @@ async function saveRel(overlay, isEdit){
 }
 
 /* ---------------------------------------------------------------------------
-   11b. RELEASE / PRD — SUB-TAB "TẠO BRD"
+   11b. TẠO BRD — nav riêng ở sidebar (view "brd")
    Bảng Supabase: brd_records (xem hướng dẫn SQL đi kèm).
    Xuất file .docx bằng Docxtemplater + PizZip, điền vào template chuẩn
    (window.BRD_TEMPLATE_BASE64) đã gắn sẵn placeholder cho từng mục BRD.
 --------------------------------------------------------------------------- */
-function initRelSubtabs(){
-  $all(".rel-subtab-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const tab = btn.dataset.subtab;
-      STATE.relSubTab = tab;
-      $all(".rel-subtab-btn").forEach(b=> b.classList.toggle("active", b===btn));
-      $("#relSubpanelList").classList.toggle("active", tab==="list");
-      $("#relSubpanelBrd").classList.toggle("active", tab==="brd");
-      $("#btnAddRel").style.display = tab==="list" ? "" : "none";
-      $("#btnAddBrd").style.display = tab==="brd" ? "" : "none";
-      if(tab==="brd"){
-        fetchBrdList().then(renderBrdList);
-      }
-    });
-  });
-}
-
 async function fetchBrdList(){
   const { data, error } = await STATE.sb.from("brd_records").select("*").order("updated_at", { ascending:false });
   if(error){
@@ -10437,6 +10375,7 @@ function fmtBrdDateTime(iso){
 function renderBrdList(){
   const grid = $("#brdGrid"); if(!grid) return;
   const countEl = $("#brdCount"); if(countEl) countEl.textContent = STATE.brdList.length;
+  if($("#navCountBrd")) $("#navCountBrd").textContent = STATE.brdList.length;
   if(STATE.loadErrors.brd){
     grid.innerHTML = `<div class="brd-error">Không tải được danh sách BRD: ${esc(STATE.loadErrors.brd)}<br>
       <span style="font-size:11.5px;">Có thể bảng <code>brd_records</code> chưa được tạo trong Supabase — xem hướng dẫn SQL đã cung cấp.</span></div>`;

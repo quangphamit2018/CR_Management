@@ -246,16 +246,13 @@ body.role-no-delete [data-act="del"]{ display:none !important; }
 body.role-no-admin-tab #navAdmin{ display:none !important; }
 body.role-no-recycle #navRecycleBin{ display:none !important; }
 
-/* Bên trong tab Quản Trị Dữ Liệu: senior_member được vào tab và xem/quản lý
-   Status, Sub-Status, Evidence Step, nhưng KHÔNG được thấy danh sách người
+/* Bên trong tab Quản Trị Dữ Liệu: senior_member được vào tab và có toàn
+   quyền thêm/sửa/xóa Status, Sub-Status, Evidence Step (Recycle Bin + lịch
+   sử vẫn do super_admin theo dõi), nhưng KHÔNG được thấy danh sách người
    dùng và không được thấy bảng tham chiếu Supabase — hai mục đó chỉ dành
    riêng cho super_admin. */
 body.role-no-manage-users #adminUsersPanel,
-body.role-no-manage-users #supabaseTablesPanel,
-body.role-no-manage-users #view-admin .status-create,
-body.role-no-manage-users #view-admin [data-status-act],
-body.role-no-manage-users #view-admin [data-sub-status-act],
-body.role-no-manage-users #view-admin [data-evidence-act]{ display:none !important; }
+body.role-no-manage-users #supabaseTablesPanel{ display:none !important; }
 
 .role-readonly-banner{
   display:flex; align-items:center; gap:8px;
@@ -4941,9 +4938,10 @@ const VALID_VIEWS = new Set(["dashboard", "crlog", "uat", "release", "brd", "adm
                      DUY NHẤT thấy được danh sách người dùng + bảng tham
                      chiếu Supabase bên trong tab Quản Trị Dữ Liệu. Tài khoản
                      có role này KHÔNG AI được phép xóa (kể cả super_admin khác).
-   senior_member  : Thêm/sửa/xóa dữ liệu CR + thấy tab Quản Trị Dữ Liệu, nhưng
-                     CHỈ thấy mục Status / Sub-Status / Evidence Step — KHÔNG
-                     thấy danh sách người dùng và KHÔNG thấy bảng Supabase.
+   senior_member  : Thêm/sửa/xóa dữ liệu CR + thấy tab Quản Trị Dữ Liệu, được
+                     toàn quyền thêm/sửa/xóa Status / Sub-Status / Evidence
+                     Step (super_admin vẫn theo dõi qua Recycle Bin), nhưng
+                     KHÔNG thấy danh sách người dùng và KHÔNG thấy bảng Supabase.
    member         : Thêm/sửa dữ liệu CR, KHÔNG được xóa, KHÔNG thấy tab Quản Trị Dữ Liệu.
    viewer         : Chỉ xem, không thêm/sửa/xóa, KHÔNG thấy tab Quản Trị Dữ Liệu.
    -------------------------------------------------------------------------- */
@@ -11695,7 +11693,7 @@ function closeEvidenceStepModal(){
 }
 
 function openEvidenceStepModal(step){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   const overlay = $("#evidenceStepModalOverlay");
   if(!overlay) return;
   overlay.innerHTML = evidenceStepModalTemplate(step);
@@ -11708,7 +11706,7 @@ function openEvidenceStepModal(step){
 }
 
 async function saveEvidenceStep(existingStep){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   const name = ($("#es_name")?.value || "").trim().replace(/\s+/g, " ");
   const sortOrder = Number.parseInt($("#es_order")?.value, 10);
   const isActive = $("#es_active")?.value !== "false";
@@ -11760,7 +11758,7 @@ async function saveEvidenceStep(existingStep){
 }
 
 async function addEvidenceStep(){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   const nameInput = $("#evidenceStepNameInput");
   const orderInput = $("#evidenceStepOrderInput");
   const name = (nameInput?.value || "").trim().replace(/\s+/g, " ");
@@ -11793,7 +11791,7 @@ async function addEvidenceStep(){
 }
 
 async function deleteEvidenceStep(step){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   const { data, error } = await STATE.sb
     .from("evidence_steps")
     .delete()
@@ -11857,7 +11855,7 @@ function statusModalTemplate(status){
 }
 
 function openStatusModal(status){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   STATE.editingStatusId = status?.id || null;
   STATE.editingSubStatusId = null;
   const overlay = $("#subStatusModalOverlay");
@@ -11885,7 +11883,7 @@ async function syncCrLogRenamedValue(field, oldName, newName){
 }
 
 async function saveStatus(){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   const overlay = $("#subStatusModalOverlay");
   const existingStatus = STATE.statusList.find(s=>String(s.id) === String(STATE.editingStatusId));
   const oldName = existingStatus?.name || "";
@@ -11937,7 +11935,7 @@ async function saveStatus(){
 }
 
 async function addStatus(){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   const input = $("#statusNameInput");
   const name = (input?.value || "").trim().replace(/\s+/g, " ");
   if(!name){ toast("Vui lòng nhập tên Status", "err"); input?.focus(); return; }
@@ -11990,7 +11988,7 @@ function subStatusModalTemplate(subStatus){
 }
 
 function openSubStatusModal(subStatus){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   STATE.editingStatusId = null;
   STATE.editingSubStatusId = subStatus?.id || null;
   const overlay = $("#subStatusModalOverlay");
@@ -12013,7 +12011,7 @@ function openSubStatusModal(subStatus){
 }
 
 async function saveSubStatus(){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   const overlay = $("#subStatusModalOverlay");
   const existingSubStatus = STATE.subStatusList.find(s=>String(s.id) === String(STATE.editingSubStatusId));
   const oldName = existingSubStatus?.name || "";
@@ -12074,7 +12072,7 @@ async function saveSubStatus(){
 }
 
 async function deleteSubStatus(subStatus){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   const { error } = await STATE.sb.from("cr_sub_statuses").delete().eq("id", subStatus.id);
   if(error){ toast("Xóa Sub-Status thất bại: " + error.message, "err"); return; }
   toast(`Đã xóa Sub-Status "${subStatus.name}"`, "ok");
@@ -12084,7 +12082,7 @@ async function deleteSubStatus(subStatus){
 }
 
 async function deleteStatus(status){
-  if(!canManageUsers()) return;
+  if(!canViewAdminTab()) return;
   if(STATE.statusList.length <= 1){
     toast("Cần giữ lại ít nhất một Status để tạo Change Request.", "err");
     return;

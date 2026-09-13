@@ -227,6 +227,34 @@ h1,h2,h3,h4{ font-family: var(--font-head); font-weight:700; letter-spacing:-0.0
 .hidden{ display:none !important; }
 
 /* ==========================================================================
+   PHÂN QUYỀN — ẩn nút Thêm / Sửa / Xóa / tab quản trị theo role trên <body>
+   (xem applyRolePermissionsToUI()). Áp dụng bằng attribute-selector nên vẫn
+   đúng sau mỗi lần render lại danh sách CR/Test case/Release/BRD.
+   ========================================================================== */
+body.role-no-edit #btnAddCr,
+body.role-no-edit #btnAddTc,
+body.role-no-edit #btnAddRel,
+body.role-no-edit #btnAddBrd,
+body.role-no-edit #btnCrImport,
+body.role-no-edit #drawerAddTc,
+body.role-no-edit #drawerAddRel,
+body.role-no-edit #drawerEditBtn,
+body.role-no-edit [data-act="edit"]{ display:none !important; }
+
+body.role-no-delete [data-act="del"]{ display:none !important; }
+
+body.role-no-manage-users #navAdmin{ display:none !important; }
+body.role-no-recycle #navRecycleBin{ display:none !important; }
+
+.role-readonly-banner{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 14px; margin:0 0 12px; border-radius:10px;
+  background: var(--warning-dim); color: var(--warning);
+  font-size:12.5px; font-weight:600;
+}
+body:not(.role-no-edit) .role-readonly-banner{ display:none; }
+
+/* ==========================================================================
    CONFIG SCREEN
    ========================================================================== */
 #configScreen, #loginScreen, #pendingScreen{
@@ -4253,6 +4281,12 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
       <span class="nav-label">Quản trị người dùng</span>
     </div>
 
+    <div class="nav-item hidden" data-view="recycle" id="navRecycleBin" title="Recycle Bin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+      <span class="nav-label">Recycle Bin</span>
+      <span class="count" id="navCountRecycle">0</span>
+    </div>
+
     <div class="sidebar-foot">
       <div class="conn-pill" style="flex-direction:column; align-items:flex-start; gap:2px;">
         <div style="display:flex; align-items:center; gap:8px;"><span class="conn-dot"></span><span id="sidebarUserEmail" style="color:var(--text-dim); font-weight:600;"></span></div>
@@ -4651,8 +4685,10 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
             <div class="filter-chip"><span>Vai trò</span>
               <select id="filterUserRole">
                 <option value="">Tất cả</option>
-                <option value="admin">Quản trị</option>
-                <option value="editor">Thành viên</option>
+                <option value="super_admin">Quản trị viên</option>
+                <option value="senior_member">Thành viên cao cấp</option>
+                <option value="member">Thành viên</option>
+                <option value="viewer">Thành viên (chỉ xem)</option>
               </select>
             </div>
             <div class="filter-chip"><span>Trạng thái</span>
@@ -4756,6 +4792,45 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
       </div>
     </section>
 
+    <!-- ============ RECYCLE BIN VIEW (chỉ Quản trị viên cao nhất) ============ -->
+    <section class="view hidden" id="view-recycle">
+      <div class="list-panel">
+        <div class="list-panel-head">
+          <div>
+            <div class="list-panel-count"><b id="recycleCount">0</b> mục đã xóa</div>
+            <div class="hint">Dữ liệu bị xóa từ CR Log, Test Case, Release/PRD, BRD được lưu tại đây thay vì xóa vĩnh viễn ngay. Chỉ Quản trị viên mới thấy và thao tác được tab này.</div>
+          </div>
+          <div class="table-toolbar">
+            <div class="filter-chip"><span>Loại dữ liệu</span>
+              <select id="filterRecycleType">
+                <option value="">Tất cả</option>
+                <option value="cr">Change Request</option>
+                <option value="tc">Test Case</option>
+                <option value="rel">Release / PRD</option>
+                <option value="brd">BRD</option>
+              </select>
+            </div>
+            <div class="chip-clear" id="clearRecycleFilters">Xóa lọc</div>
+            <button class="btn btn-ghost btn-sm" id="btnRefreshRecycle" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
+              Làm mới
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Loại</th><th>Tên / ID</th><th>Đã xóa lúc</th><th>Người xóa</th><th></th>
+            </tr></thead>
+            <tbody id="recycleTableBody"></tbody>
+          </table>
+        </div>
+        <div class="list-panel-foot">
+          <span id="recycleFootCount">Hiển thị 0 / 0 mục</span>
+        </div>
+      </div>
+    </section>
+
   </div>
 </div>
 
@@ -4824,7 +4899,40 @@ window.CR_LISTS = {
    0. STATE
 --------------------------------------------------------------------------- */
 const VIEW_STORAGE_KEY = "crControlCurrentView";
-const VALID_VIEWS = new Set(["dashboard", "crlog", "uat", "release", "brd", "admin"]);
+const VALID_VIEWS = new Set(["dashboard", "crlog", "uat", "release", "brd", "admin", "recycle"]);
+
+/* ==========================================================================
+   PHÂN QUYỀN (ROLES)
+   ==========================================================================
+   super_admin    : Quyền cao nhất — thêm/sửa/xóa TẤT CẢ dữ liệu, thấy tất cả
+                     tab (kể cả Quản trị người dùng + Recycle Bin). Tài khoản
+                     có role này KHÔNG AI được phép xóa (kể cả super_admin khác).
+   senior_member  : Thêm/sửa/xóa dữ liệu CR + thấy tab Quản trị người dùng.
+   member         : Thêm/sửa dữ liệu CR, KHÔNG được xóa, KHÔNG thấy tab Quản trị người dùng.
+   viewer         : Chỉ xem, không thêm/sửa/xóa, KHÔNG thấy tab Quản trị người dùng.
+   -------------------------------------------------------------------------- */
+const ROLE_LEVEL = { super_admin: 4, senior_member: 3, member: 2, viewer: 1 };
+const ROLE_LABELS = {
+  super_admin:   "Quản trị viên",
+  senior_member: "Thành viên cao cấp",
+  member:        "Thành viên",
+  viewer:        "Thành viên (chỉ xem)",
+};
+function roleLevel(role){ return ROLE_LEVEL[role] || 0; }
+function isSuperAdmin(){ return STATE.userRole === "super_admin"; }
+function canManageUsers(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.senior_member; }   // super_admin, senior_member
+function canDeleteData(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.senior_member; }    // super_admin, senior_member
+function canEditData(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.member; }             // super_admin, senior_member, member
+function roleLabel(role){ return ROLE_LABELS[role] || role || "—"; }
+
+/* Cập nhật các class trên <body> để CSS ẩn/hiện nút Thêm/Sửa/Xóa theo quyền,
+   thay vì phải sửa từng nơi render danh sách (CR, Test case, Release, BRD...). */
+function applyRolePermissionsToUI(){
+  document.body.classList.toggle("role-no-edit", !canEditData());
+  document.body.classList.toggle("role-no-delete", !canDeleteData());
+  document.body.classList.toggle("role-no-manage-users", !canManageUsers());
+  document.body.classList.toggle("role-no-recycle", !isSuperAdmin());
+}
 function getSavedView(){
   try{
     const saved = localStorage.getItem(VIEW_STORAGE_KEY);
@@ -4889,6 +4997,7 @@ const STATE = {
   editingStatusId: null,
   editingSubStatusId: null,
   evidenceLoadWarned: false,
+  recycleList: [],   // các dòng đã soft-delete, gộp từ cr_log / uat_testcase / release_prd / brd_records
 };
 
 /* Togglable CR Log columns (CR ID + Status + Actions are structural, not toggled) */
@@ -5403,7 +5512,7 @@ const COLOR = {
   release_status: { "Planned":"#8fa6c2","In Progress":"#5b8def","Completed":"#4cc38a","Rolled Back":"#ee6b74" },
   yesNo: { "Yes":"#4cc38a","No":"#ee6b74" },
   sub_status: {},
-  role: { "Quản trị":"#b78af0","Thành viên":"#5b8def" }
+  role: { "Quản trị viên":"#b78af0","Thành viên cao cấp":"#3fd0c9","Thành viên":"#5b8def","Thành viên (chỉ xem)":"#8fa6c2" }
 };
 const DEFAULT_SUB_STATUS_COLORS = [
   "#5b8def", "#8b6fd8", "#2fae67", "#e08a3c", "#ee6b74",
@@ -5787,9 +5896,12 @@ async function handleAuthState(){
     subscribeRealtime();
   }
   $("#sidebarUserEmail").textContent = STATE.userEmail;
-  $("#sidebarUserRole").textContent = STATE.userRole === "admin" ? "Quản trị viên" : "Thành viên";
-  $("#navAdmin").classList.toggle("hidden", STATE.userRole !== "admin");
-  if(STATE.currentView === "admin" && STATE.userRole !== "admin"){ setView("dashboard"); }
+  $("#sidebarUserRole").textContent = roleLabel(STATE.userRole);
+  applyRolePermissionsToUI();
+  $("#navAdmin").classList.toggle("hidden", !canManageUsers());
+  $("#navRecycleBin").classList.toggle("hidden", !isSuperAdmin());
+  if(STATE.currentView === "admin" && !canManageUsers()){ setView("dashboard"); }
+  if(STATE.currentView === "recycle" && !isSuperAdmin()){ setView("dashboard"); }
 }
 
 async function initAuth(){
@@ -5985,6 +6097,7 @@ const VIEW_META = {
   release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:false },
   brd:       { title:"Tạo BRD", sub:"Nhập thông tin và xuất file BRD theo template chuẩn", search:false },
   admin:     { title:"Quản trị", sub:"Quản lý người dùng, Status và Evidence Step", search:false },
+  recycle:   { title:"Recycle Bin", sub:"Dữ liệu đã xóa — khôi phục hoặc xóa vĩnh viễn", search:false },
 };
 
 function closeMobileNav(){
@@ -6202,6 +6315,19 @@ function initShell(){
     $("#userSearchInput").value=""; $("#filterUserRole").value=""; $("#filterUserStatus").value="";
     renderAdminTable();
   });
+
+  if($("#filterRecycleType")){
+    $("#filterRecycleType").addEventListener("change", renderRecycleBin);
+  }
+  if($("#clearRecycleFilters")){
+    $("#clearRecycleFilters").addEventListener("click", ()=>{
+      $("#filterRecycleType").value = "";
+      renderRecycleBin();
+    });
+  }
+  if($("#btnRefreshRecycle")){
+    $("#btnRefreshRecycle").addEventListener("click", loadAndRenderRecycleBin);
+  }
 
   $("#btnAddCr").addEventListener("click", ()=> openCrModal(null));
   $("#btnCrTemplate").addEventListener("click", downloadCrTemplate);
@@ -6544,7 +6670,8 @@ function initAutoGrow(root){
 
 function setView(view){
   if(!VALID_VIEWS.has(view)) view = "dashboard";
-  if(view === "admin" && STATE.userRole !== "admin") view = "dashboard";
+  if(view === "admin" && !canManageUsers()) view = "dashboard";
+  if(view === "recycle" && !isSuperAdmin()) view = "dashboard";
   STATE.currentView = view;
   try{ localStorage.setItem(VIEW_STORAGE_KEY, view); }catch(_){}
   closeDrawer();
@@ -6564,6 +6691,7 @@ function setView(view){
   });
   if(view === "admin") loadAndRenderAdmin();
   if(view === "brd") fetchBrdList().then(renderBrdList);
+  if(view === "recycle") loadAndRenderRecycleBin();
 }
 
 /* ---------------------------------------------------------------------------
@@ -6829,7 +6957,7 @@ async function refreshAll(){
 }
 
 async function fetchCrList(){
-  const { data, error } = await STATE.sb.from("cr_log").select("*").order("created_at", { ascending:false });
+  const { data, error } = await STATE.sb.from("cr_log").select("*").is("deleted_at", null).order("created_at", { ascending:false });
   if(error){ toast("Lỗi tải CR Log: " + error.message, "err"); STATE.crList = []; STATE.loadErrors.cr = error.message; return; }
   STATE.loadErrors.cr = null;
   STATE.crList = data || [];
@@ -6857,13 +6985,13 @@ async function fetchCrDocumentStatus(){
   STATE.crDocumentStatus = status;
 }
 async function fetchTcList(){
-  const { data, error } = await STATE.sb.from("uat_testcase").select("*").order("created_at", { ascending:false });
+  const { data, error } = await STATE.sb.from("uat_testcase").select("*").is("deleted_at", null).order("created_at", { ascending:false });
   if(error){ toast("Lỗi tải UAT Test Case: " + error.message, "err"); STATE.tcList = []; STATE.loadErrors.tc = error.message; return; }
   STATE.loadErrors.tc = null;
   STATE.tcList = data || [];
 }
 async function fetchRelList(){
-  const { data, error } = await STATE.sb.from("release_prd").select("*").order("created_at", { ascending:false });
+  const { data, error } = await STATE.sb.from("release_prd").select("*").is("deleted_at", null).order("created_at", { ascending:false });
   if(error){ toast("Lỗi tải Release/PRD: " + error.message, "err"); STATE.relList = []; STATE.loadErrors.rel = error.message; return; }
   STATE.loadErrors.rel = null;
   STATE.relList = data || [];
@@ -7747,7 +7875,7 @@ function renderCrTable(){
       const act = actBtn.dataset.act;
       if(act === "view"){ selectDetailRow("cr", crId); openDrawer(crId); }
       if(act === "edit") openCrModal(STATE.crList.find(c=>c.cr_id===crId));
-      if(act === "del") confirmDelete("Xóa Change Request?", `CR "${crId}" cùng toàn bộ test case, release và file đính kèm liên quan sẽ bị xóa vĩnh viễn.`, ()=> deleteCr(crId));
+      if(act === "del") confirmDelete("Xóa Change Request?", `CR "${crId}" sẽ được chuyển vào Recycle Bin. Quản trị viên có thể khôi phục hoặc xóa vĩnh viễn sau.`, ()=> deleteCr(crId));
     });
   });
   $all("#crTableBody .row-check").forEach(cb=>{
@@ -7807,7 +7935,7 @@ function renderCrMobileList(rows){
       if(!actBtn){ selectDetailRow("cr", crId); openDrawer(crId); return; }
       const act = actBtn.dataset.act;
       if(act === "edit") openCrModal(STATE.crList.find(c=>c.cr_id===crId));
-      if(act === "del") confirmDelete("Xóa Change Request?", `CR "${crId}" cùng toàn bộ test case, release và file đính kèm liên quan sẽ bị xóa vĩnh viễn.`, ()=> deleteCr(crId));
+      if(act === "del") confirmDelete("Xóa Change Request?", `CR "${crId}" sẽ được chuyển vào Recycle Bin. Quản trị viên có thể khôi phục hoặc xóa vĩnh viễn sau.`, ()=> deleteCr(crId));
     });
   });
 }
@@ -7821,15 +7949,17 @@ function emptyStateBlock(title, msg){
 }
 
 async function deleteCr(cr_id){
+  if(!canDeleteData()){ toast("Bạn không có quyền xóa dữ liệu.", "err"); return; }
   const row = STATE.crList.find(c=>c.cr_id===cr_id);
-  // best-effort remove storage files first
-  const files = await fetchAttachments(cr_id);
-  if(files.length){
-    await STATE.sb.storage.from(BUCKET).remove(files.map(f=>f.file_path));
-  }
-  const { error } = await STATE.sb.from("cr_log").delete().eq("id", row.id);
+  if(!row) return;
+  // Soft delete: chuyển vào Recycle Bin, KHÔNG xóa file đính kèm trên storage
+  // (file sẽ chỉ bị xóa thật khi Quản trị viên bấm "Xóa vĩnh viễn" trong Recycle Bin).
+  const { error } = await STATE.sb.from("cr_log").update({
+    deleted_at: new Date().toISOString(),
+    deleted_by: STATE.userEmail || null,
+  }).eq("id", row.id);
   if(error){ toast("Xóa thất bại: " + error.message, "err"); return; }
-  toast(`Đã xóa ${cr_id}`, "ok");
+  toast(`Đã chuyển ${cr_id} vào Recycle Bin`, "ok");
   closeDrawer();
   await refreshAll();
 }
@@ -9866,7 +9996,7 @@ function renderTcTable(){
       const actBtn = e.target.closest("[data-act]");
       if(!actBtn){ selectDetailRow("tc", tr.dataset.tc); openTcModal(t); return; }
       if(actBtn.dataset.act==="edit") openTcModal(t);
-      if(actBtn.dataset.act==="del") confirmDelete("Xóa test case?", `Test case "${t.test_case_id||''}" và toàn bộ evidence sẽ bị xóa.`, ()=> deleteTc(t));
+      if(actBtn.dataset.act==="del") confirmDelete("Xóa test case?", `Test case "${t.test_case_id||''}" sẽ được chuyển vào Recycle Bin.`, ()=> deleteTc(t));
     });
   });
   $all("#tcTableBody .row-check").forEach(cb=>{
@@ -9918,17 +10048,19 @@ function renderTcMobileList(rows){
       const act = e.target.closest("[data-act]");
       if(!act){ selectDetailRow("tc", card.dataset.tc); openTcModal(t); return; }
       if(act.dataset.act==="edit") openTcModal(t);
-      if(act.dataset.act==="del") confirmDelete("Xóa test case?", `Test case "${t.test_case_id||''}" và toàn bộ evidence sẽ bị xóa.`, ()=> deleteTc(t));
+      if(act.dataset.act==="del") confirmDelete("Xóa test case?", `Test case "${t.test_case_id||''}" sẽ được chuyển vào Recycle Bin.`, ()=> deleteTc(t));
     });
   });
 }
 
 async function deleteTc(t){
-  const files = await fetchTcAttachments(t.id);
-  if(files.length) await STATE.sb.storage.from(BUCKET).remove(files.map(f=>f.file_path));
-  const { error } = await STATE.sb.from("uat_testcase").delete().eq("id", t.id);
+  if(!canDeleteData()){ toast("Bạn không có quyền xóa dữ liệu.", "err"); return; }
+  const { error } = await STATE.sb.from("uat_testcase").update({
+    deleted_at: new Date().toISOString(),
+    deleted_by: STATE.userEmail || null,
+  }).eq("id", t.id);
   if(error){ toast("Xóa thất bại: " + error.message, "err"); return; }
-  toast("Đã xóa test case", "ok");
+  toast("Đã chuyển test case vào Recycle Bin", "ok");
   await refreshAll();
   if(STATE.drawerCrId===t.cr_id) renderDrawerLinked(t.cr_id);
 }
@@ -10426,7 +10558,7 @@ function renderRelTable(){
       const actBtn = e.target.closest("[data-act]");
       if(!actBtn){ selectDetailRow("rel", tr.dataset.rel); openRelModal(r); return; }
       if(actBtn.dataset.act==="edit") openRelModal(r);
-      if(actBtn.dataset.act==="del") confirmDelete("Xóa release?", `Release "${r.release_name||r.release_id||''}" sẽ bị xóa.`, ()=> deleteRel(r));
+      if(actBtn.dataset.act==="del") confirmDelete("Xóa release?", `Release "${r.release_name||r.release_id||''}" sẽ được chuyển vào Recycle Bin.`, ()=> deleteRel(r));
     });
   });
   $all("#relTableBody .row-check").forEach(cb=>{
@@ -10478,15 +10610,19 @@ function renderRelMobileList(rows){
       const act = e.target.closest("[data-act]");
       if(!act){ selectDetailRow("rel", card.dataset.rel); openRelModal(r); return; }
       if(act.dataset.act==="edit") openRelModal(r);
-      if(act.dataset.act==="del") confirmDelete("Xóa release?", `Release "${r.release_name||r.release_id||''}" sẽ bị xóa.`, ()=> deleteRel(r));
+      if(act.dataset.act==="del") confirmDelete("Xóa release?", `Release "${r.release_name||r.release_id||''}" sẽ được chuyển vào Recycle Bin.`, ()=> deleteRel(r));
     });
   });
 }
 
 async function deleteRel(r){
-  const { error } = await STATE.sb.from("release_prd").delete().eq("id", r.id);
+  if(!canDeleteData()){ toast("Bạn không có quyền xóa dữ liệu.", "err"); return; }
+  const { error } = await STATE.sb.from("release_prd").update({
+    deleted_at: new Date().toISOString(),
+    deleted_by: STATE.userEmail || null,
+  }).eq("id", r.id);
   if(error){ toast("Xóa thất bại: " + error.message, "err"); return; }
-  toast("Đã xóa release", "ok");
+  toast("Đã chuyển release vào Recycle Bin", "ok");
   await refreshAll();
   if(STATE.drawerCrId===r.cr_id) renderDrawerLinked(r.cr_id);
 }
@@ -10687,7 +10823,7 @@ async function saveRel(overlay, isEdit){
    (window.BRD_TEMPLATE_BASE64) đã gắn sẵn placeholder cho từng mục BRD.
 --------------------------------------------------------------------------- */
 async function fetchBrdList(){
-  const { data, error } = await STATE.sb.from("brd_records").select("*").order("updated_at", { ascending:false });
+  const { data, error } = await STATE.sb.from("brd_records").select("*").is("deleted_at", null).order("updated_at", { ascending:false });
   if(error){
     STATE.brdList = [];
     STATE.loadErrors.brd = error.message;
@@ -10740,7 +10876,7 @@ function renderBrdList(){
       if(!rec) return;
       if(btn.dataset.act === "edit") openBrdModal(rec);
       else if(btn.dataset.act === "word") generateBrdDocx(rec).catch(e=> toast("Tạo file Word thất bại: " + e.message, "err"));
-      else if(btn.dataset.act === "del") confirmDelete("Xóa BRD?", `BRD "${rec.brd_title||''}" sẽ bị xóa vĩnh viễn.`, ()=> deleteBrd(rec));
+      else if(btn.dataset.act === "del") confirmDelete("Xóa BRD?", `BRD "${rec.brd_title||''}" sẽ được chuyển vào Recycle Bin.`, ()=> deleteBrd(rec));
     });
   });
 }
@@ -10965,11 +11101,143 @@ async function saveBrd(overlay, isEdit){
 }
 
 async function deleteBrd(v){
-  const { error } = await STATE.sb.from("brd_records").delete().eq("id", v.id);
+  if(!canDeleteData()){ toast("Bạn không có quyền xóa dữ liệu.", "err"); return; }
+  const { error } = await STATE.sb.from("brd_records").update({
+    deleted_at: new Date().toISOString(),
+    deleted_by: STATE.userEmail || null,
+  }).eq("id", v.id);
   if(error){ toast("Xóa BRD thất bại: " + error.message, "err"); return; }
-  toast("Đã xóa BRD", "ok");
+  toast("Đã chuyển BRD vào Recycle Bin", "ok");
   await fetchBrdList();
   renderBrdList();
+}
+
+/* ---------------------------------------------------------------------------
+   RECYCLE BIN — chỉ Quản trị viên (super_admin) mới thấy và thao tác.
+   Gộp các dòng đã soft-delete (cột deleted_at IS NOT NULL) từ 4 bảng dữ liệu
+   chính: cr_log, uat_testcase, release_prd, brd_records.
+--------------------------------------------------------------------------- */
+const RECYCLE_TABLES = [
+  { key:"cr",  table:"cr_log",       labelField:"cr_id",         titleField:"title" },
+  { key:"tc",  table:"uat_testcase", labelField:"test_case_id",  titleField:"description" },
+  { key:"rel", table:"release_prd",  labelField:"release_id",    titleField:"release_name" },
+  { key:"brd", table:"brd_records",  labelField:"brd_title",     titleField:"" },
+];
+const RECYCLE_TYPE_LABEL = { cr:"Change Request", tc:"Test Case", rel:"Release / PRD", brd:"BRD" };
+
+async function loadAndRenderRecycleBin(){
+  if(!isSuperAdmin()){ return; }
+  const tbody = $("#recycleTableBody");
+  if(tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-dim);">Đang tải...</td></tr>`;
+
+  const results = await Promise.all(RECYCLE_TABLES.map(t=>
+    STATE.sb.from(t.table).select("*").not("deleted_at", "is", null).order("deleted_at", { ascending:false })
+  ));
+
+  const items = [];
+  results.forEach((res, i)=>{
+    const def = RECYCLE_TABLES[i];
+    if(res.error){
+      console.warn(`Không tải được Recycle Bin (${def.table}): ${res.error.message}`);
+      return;
+    }
+    (res.data || []).forEach(row=>{
+      items.push({
+        type: def.key,
+        table: def.table,
+        id: row.id,
+        label: row[def.labelField] || row.id,
+        title: def.titleField ? (row[def.titleField] || "") : "",
+        deleted_at: row.deleted_at,
+        deleted_by: row.deleted_by,
+        raw: row,
+      });
+    });
+  });
+  items.sort((a,b)=> new Date(b.deleted_at) - new Date(a.deleted_at));
+  STATE.recycleList = items;
+  renderRecycleBin();
+}
+
+function renderRecycleBin(){
+  const tbody = $("#recycleTableBody");
+  if(!tbody) return;
+  const typeFilter = $("#filterRecycleType") ? $("#filterRecycleType").value : "";
+  const rows = STATE.recycleList.filter(it=> !typeFilter || it.type === typeFilter);
+
+  const countEl = $("#recycleCount"); if(countEl) countEl.textContent = STATE.recycleList.length;
+  const footEl = $("#recycleFootCount"); if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${STATE.recycleList.length} mục`;
+  const navCount = $("#navCountRecycle"); if(navCount) navCount.textContent = STATE.recycleList.length;
+
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:32px; color:var(--text-dim);">Recycle Bin trống.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(it=> `
+    <tr data-recycle-type="${esc(it.type)}" data-recycle-id="${esc(String(it.id))}">
+      <td>${badge("role", RECYCLE_TYPE_LABEL[it.type] || it.type)}</td>
+      <td>${esc(String(it.label))}${it.title ? " — " + esc(String(it.title)) : ""}</td>
+      <td>${fmtDateTime(it.deleted_at)}</td>
+      <td>${esc(it.deleted_by || "—")}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-sm" data-act="restore">Khôi phục</button>
+          <button class="btn btn-ghost btn-sm" data-act="purge" style="color:#c0433f;">Xóa vĩnh viễn</button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  $all("#recycleTableBody tr[data-recycle-type]").forEach(tr=>{
+    const type = tr.dataset.recycleType;
+    const id = tr.dataset.recycleId;
+    const item = STATE.recycleList.find(x=> x.type===type && String(x.id)===String(id));
+    if(!item) return;
+    $all("[data-act]", tr).forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        if(!isSuperAdmin()) return;
+        if(btn.dataset.act === "restore") restoreRecycleItem(item);
+        if(btn.dataset.act === "purge"){
+          confirmDelete(
+            "Xóa vĩnh viễn?",
+            `Mục "${item.label}" sẽ bị xóa vĩnh viễn khỏi hệ thống và KHÔNG THỂ khôi phục lại.`,
+            ()=> purgeRecycleItem(item),
+            "Xóa vĩnh viễn"
+          );
+        }
+      });
+    });
+  });
+}
+
+async function restoreRecycleItem(item){
+  if(!isSuperAdmin()){ toast("Chỉ Quản trị viên mới có thể khôi phục dữ liệu.", "err"); return; }
+  const { error } = await STATE.sb.from(item.table).update({ deleted_at: null, deleted_by: null }).eq("id", item.id);
+  if(error){ toast("Khôi phục thất bại: " + error.message, "err"); return; }
+  toast(`Đã khôi phục "${item.label}"`, "ok");
+  await loadAndRenderRecycleBin();
+  await refreshAll();
+  if(item.type === "brd"){ await fetchBrdList(); renderBrdList(); }
+}
+
+async function purgeRecycleItem(item){
+  if(!isSuperAdmin()){ toast("Chỉ Quản trị viên mới có thể xóa vĩnh viễn.", "err"); return; }
+  try{
+    if(item.type === "cr" && item.raw && item.raw.cr_id){
+      const files = await fetchAttachments(item.raw.cr_id);
+      if(files.length) await STATE.sb.storage.from(BUCKET).remove(files.map(f=>f.file_path));
+    } else if(item.type === "tc"){
+      const files = await fetchTcAttachments(item.id);
+      if(files.length) await STATE.sb.storage.from(BUCKET).remove(files.map(f=>f.file_path));
+    }
+  }catch(e){
+    console.warn("Không xóa được file đính kèm trước khi xóa vĩnh viễn:", e);
+  }
+  const { error } = await STATE.sb.from(item.table).delete().eq("id", item.id);
+  if(error){ toast("Xóa vĩnh viễn thất bại: " + error.message, "err"); return; }
+  toast(`Đã xóa vĩnh viễn "${item.label}"`, "ok");
+  await loadAndRenderRecycleBin();
 }
 
 function brdLinesToArray(text){
@@ -11070,7 +11338,7 @@ function confirmDelete(title, msg, onConfirm, confirmLabel){
    12b. ADMIN — QUẢN LÝ NGƯỜI DÙNG ĐƯỢC CẤP QUYỀN
 --------------------------------------------------------------------------- */
 async function loadAndRenderAdmin(){
-  if(STATE.userRole !== "admin"){ return; }
+  if(!canManageUsers()){ return; }
   const tbody = $("#userTableBody");
   if(tbody) skeletonTableRows(tbody, 5, 4);
   const statusBody = $("#statusTableBody");
@@ -11095,7 +11363,7 @@ function filteredUserList(){
   const f = STATE.userFilters;
   return STATE.userList.filter(u=>{
     if(f.q && !(u.email||"").toLowerCase().includes(f.q)) return false;
-    if(f.role && u.role !== f.role && !(f.role==='editor' && u.role!=='admin')) return false;
+    if(f.role && u.role !== f.role) return false;
     if(f.status === 'active' && !u.active) return false;
     if(f.status === 'locked' && u.active) return false;
     return true;
@@ -11125,7 +11393,7 @@ function renderAdminTable(){
   tbody.innerHTML = rows.map(u=>`
     <tr data-user="${u.id}">
       <td class="cell-title">${esc(u.email)} ${u.email===STATE.userEmail? '<span style="color:var(--text-faint); font-weight:500;">(bạn)</span>':''}</td>
-      <td>${badge("role", u.role==='admin'?'Quản trị':'Thành viên')}</td>
+      <td>${badge("role", roleLabel(u.role))}</td>
       <td>${u.active? `<span class="badge" style="background:var(--success-dim); color:var(--success);"><span class="dot" style="background:var(--success)"></span>Đang hoạt động</span>` : `<span class="badge" style="background:var(--danger-dim); color:var(--danger);"><span class="dot" style="background:var(--danger)"></span>Đã khóa</span>`}</td>
       <td class="cell-dim">${fmtDate(u.added_at)}</td>
       <td class="cell-actions">
@@ -11149,7 +11417,10 @@ function renderAdminTable(){
         const act = btn.dataset.act;
         if(act==="edit") openUserModal(u);
         if(act==="toggle") toggleUserActive(u);
-        if(act==="del") confirmDelete("Gỡ quyền truy cập?", `Email "${u.email}" sẽ không thể đăng nhập vào hệ thống nữa.`, ()=> deleteUser(u));
+        if(act==="del"){
+          if(u.role === "super_admin"){ toast("Tài khoản Quản trị viên không thể bị xóa.", "err"); return; }
+          confirmDelete("Gỡ quyền truy cập?", `Email "${u.email}" sẽ không thể đăng nhập vào hệ thống nữa.`, ()=> deleteUser(u));
+        }
       });
     });
   });
@@ -11376,7 +11647,7 @@ function closeEvidenceStepModal(){
 }
 
 function openEvidenceStepModal(step){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   const overlay = $("#evidenceStepModalOverlay");
   if(!overlay) return;
   overlay.innerHTML = evidenceStepModalTemplate(step);
@@ -11389,7 +11660,7 @@ function openEvidenceStepModal(step){
 }
 
 async function saveEvidenceStep(existingStep){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   const name = ($("#es_name")?.value || "").trim().replace(/\s+/g, " ");
   const sortOrder = Number.parseInt($("#es_order")?.value, 10);
   const isActive = $("#es_active")?.value !== "false";
@@ -11441,7 +11712,7 @@ async function saveEvidenceStep(existingStep){
 }
 
 async function addEvidenceStep(){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   const nameInput = $("#evidenceStepNameInput");
   const orderInput = $("#evidenceStepOrderInput");
   const name = (nameInput?.value || "").trim().replace(/\s+/g, " ");
@@ -11474,7 +11745,7 @@ async function addEvidenceStep(){
 }
 
 async function deleteEvidenceStep(step){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   const { data, error } = await STATE.sb
     .from("evidence_steps")
     .delete()
@@ -11538,7 +11809,7 @@ function statusModalTemplate(status){
 }
 
 function openStatusModal(status){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   STATE.editingStatusId = status?.id || null;
   STATE.editingSubStatusId = null;
   const overlay = $("#subStatusModalOverlay");
@@ -11566,7 +11837,7 @@ async function syncCrLogRenamedValue(field, oldName, newName){
 }
 
 async function saveStatus(){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   const overlay = $("#subStatusModalOverlay");
   const existingStatus = STATE.statusList.find(s=>String(s.id) === String(STATE.editingStatusId));
   const oldName = existingStatus?.name || "";
@@ -11618,7 +11889,7 @@ async function saveStatus(){
 }
 
 async function addStatus(){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   const input = $("#statusNameInput");
   const name = (input?.value || "").trim().replace(/\s+/g, " ");
   if(!name){ toast("Vui lòng nhập tên Status", "err"); input?.focus(); return; }
@@ -11671,7 +11942,7 @@ function subStatusModalTemplate(subStatus){
 }
 
 function openSubStatusModal(subStatus){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   STATE.editingStatusId = null;
   STATE.editingSubStatusId = subStatus?.id || null;
   const overlay = $("#subStatusModalOverlay");
@@ -11694,7 +11965,7 @@ function openSubStatusModal(subStatus){
 }
 
 async function saveSubStatus(){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   const overlay = $("#subStatusModalOverlay");
   const existingSubStatus = STATE.subStatusList.find(s=>String(s.id) === String(STATE.editingSubStatusId));
   const oldName = existingSubStatus?.name || "";
@@ -11755,7 +12026,7 @@ async function saveSubStatus(){
 }
 
 async function deleteSubStatus(subStatus){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   const { error } = await STATE.sb.from("cr_sub_statuses").delete().eq("id", subStatus.id);
   if(error){ toast("Xóa Sub-Status thất bại: " + error.message, "err"); return; }
   toast(`Đã xóa Sub-Status "${subStatus.name}"`, "ok");
@@ -11765,7 +12036,7 @@ async function deleteSubStatus(subStatus){
 }
 
 async function deleteStatus(status){
-  if(STATE.userRole !== "admin") return;
+  if(!canManageUsers()) return;
   if(STATE.statusList.length <= 1){
     toast("Cần giữ lại ít nhất một Status để tạo Change Request.", "err");
     return;
@@ -11802,9 +12073,12 @@ function userModalTemplate(u){
       <div class="field">
         <label>Vai trò</label>
         <select id="u_role">
-          <option value="editor" ${v.role!=='admin'?'selected':''}>Thành viên (được sửa dữ liệu CR)</option>
-          <option value="admin" ${v.role==='admin'?'selected':''}>Quản trị viên (được sửa dữ liệu + cấp quyền)</option>
+          <option value="viewer" ${v.role==='viewer'?'selected':''}>Thành viên (chỉ xem, không thêm/sửa/xóa)</option>
+          <option value="member" ${(!v.role || v.role==='member')?'selected':''}>Thành viên (thêm, sửa — không được xóa)</option>
+          <option value="senior_member" ${v.role==='senior_member'?'selected':''}>Thành viên cao cấp (thêm, sửa, xóa + tab Quản trị người dùng)</option>
+          ${isSuperAdmin() ? `<option value="super_admin" ${v.role==='super_admin'?'selected':''}>Quản trị viên (toàn quyền, thấy Recycle Bin — không ai được xóa tài khoản này)</option>` : ``}
         </select>
+        ${!isSuperAdmin() ? `<div class="hint">Chỉ Quản trị viên mới có thể cấp/đổi quyền Quản trị viên.</div>` : ``}
       </div>
       <div class="field" style="margin-bottom:0;">
         <label>Trạng thái</label>
@@ -11822,6 +12096,10 @@ function userModalTemplate(u){
 }
 
 function openUserModal(u){
+  if(u && u.role === "super_admin" && !isSuperAdmin()){
+    toast("Chỉ Quản trị viên mới có thể sửa tài khoản Quản trị viên.", "err");
+    return;
+  }
   STATE.editingUserId = u ? u.id : null;
   const overlay = $("#userModalOverlay");
   overlay.innerHTML = userModalTemplate(u);
@@ -11836,7 +12114,11 @@ function openUserModal(u){
 }
 
 async function saveUser(overlay, isEdit){
-  const role = $("#u_role").value;
+  let role = $("#u_role").value;
+  if(role === "super_admin" && !isSuperAdmin()){
+    toast("Chỉ Quản trị viên mới có thể cấp quyền Quản trị viên.", "err");
+    return;
+  }
   const active = $("#u_active").value === "true";
   const btn = $("#userModalSave"); btn.disabled = true; btn.textContent = "Đang lưu...";
   let error;

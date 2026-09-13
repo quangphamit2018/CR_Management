@@ -503,7 +503,7 @@ body.col-resizing .col-resize-handle::after{ background:var(--accent); }
   user-select:none;
   transition:color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
 }
-.sortable-th:hover{ color:var(--accent); background:var(--bg-surface-soft); }
+.sortable-th:hover{ color:var(--accent); background: var(--bg-surface-hover); }
 .sortable-th.is-sorted{ color:var(--accent); }
 .sort-marker{
   display:inline-flex;
@@ -563,7 +563,10 @@ th.th-actions{ z-index:6; background: var(--bg-topbar-solid); }
 td.cell-actions{
   z-index:2; background: var(--bg-surface); box-shadow: inset 1px 0 0 rgba(255,255,255,0.06);
 }
-tbody tr:hover td.cell-actions{ background: var(--bg-surface-hover); }
+/* While a row is hovered, its actions cell needs to briefly outrank the sticky
+   header's z-index so an icon-button tooltip (which pops upward and can land
+   under the header for the first visible row) isn't clipped underneath it. */
+tbody tr:hover td.cell-actions{ background: var(--bg-surface-hover); z-index:20; }
 tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
 .row-actions{ display:flex; gap:6px; justify-content:flex-end; }
 .icon-btn{
@@ -681,13 +684,14 @@ tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
 .view .bulk-bar b{ color:#0e9a94; }
 
 .view thead th{ background:#f6fafb; color:#5f7690; border-bottom-color:#e4ebf0; }
+.view .sortable-th:hover{ background:#eaf3f3; }
 .view tbody td{ border-bottom-color:#edf2f5; color:#22394e; }
 .view tbody tr:hover{ background:#f0f7f7; }
 .view td.cell-id{ color:#0e9a94; }
 .view td.cell-dim{ color:#5f7690; }
 .view .note-clamp{ color:#5f7690; }
 .view td.cell-actions{ background:#ffffff; box-shadow: inset 1px 0 0 #e4ebf0; }
-.view tbody tr:hover td.cell-actions{ background:#f0f7f7; }
+.view tbody tr:hover td.cell-actions{ background:#f0f7f7; z-index:20; }
 
 .view .icon-btn{ background:#f2f6f8; border-color:#dde7ec; color:#3a4f60; }
 .view .icon-btn:hover{ background:#e0f2f1; border-color:#0e9a94; color:#0e9a94; }

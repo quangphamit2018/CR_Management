@@ -3946,6 +3946,40 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 }
 .toast .t-icon svg{ width:14px; height:14px; }
 .toast .t-message{ color:#dceaf1; font-size:12px; line-height:1.45; }
+.offline-banner{
+  position:fixed;
+  top:14px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:10px 18px;
+  border-radius:999px;
+  border:1px solid rgba(242,184,75,.35);
+  background:rgba(38,29,10,.94);
+  color:#ffe6ae;
+  font-size:12.5px;
+  font-weight:600;
+  letter-spacing:.01em;
+  box-shadow:0 18px 40px -20px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  animation:toastEnter 300ms var(--ease-decel) both;
+}
+.offline-banner.is-closing{ animation:toastExit 220ms ease both; }
+.offline-banner-dot{
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+  background:var(--warning);
+  box-shadow:0 0 0 rgba(242,184,75,.6);
+  animation:offlinePulse 1.4s ease-in-out infinite;
+}
+@keyframes offlinePulse{
+  0%{ box-shadow:0 0 0 0 rgba(242,184,75,.55); }
+  70%{ box-shadow:0 0 0 8px rgba(242,184,75,0); }
+  100%{ box-shadow:0 0 0 0 rgba(242,184,75,0); }
+}
 .toast .t-close{
   width:24px;
   height:24px;
@@ -5801,7 +5835,46 @@ function subscribeRealtime(){
   if(realtimeSubscribed) return;
   realtimeSubscribed = true;
 
-  const debouncedRefresh = debounce(async ()=>{
+  // Áp thay đổi (insert/update/delete) trực tiếp vào mảng dữ liệu đang có trong bộ nhớ,
+  // thay vì tải lại toàn bộ bảng từ server mỗi khi có người khác thao tác.
+  // -> tránh giật/flicker và giảm tải mạng khi dữ liệu lớn dần.
+  function patchListInPlace(list, payload, idField){
+    if(payload.eventType === "DELETE"){
+      const oldId = payload.old ? payload.old[idField] : undefined;
+      const idx = oldId === undefined ? -1 : list.findIndex(r=> r[idField] === oldId);
+      if(idx === -1) return false;
+      list.splice(idx, 1);
+      return true;
+    }
+    const row = payload.new;
+    if(!row || row[idField] === undefined) return false;
+    const idx = list.findIndex(r=> r[idField] === row[idField]);
+    if(idx === -1) list.unshift(row); else list[idx] = row;
+    return true;
+  }
+
+  // Sau khi vá xong CR/Test case/Release: cập nhật số đếm, dashboard, và làm mới
+  // Drawer đang mở (nếu CR đang mở trùng với CR vừa thay đổi).
+  function afterDataPatch(affectedCrId){
+    renderNavCounts();
+    renderDashboard();
+    const drawerId = STATE.drawerCrId;
+    if(!drawerId) return;
+    if(affectedCrId && affectedCrId !== drawerId) return;
+    const drawerSeq = STATE.drawerOpenSeq;
+    const cr = STATE.crList.find(c=>c.cr_id===drawerId);
+    if(!cr){ closeDrawer(); return; }
+    renderDrawer(cr);
+    fetchAttachments(cr.cr_id).then(()=>{
+      if(drawerSeq !== STATE.drawerOpenSeq || STATE.drawerCrId !== drawerId) return;
+      renderDrawerFiles(drawerId);
+      renderDrawerLinked(drawerId);
+    });
+  }
+
+  // Các danh mục cấu hình (Status/Sub-status/Evidence Step) ít thay đổi và số lượng nhỏ
+  // -> vẫn dùng full refresh cho an toàn, giữ nguyên hành vi cũ.
+  const debouncedConfigRefresh = debounce(async ()=>{
     await refreshAll();
     const drawerId = STATE.drawerCrId;
     const drawerSeq = STATE.drawerOpenSeq;
@@ -5821,22 +5894,34 @@ function subscribeRealtime(){
   }, 500);
 
   STATE.sb.channel("realtime-cr_log")
-    .on("postgres_changes", { event:"*", schema:"public", table:"cr_log" }, debouncedRefresh)
+    .on("postgres_changes", { event:"*", schema:"public", table:"cr_log" }, payload=>{
+      if(!patchListInPlace(STATE.crList, payload, "id")) return;
+      renderCrTable();
+      afterDataPatch((payload.new && payload.new.cr_id) || (payload.old && payload.old.cr_id));
+    })
     .subscribe();
   STATE.sb.channel("realtime-uat_testcase")
-    .on("postgres_changes", { event:"*", schema:"public", table:"uat_testcase" }, debouncedRefresh)
+    .on("postgres_changes", { event:"*", schema:"public", table:"uat_testcase" }, payload=>{
+      if(!patchListInPlace(STATE.tcList, payload, "id")) return;
+      renderTcTable();
+      afterDataPatch((payload.new && payload.new.cr_id) || (payload.old && payload.old.cr_id));
+    })
     .subscribe();
   STATE.sb.channel("realtime-release_prd")
-    .on("postgres_changes", { event:"*", schema:"public", table:"release_prd" }, debouncedRefresh)
+    .on("postgres_changes", { event:"*", schema:"public", table:"release_prd" }, payload=>{
+      if(!patchListInPlace(STATE.relList, payload, "id")) return;
+      renderRelTable();
+      afterDataPatch((payload.new && payload.new.cr_id) || (payload.old && payload.old.cr_id));
+    })
     .subscribe();
   STATE.sb.channel("realtime-cr_statuses")
-    .on("postgres_changes", { event:"*", schema:"public", table:"cr_statuses" }, debouncedRefresh)
+    .on("postgres_changes", { event:"*", schema:"public", table:"cr_statuses" }, debouncedConfigRefresh)
     .subscribe();
   STATE.sb.channel("realtime-cr_sub_statuses")
-    .on("postgres_changes", { event:"*", schema:"public", table:"cr_sub_statuses" }, debouncedRefresh)
+    .on("postgres_changes", { event:"*", schema:"public", table:"cr_sub_statuses" }, debouncedConfigRefresh)
     .subscribe();
   STATE.sb.channel("realtime-evidence_steps")
-    .on("postgres_changes", { event:"*", schema:"public", table:"evidence_steps" }, debouncedRefresh)
+    .on("postgres_changes", { event:"*", schema:"public", table:"evidence_steps" }, debouncedConfigRefresh)
     .subscribe();
   STATE.sb.channel("realtime-cr_attachments")
     .on("postgres_changes", { event:"*", schema:"public", table:"cr_attachments" }, async ()=>{
@@ -5856,6 +5941,38 @@ function subscribeRealtime(){
       if(STATE.currentView === "admin"){ loadAndRenderAdmin(); }
     })
     .subscribe();
+}
+
+/* ---------------------------------------------------------------------------
+   3c. OFFLINE DETECTION — báo mất kết nối mạng, tự đồng bộ lại khi có mạng
+--------------------------------------------------------------------------- */
+function setOfflineBannerVisible(show){
+  let el = document.getElementById("offlineBanner");
+  if(show){
+    if(el) return;
+    el = document.createElement("div");
+    el.id = "offlineBanner";
+    el.className = "offline-banner";
+    el.setAttribute("role", "status");
+    el.innerHTML = `<span class="offline-banner-dot" aria-hidden="true"></span> Mất kết nối mạng — đang thử kết nối lại...`;
+    document.body.appendChild(el);
+  } else if(el){
+    el.classList.add("is-closing");
+    setTimeout(()=> el.remove(), 220);
+  }
+}
+
+function initOfflineDetection(){
+  window.addEventListener("offline", ()=>{
+    setOfflineBannerVisible(true);
+  });
+  window.addEventListener("online", async ()=>{
+    setOfflineBannerVisible(false);
+    toast("Đã kết nối mạng trở lại", "ok");
+    // Mạng vừa chập chờn có thể khiến dữ liệu bị lệch so với server -> đồng bộ lại toàn bộ để đảm bảo chính xác.
+    try{ await refreshAll(); }catch(e){ /* refreshAll đã tự báo lỗi qua toast nếu có */ }
+  });
+  if(!navigator.onLine) setOfflineBannerVisible(true);
 }
 
 /* ---------------------------------------------------------------------------
@@ -7613,8 +7730,8 @@ function renderCrTable(){
       <td class="cell-actions">
         <div class="row-actions">
           <button class="icon-btn" data-act="view" title="Xem chi tiết"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-          <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+          <button class="icon-btn" data-act="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="icon-btn danger" data-act="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
         </div>
       </td>
     </tr>`;
@@ -7678,8 +7795,8 @@ function renderCrMobileList(rows){
         <span class="${crHasDocument(c, "FSD") ? "doc-mobile-present" : "doc-mobile-missing"}">FSD ${crHasDocument(c, "FSD") ? "✓" : "—"}</span>
       </div>
       <div class="cr-card-actions">
-        <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+        <button class="icon-btn" data-act="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="icon-btn danger" data-act="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
       </div>
     </div>`;
   }).join("");
@@ -9105,7 +9222,7 @@ function renderDrawer(cr){
            </div>
         </div>
         <div class="drawer-head-actions">
-          <button class="icon-btn" id="drawerEditBtn" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="icon-btn" id="drawerEditBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button class="drawer-close" id="drawerCloseBtn" title="Đóng">✕</button>
         </div>
       </div>
@@ -9392,10 +9509,10 @@ function fileCardHtml(f, url){
   return `<div class="file-card" data-file="${f.id}" data-kind="${kind}" data-url="${url}">
     <span class="file-cat-tag">${esc(f.category||'Other')}</span>
     <div class="file-actions">
-      <button class="file-edit" data-edit="${f.id}" type="button" title="Sửa thông tin file">
+      <button class="file-edit" data-edit="${f.id}" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L8 18l-4 1 1-4L16.5 3.5z"/></svg>
       </button>
-      <button class="file-del" data-del="${f.id}" data-path="${esc(f.file_path)}" title="Xóa file" type="button">✕</button>
+      <button class="file-del" data-del="${f.id}" data-path="${esc(f.file_path)}" type="button">✕</button>
     </div>
     <div class="file-thumb">${thumb}</div>
     <div class="file-meta">
@@ -9735,8 +9852,8 @@ function renderTcTable(){
       ${cols.map(col=>tcRowCellHtml(col.key, t)).join("")}
       <td class="cell-actions">
         <div class="row-actions">
-          <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+          <button class="icon-btn" data-act="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="icon-btn danger" data-act="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
         </div>
       </td>
     </tr>
@@ -9790,8 +9907,8 @@ function renderTcMobileList(rows){
         <span>${t.testing_date ? fmtDate(t.testing_date) : "Chưa test"}</span>
       </div>
       <div class="cr-card-actions">
-        <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7A2 2 0 015 20V6h14z"/></svg></button>
+        <button class="icon-btn" data-act="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="icon-btn danger" data-act="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7A2 2 0 015 20V6h14z"/></svg></button>
       </div>
     </div>
   `).join("");
@@ -10295,8 +10412,8 @@ function renderRelTable(){
       ${cols.map(col=>relRowCellHtml(col.key, r)).join("")}
       <td class="cell-actions">
         <div class="row-actions">
-          <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+          <button class="icon-btn" data-act="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="icon-btn danger" data-act="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
         </div>
       </td>
     </tr>
@@ -10350,8 +10467,8 @@ function renderRelMobileList(rows){
         <span>${r.planned_date ? fmtDate(r.planned_date) : "Chưa có ngày dự kiến"}</span>
       </div>
       <div class="cr-card-actions">
-        <button class="icon-btn" data-act="edit" title="Sửa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002-2h7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        <button class="icon-btn danger" data-act="del" title="Xóa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7A2 2 0 015 20V6h14z"/></svg></button>
+        <button class="icon-btn" data-act="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002-2h7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="icon-btn danger" data-act="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7A2 2 0 015 20V6h14z"/></svg></button>
       </div>
     </div>
   `).join("");
@@ -10639,7 +10756,7 @@ function renderBrdVersionRows(){
       <td><input data-f="date" value="${esc(r.date||'')}" placeholder="VD: Sep-12-2026"></td>
       <td><input data-f="author" value="${esc(r.author||'')}"></td>
       <td><input data-f="reviewer" value="${esc(r.reviewer||'')}"></td>
-      <td class="brd-version-actcell"><button type="button" class="brd-version-rm" data-rm="${i}" title="Xóa dòng">✕</button></td>
+      <td class="brd-version-actcell"><button type="button" class="brd-version-rm" data-rm="${i}">✕</button></td>
     </tr>`).join("");
 }
 
@@ -11018,8 +11135,8 @@ function renderAdminTable(){
               ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`
               : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>`}
           </button>
-          <button class="icon-btn" data-act="edit" title="Đổi vai trò"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="icon-btn danger" data-act="del" title="Gỡ quyền"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+          <button class="icon-btn" data-act="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="icon-btn danger" data-act="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
         </div>
       </td>
     </tr>
@@ -11078,10 +11195,10 @@ function renderAdminStatusTable(){
       <td class="cell-dim">${s.sort_order ?? index}</td>
       <td class="cell-actions">
         <div class="row-actions" style="opacity:1;">
-          <button class="icon-btn" data-status-act="edit" title="Sửa màu Status">
+          <button class="icon-btn" data-status-act="edit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="icon-btn danger" data-status-act="delete" title="Xóa Status">
+          <button class="icon-btn danger" data-status-act="delete">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
           </button>
         </div>
@@ -11131,10 +11248,10 @@ function renderAdminSubStatusTable(){
       <td class="cell-dim">${s.sort_order ?? index}</td>
       <td class="cell-actions">
         <div class="row-actions" style="opacity:1;">
-          <button class="icon-btn" data-sub-status-act="edit" title="Sửa Sub-Status">
+          <button class="icon-btn" data-sub-status-act="edit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="icon-btn danger" data-sub-status-act="delete" title="Xóa Sub-Status">
+          <button class="icon-btn danger" data-sub-status-act="delete">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
           </button>
         </div>
@@ -11185,10 +11302,10 @@ function renderAdminEvidenceStepTable(){
         : '<span class="badge" style="background:var(--success-dim); color:var(--success);">Đang dùng</span>'}</td>
       <td class="cell-actions">
         <div class="row-actions" style="opacity:1;">
-          <button class="icon-btn" data-evidence-act="edit" title="Sửa Evidence Step">
+          <button class="icon-btn" data-evidence-act="edit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="icon-btn danger" data-evidence-act="delete" title="Xóa Evidence Step">
+          <button class="icon-btn danger" data-evidence-act="delete">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
           </button>
         </div>
@@ -11745,6 +11862,7 @@ async function saveUser(overlay, isEdit){
    13. INIT
 --------------------------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", initAuth);
+document.addEventListener("DOMContentLoaded", initOfflineDetection);
 
 </script>
 </body>

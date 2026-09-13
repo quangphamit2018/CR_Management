@@ -243,8 +243,19 @@ body.role-no-edit [data-act="edit"]{ display:none !important; }
 
 body.role-no-delete [data-act="del"]{ display:none !important; }
 
-body.role-no-manage-users #navAdmin{ display:none !important; }
+body.role-no-admin-tab #navAdmin{ display:none !important; }
 body.role-no-recycle #navRecycleBin{ display:none !important; }
+
+/* Bên trong tab Quản Trị Dữ Liệu: senior_member được vào tab và xem/quản lý
+   Status, Sub-Status, Evidence Step, nhưng KHÔNG được thấy danh sách người
+   dùng và không được thấy bảng tham chiếu Supabase — hai mục đó chỉ dành
+   riêng cho super_admin. */
+body.role-no-manage-users #adminUsersPanel,
+body.role-no-manage-users #supabaseTablesPanel,
+body.role-no-manage-users #view-admin .status-create,
+body.role-no-manage-users #view-admin [data-status-act],
+body.role-no-manage-users #view-admin [data-sub-status-act],
+body.role-no-manage-users #view-admin [data-evidence-act]{ display:none !important; }
 
 .role-readonly-banner{
   display:flex; align-items:center; gap:8px;
@@ -4239,9 +4250,9 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
       <span class="count" id="navCountBrd">0</span>
     </div>
 
-    <div class="nav-item hidden" data-view="admin" id="navAdmin" title="Quản trị người dùng">
+    <div class="nav-item hidden" data-view="admin" id="navAdmin" title="Quản Trị Dữ Liệu">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      <span class="nav-label">Quản trị người dùng</span>
+      <span class="nav-label">Quản Trị Dữ Liệu</span>
     </div>
 
     <div class="nav-item hidden" data-view="recycle" id="navRecycleBin" title="Recycle Bin">
@@ -4637,7 +4648,65 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 
     <!-- ============ ADMIN VIEW ============ -->
     <section class="view hidden" id="view-admin">
-      <div class="list-panel">
+      <div class="list-panel" id="supabaseTablesPanel" style="margin-bottom:16px;">
+        <div class="list-panel-head">
+          <div>
+            <div class="list-panel-count">Dữ liệu Supabase đang sử dụng</div>
+            <div class="hint">Danh sách các Table (và Storage Bucket) mà web app này đang dùng trên Supabase, cùng mục đích của từng bảng. Chỉ Quản trị viên (Super-admin) mới thấy được mục này.</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:180px;">Table / Bucket</th><th style="width:110px;">Loại</th><th>Mục đích sử dụng</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td class="cell-id">app_users</td><td class="cell-dim">Table</td>
+                <td>Danh sách tài khoản được cấp quyền dùng app: email, vai trò (super_admin / senior_member / member / viewer), trạng thái đang hoạt động hay đã khóa, ngày thêm. Là nguồn dữ liệu cho phần "Người dùng" ở tab này và dùng để phân quyền toàn app.</td>
+              </tr>
+              <tr>
+                <td class="cell-id">cr_log</td><td class="cell-dim">Table</td>
+                <td>Dữ liệu chính của các Change Request (CR): tiêu đề, mô tả, status, priority, category, người phụ trách, ngày tạo... Nguồn dữ liệu cho tab "CR Log" và Dashboard. Có cột <code>deleted_at</code> để soft-delete (xóa mềm vào Recycle Bin).</td>
+              </tr>
+              <tr>
+                <td class="cell-id">uat_testcase</td><td class="cell-dim">Table</td>
+                <td>Các UAT Test Case gắn với từng CR: kịch bản test, kết quả (Pass/Fail/Blocked...), người thực hiện. Nguồn dữ liệu cho tab "UAT Test Case". Cũng có soft-delete qua <code>deleted_at</code>.</td>
+              </tr>
+              <tr>
+                <td class="cell-id">release_prd</td><td class="cell-dim">Table</td>
+                <td>Thông tin Release / PRD: tên release, môi trường (Dev/Staging/Prod), trạng thái release, liên kết tới CR liên quan. Nguồn dữ liệu cho tab "Release / PRD". Có soft-delete qua <code>deleted_at</code>.</td>
+              </tr>
+              <tr>
+                <td class="cell-id">brd_records</td><td class="cell-dim">Table</td>
+                <td>Nội dung các tài liệu BRD (Business Requirement Document) được soạn trong tab "Tạo BRD". Có soft-delete qua <code>deleted_at</code>.</td>
+              </tr>
+              <tr>
+                <td class="cell-id">cr_attachments</td><td class="cell-dim">Table</td>
+                <td>Thông tin (metadata) của file đính kèm — loại file (BRD/FSD/Quotation/Mail/Evidence/Other), tên file, đường dẫn lưu trữ, người & ngày upload — gắn theo CR hoặc Test Case. File thật được lưu trong Storage Bucket <code>cr-attachments</code>, bảng này chỉ lưu tham chiếu tới file.</td>
+              </tr>
+              <tr>
+                <td class="cell-id">cr_statuses</td><td class="cell-dim">Table</td>
+                <td>Danh sách các Status dùng cho CR (New, In Review, Approved, Rejected...) kèm màu nền, màu chữ và thứ tự hiển thị. Quản lý ngay trong tab này ở mục "Status".</td>
+              </tr>
+              <tr>
+                <td class="cell-id">cr_sub_statuses</td><td class="cell-dim">Table</td>
+                <td>Danh sách Sub-Status — trạng thái chi tiết hơn bên trong một Status — kèm màu sắc và thứ tự. Quản lý trong tab này ở mục "Sub-status".</td>
+              </tr>
+              <tr>
+                <td class="cell-id">evidence_steps</td><td class="cell-dim">Table</td>
+                <td>Danh sách các bước (step) yêu cầu evidence khi thực hiện UAT, kèm thứ tự và trạng thái bật/tắt. Quản lý trong tab này ở mục "Evidence Step".</td>
+              </tr>
+              <tr>
+                <td class="cell-id">cr-attachments</td><td class="cell-dim">Storage Bucket</td>
+                <td>Nơi lưu file thật (BRD, FSD, ảnh evidence, quotation...) được người dùng upload. Bảng <code>cr_attachments</code> ở trên chỉ lưu đường dẫn trỏ tới các file nằm trong bucket này.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="list-panel" id="adminUsersPanel">
         <div class="list-panel-head">
           <div class="list-panel-count"><b id="userCount">0</b> người dùng</div>
           <div class="table-toolbar">
@@ -4868,11 +4937,15 @@ const VALID_VIEWS = new Set(["dashboard", "crlog", "uat", "release", "brd", "adm
    PHÂN QUYỀN (ROLES)
    ==========================================================================
    super_admin    : Quyền cao nhất — thêm/sửa/xóa TẤT CẢ dữ liệu, thấy tất cả
-                     tab (kể cả Quản trị người dùng + Recycle Bin). Tài khoản
+                     tab (kể cả Quản Trị Dữ Liệu + Recycle Bin), và là role
+                     DUY NHẤT thấy được danh sách người dùng + bảng tham
+                     chiếu Supabase bên trong tab Quản Trị Dữ Liệu. Tài khoản
                      có role này KHÔNG AI được phép xóa (kể cả super_admin khác).
-   senior_member  : Thêm/sửa/xóa dữ liệu CR + thấy tab Quản trị người dùng.
-   member         : Thêm/sửa dữ liệu CR, KHÔNG được xóa, KHÔNG thấy tab Quản trị người dùng.
-   viewer         : Chỉ xem, không thêm/sửa/xóa, KHÔNG thấy tab Quản trị người dùng.
+   senior_member  : Thêm/sửa/xóa dữ liệu CR + thấy tab Quản Trị Dữ Liệu, nhưng
+                     CHỈ thấy mục Status / Sub-Status / Evidence Step — KHÔNG
+                     thấy danh sách người dùng và KHÔNG thấy bảng Supabase.
+   member         : Thêm/sửa dữ liệu CR, KHÔNG được xóa, KHÔNG thấy tab Quản Trị Dữ Liệu.
+   viewer         : Chỉ xem, không thêm/sửa/xóa, KHÔNG thấy tab Quản Trị Dữ Liệu.
    -------------------------------------------------------------------------- */
 const ROLE_LEVEL = { super_admin: 4, senior_member: 3, member: 2, viewer: 1 };
 const ROLE_LABELS = {
@@ -4884,6 +4957,7 @@ const ROLE_LABELS = {
 function roleLevel(role){ return ROLE_LEVEL[role] || 0; }
 function isSuperAdmin(){ return STATE.userRole === "super_admin"; }
 function canManageUsers(){ return STATE.userRole === "super_admin"; }   // chỉ super_admin
+function canViewAdminTab(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.senior_member; }  // super_admin, senior_member
 function canDeleteData(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.senior_member; }    // super_admin, senior_member
 function canEditData(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.member; }             // super_admin, senior_member, member
 function roleLabel(role){ return ROLE_LABELS[role] || role || "—"; }
@@ -4893,6 +4967,7 @@ function roleLabel(role){ return ROLE_LABELS[role] || role || "—"; }
 function applyRolePermissionsToUI(){
   document.body.classList.toggle("role-no-edit", !canEditData());
   document.body.classList.toggle("role-no-delete", !canDeleteData());
+  document.body.classList.toggle("role-no-admin-tab", !canViewAdminTab());
   document.body.classList.toggle("role-no-manage-users", !canManageUsers());
   document.body.classList.toggle("role-no-recycle", !isSuperAdmin());
 }
@@ -5861,9 +5936,9 @@ async function handleAuthState(){
   $("#sidebarUserEmail").textContent = STATE.userEmail;
   $("#sidebarUserRole").textContent = roleLabel(STATE.userRole);
   applyRolePermissionsToUI();
-  $("#navAdmin").classList.toggle("hidden", !canManageUsers());
+  $("#navAdmin").classList.toggle("hidden", !canViewAdminTab());
   $("#navRecycleBin").classList.toggle("hidden", !isSuperAdmin());
-  if(STATE.currentView === "admin" && !canManageUsers()){ setView("dashboard"); }
+  if(STATE.currentView === "admin" && !canViewAdminTab()){ setView("dashboard"); }
   if(STATE.currentView === "recycle" && !isSuperAdmin()){ setView("dashboard"); }
 }
 
@@ -6059,7 +6134,7 @@ const VIEW_META = {
   uat:       { title:"UAT Test Case", sub:"Test case UAT cho từng Change Request", search:false },
   release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:false },
   brd:       { title:"Tạo BRD", sub:"Nhập thông tin và xuất file BRD theo template chuẩn", search:false },
-  admin:     { title:"Quản trị", sub:"Quản lý người dùng, Status và Evidence Step", search:false },
+  admin:     { title:"Quản Trị Dữ Liệu", sub:"Quản lý người dùng, Status, Evidence Step và dữ liệu Supabase", search:false },
   recycle:   { title:"Recycle Bin", sub:"Dữ liệu đã xóa — khôi phục hoặc xóa vĩnh viễn", search:false },
 };
 
@@ -6633,7 +6708,7 @@ function initAutoGrow(root){
 
 function setView(view){
   if(!VALID_VIEWS.has(view)) view = "dashboard";
-  if(view === "admin" && !canManageUsers()) view = "dashboard";
+  if(view === "admin" && !canViewAdminTab()) view = "dashboard";
   if(view === "recycle" && !isSuperAdmin()) view = "dashboard";
   STATE.currentView = view;
   try{ localStorage.setItem(VIEW_STORAGE_KEY, view); }catch(_){}
@@ -11301,15 +11376,25 @@ function confirmDelete(title, msg, onConfirm, confirmLabel){
    12b. ADMIN — QUẢN LÝ NGƯỜI DÙNG ĐƯỢC CẤP QUYỀN
 --------------------------------------------------------------------------- */
 async function loadAndRenderAdmin(){
-  if(!canManageUsers()){ return; }
-  const tbody = $("#userTableBody");
-  if(tbody) skeletonTableRows(tbody, 5, 4);
+  if(!canViewAdminTab()){ return; }
   const statusBody = $("#statusTableBody");
   if(statusBody) skeletonTableRows(statusBody, 3, 3);
   const subStatusBody = $("#subStatusTableBody");
   if(subStatusBody) skeletonTableRows(subStatusBody, 3, 3);
-  await Promise.all([fetchAppUsers(), fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList()]);
-  renderAdminTable();
+  const evidenceBody = $("#evidenceStepTableBody");
+  if(evidenceBody) skeletonTableRows(evidenceBody, 3, 3);
+
+  const tasks = [fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList()];
+  // Danh sách người dùng (app_users) chỉ dành cho super_admin — senior_member
+  // không được fetch/thấy dữ liệu này dù cùng vào tab Quản Trị Dữ Liệu.
+  if(canManageUsers()){
+    const tbody = $("#userTableBody");
+    if(tbody) skeletonTableRows(tbody, 5, 4);
+    tasks.push(fetchAppUsers());
+  }
+  await Promise.all(tasks);
+
+  if(canManageUsers()) renderAdminTable();
   renderAdminStatusTable();
   renderAdminSubStatusTable();
   renderAdminEvidenceStepTable();
@@ -12038,7 +12123,7 @@ function userModalTemplate(u){
         <select id="u_role">
           <option value="viewer" ${v.role==='viewer'?'selected':''}>Thành viên (chỉ xem, không thêm/sửa/xóa)</option>
           <option value="member" ${(!v.role || v.role==='member')?'selected':''}>Thành viên (thêm, sửa — không được xóa)</option>
-          <option value="senior_member" ${v.role==='senior_member'?'selected':''}>Thành viên cao cấp (thêm, sửa, xóa + tab Quản trị người dùng)</option>
+          <option value="senior_member" ${v.role==='senior_member'?'selected':''}>Thành viên cao cấp (thêm, sửa, xóa + tab Quản Trị Dữ Liệu)</option>
           ${isSuperAdmin() ? `<option value="super_admin" ${v.role==='super_admin'?'selected':''}>Quản trị viên (toàn quyền, thấy Recycle Bin — không ai được xóa tài khoản này)</option>` : ``}
         </select>
         ${!isSuperAdmin() ? `<div class="hint">Chỉ Quản trị viên mới có thể cấp/đổi quyền Quản trị viên.</div>` : ``}

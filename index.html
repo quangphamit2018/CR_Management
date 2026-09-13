@@ -1654,6 +1654,17 @@ body.mobile-nav-open .mobile-nav-toggle:hover{
 [title].icon-btn:hover::after, [title].tb-btn:hover::after, [title].sidebar-toggle:hover::after{
   opacity:1; transform:translateX(-50%) translateY(0);
 }
+/* Row-action buttons sit directly under the sticky table header, so a tooltip
+   popping upward (the default direction above) has nowhere to fully render
+   for the first visible row and ends up clipped by the scrolling table
+   wrapper. Popping these specific tooltips downward instead keeps them
+   inside the row's own open space regardless of scroll position. */
+.row-actions [title].icon-btn::after{
+  bottom:auto; top:calc(100% + 7px); transform:translateX(-50%) translateY(-2px);
+}
+.row-actions [title].icon-btn:hover::after{
+  transform:translateX(-50%) translateY(0);
+}
 @media(hover:none){
   [title].icon-btn::after, [title].tb-btn::after, [title].sidebar-toggle::after{ display:none; }
 }

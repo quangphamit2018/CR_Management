@@ -529,7 +529,19 @@ tbody tr:last-child td{ border-bottom:none; }
 td.cell-id{ font-family: var(--font-mono); font-weight:700; color: var(--accent); }
 td.cell-title{ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 td.cell-dim{ color: var(--text-secondary); }
-td.cell-actions{ text-align:right; white-space:nowrap; }
+
+/* Free-text "Note" cell: wraps and clamps to 2 lines instead of forcing the
+   column to grow to the length of the longest note (which used to make the
+   column — and the whole table — absurdly wide). Full text stays available
+   via the native tooltip and via the row's detail view. */
+#crTable tbody td.cell-note, #tcTable tbody td.cell-note, #relTable tbody td.cell-note{
+  white-space:normal; overflow:visible; text-overflow:clip; vertical-align:top; padding-top:12px; padding-bottom:12px;
+}
+.note-clamp{
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; line-height:1.45; word-break:break-word; color: var(--text-secondary);
+}
+
 .doc-status-cell{ text-align:center; }
 .doc-status{
   display:inline-flex; align-items:center; justify-content:center; gap:5px;
@@ -539,16 +551,29 @@ td.cell-actions{ text-align:right; white-space:nowrap; }
 .doc-status.is-present{ color:#087f72; background:rgba(28,178,157,.14); }
 .doc-status.is-missing{ color:var(--text-faint); background:rgba(120,144,162,.10); font-weight:700; }
 .doc-status-icon{ font-size:14px; line-height:10px; }
-.row-actions{ display:flex; gap:6px; justify-content:flex-end; opacity:0; transition:opacity var(--duration-fast) var(--ease-standard); }
-tbody tr:hover .row-actions{ opacity:1; }
-.icon-btn{
-  width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center;
-  background: var(--bg-surface-soft); border:1px solid var(--border); color: var(--text-secondary);
-  transition: var(--transition-hover); flex-shrink:0;
+
+/* Actions column: pinned to the right edge of the table so it is always
+   reachable and visible without horizontal-scrolling into it, and never sits
+   underneath the scrollbar. Opaque background prevents cells scrolling
+   underneath from showing through the pinned column. */
+th.th-actions, td.cell-actions{
+  position:sticky; right:0; text-align:right; white-space:nowrap;
 }
-.icon-btn:hover{ background: var(--bg-surface-soft-hover); color: var(--text-primary); }
-.icon-btn svg{ width:14px; height:14px; }
-.icon-btn.danger:hover{ background: var(--danger-dim); color: var(--danger); }
+th.th-actions{ z-index:6; background: var(--bg-topbar-solid); }
+td.cell-actions{
+  z-index:2; background: var(--bg-surface); box-shadow: inset 1px 0 0 rgba(255,255,255,0.06);
+}
+tbody tr:hover td.cell-actions{ background: var(--bg-surface-hover); }
+tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
+.row-actions{ display:flex; gap:6px; justify-content:flex-end; }
+.icon-btn{
+  width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+  background: var(--bg-surface-soft-hover); border:1px solid var(--border-light); color: var(--text-primary);
+  transition: var(--transition-hover); flex-shrink:0; box-shadow: var(--shadow-sm);
+}
+.icon-btn:hover{ background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.icon-btn svg{ width:15px; height:15px; }
+.icon-btn.danger:hover{ background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
 
 .badge{
   display:inline-flex; align-items:center; gap:5px; font-size: var(--text-badge-size); font-weight: var(--text-badge-weight);
@@ -660,9 +685,12 @@ tbody tr:hover .row-actions{ opacity:1; }
 .view tbody tr:hover{ background:#f0f7f7; }
 .view td.cell-id{ color:#0e9a94; }
 .view td.cell-dim{ color:#5f7690; }
+.view .note-clamp{ color:#5f7690; }
+.view td.cell-actions{ background:#ffffff; box-shadow: inset 1px 0 0 #e4ebf0; }
+.view tbody tr:hover td.cell-actions{ background:#f0f7f7; }
 
-.view .icon-btn{ background:#f2f6f8; border-color:#dde7ec; color:#5f7690; }
-.view .icon-btn:hover{ background:#e6eef2; color:#0a1e33; }
+.view .icon-btn{ background:#f2f6f8; border-color:#dde7ec; color:#3a4f60; }
+.view .icon-btn:hover{ background:#e0f2f1; border-color:#0e9a94; color:#0e9a94; }
 
 .view .list-panel-foot{ border-top-color:#e4ebf0; color:#5f7690; }
 
@@ -4910,14 +4938,25 @@ const COL_WIDTH_DEFAULTS = {
 };
 const COL_WIDTH_STORAGE = { cr:"crColWidths", tc:"uatColWidths", rel:"releaseColWidths" };
 const COL_WIDTH_MIN = 64;
+/* Free-text columns get a hard ceiling so a long value (or an old dragged-out
+   width saved from before this cap existed) can never blow the column — and
+   the whole table — out to an unreasonable width again. */
+const COL_WIDTH_MAX = {
+  cr: { note:420 },
+  tc: { scenario:420 },
+  rel: {},
+};
 
 function loadColWidths(kind){
   const defaults = COL_WIDTH_DEFAULTS[kind];
+  const max = COL_WIDTH_MAX[kind] || {};
+  let widths;
   try{
     const saved = JSON.parse(localStorage.getItem(COL_WIDTH_STORAGE[kind]) || "null");
-    if(saved && typeof saved === "object") return Object.assign({}, defaults, saved);
-  }catch(e){ /* ignore malformed prefs */ }
-  return Object.assign({}, defaults);
+    widths = (saved && typeof saved === "object") ? Object.assign({}, defaults, saved) : Object.assign({}, defaults);
+  }catch(e){ widths = Object.assign({}, defaults); /* ignore malformed prefs */ }
+  Object.keys(max).forEach(k=>{ if(widths[k] > max[k]) widths[k] = max[k]; });
+  return widths;
 }
 function saveColWidths(kind){
   try{ localStorage.setItem(COL_WIDTH_STORAGE[kind], JSON.stringify(STATE.colWidths[kind])); }
@@ -4946,6 +4985,7 @@ function attachColumnResize(tableEl, kind){
   const cols = Array.from(tableEl.querySelectorAll("colgroup col"));
   ths.forEach((th, idx)=>{
     if(th.classList.contains("col-check")) return; // checkbox column stays fixed-width
+    if(th.classList.contains("th-actions")) return; // actions column is pinned/fixed-width, not user-resizable
     const col = cols[idx];
     if(!col) return;
     const handle = document.createElement("span");
@@ -4960,10 +5000,12 @@ function attachColumnResize(tableEl, kind){
       if(!liveCol) return;
       const startX = e.clientX;
       const startWidth = liveCol.getBoundingClientRect().width;
+      const colKey = liveCol.dataset.colKey;
+      const colMax = (COL_WIDTH_MAX[kind] && COL_WIDTH_MAX[kind][colKey]) || Infinity;
       document.body.classList.add("col-resizing");
       function onMove(ev){
         const delta = ev.clientX - startX;
-        const newWidth = Math.max(COL_WIDTH_MIN, Math.round(startWidth + delta));
+        const newWidth = Math.min(colMax, Math.max(COL_WIDTH_MIN, Math.round(startWidth + delta)));
         liveCol.style.width = newWidth + "px";
         updateHScrollUI(kind); // dragging a column changes the table's total width live
       }
@@ -7479,7 +7521,7 @@ function crRowCellHtml(colKey, c, overdue){
     case "priority": return `<td>${badge("priority", c.priority)}</td>`;
     case "status": return `<td>${badge("status", c.status)}</td>`;
     case "sub_status": return `<td>${c.sub_status ? badge("sub_status", c.sub_status) : '<span class="cell-dim">—</span>'}</td>`;
-    case "note": return `<td class="cell-dim" title="${esc(c.note || '')}">${esc(c.note || '—')}</td>`;
+    case "note": return `<td class="cell-note" title="${esc(c.note || '')}"><span class="note-clamp">${esc(c.note || '—')}</span></td>`;
     case "deadline": return `<td class="cell-dim">${
         c.deadline
           ? (overdue
@@ -7501,7 +7543,7 @@ function renderCrThead(){
     `<th class="col-check"><input type="checkbox" class="select-all-check" id="crSelectAll" title="Chọn tất cả"></th>` +
     sortHeaderHtml("cr", "cr_id", "CR ID") +
     cols.map(c=> sortHeaderHtml("cr", c.key, c.label)).join("") +
-    `<th></th>`;
+    `<th class="th-actions">Thao tác</th>`;
   bindSortHeaders(tr, "cr");
   renderColgroup("cr", ["__check", "cr_id", ...cols.map(c=>c.key), "__actions"]);
   attachColumnResize($("#crTable"), "cr");
@@ -9629,7 +9671,7 @@ function renderTcThead(){
     `<th class="col-check"><input type="checkbox" class="select-all-check" id="tcSelectAll" title="Chọn tất cả"></th>` +
     sortHeaderHtml("tc", "cr_id", "CR ID") +
     cols.map(c=>sortHeaderHtml("tc", c.key, c.label)).join("") +
-    `<th></th>`;
+    `<th class="th-actions">Thao tác</th>`;
   bindSortHeaders(tr, "tc");
   renderColgroup("tc", ["__check", "cr_id", ...cols.map(c=>c.key), "__actions"]);
   attachColumnResize($("#tcTable"), "tc");
@@ -10189,7 +10231,7 @@ function renderRelThead(){
     `<th class="col-check"><input type="checkbox" class="select-all-check" id="relSelectAll" title="Chọn tất cả"></th>` +
     sortHeaderHtml("rel", "cr_id", "CR ID") +
     cols.map(c=>sortHeaderHtml("rel", c.key, c.label)).join("") +
-    `<th></th>`;
+    `<th class="th-actions">Thao tác</th>`;
   bindSortHeaders(tr, "rel");
   renderColgroup("rel", ["__check", "cr_id", ...cols.map(c=>c.key), "__actions"]);
   attachColumnResize($("#relTable"), "rel");

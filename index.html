@@ -591,9 +591,6 @@ th.th-actions{ z-index:6; background: var(--bg-topbar-solid); }
 td.cell-actions{
   z-index:2; background: var(--bg-surface); box-shadow: inset 1px 0 0 rgba(255,255,255,0.06);
 }
-/* While a row is hovered, its actions cell needs to briefly outrank the sticky
-   header's z-index so an icon-button tooltip (which pops upward and can land
-   under the header for the first visible row) isn't clipped underneath it. */
 tbody tr:hover td.cell-actions{ background: var(--bg-surface-hover); z-index:20; }
 tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
 .row-actions{ display:flex; gap:6px; justify-content:flex-end; }
@@ -1659,43 +1656,9 @@ body.mobile-nav-open .mobile-nav-toggle:hover{
 .tb-badge{ transition: transform var(--duration-fast) var(--ease-standard); }
 .tb-btn:hover .tb-badge{ transform: scale(1.1); }
 
-/* lightweight tooltip reusing existing [title] attributes — no markup changes needed
-   NOTE: .sidebar-toggle is intentionally excluded here — it already declares
-   position:absolute (it floats on the sidebar's edge). Including it in this
-   generic reset used to force it back to position:relative (higher
-   specificity than the single .sidebar-toggle class rule), which knocked it
-   out of its floating position and back into normal document flow, landing
-   it on top of the brand logo. position:absolute already gives it a valid
-   positioning context for its own ::after tooltip, so relative isn't needed. */
-[title].icon-btn, [title].tb-btn, [title].modal-close, [title].drawer-close, [title].file-del{
-  position:relative;
-}
-[title].icon-btn::after, [title].tb-btn::after, [title].sidebar-toggle::after{
-  content: attr(title);
-  position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%) translateY(2px);
-  background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
-  border:1px solid var(--glass-border); color: var(--text-primary);
-  font-size:11px; font-weight:600; white-space:nowrap; padding:5px 9px; border-radius:7px;
-  box-shadow: var(--shadow-md); pointer-events:none; opacity:0; z-index:60;
-  transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
-}
-[title].icon-btn:hover::after, [title].tb-btn:hover::after, [title].sidebar-toggle:hover::after{
-  opacity:1; transform:translateX(-50%) translateY(0);
-}
-/* Row-action buttons sit directly under the sticky table header, so a tooltip
-   popping upward (the default direction above) has nowhere to fully render
-   for the first visible row and ends up clipped by the scrolling table
-   wrapper. Popping these specific tooltips downward instead keeps them
-   inside the row's own open space regardless of scroll position. */
-.row-actions [title].icon-btn::after{
-  bottom:auto; top:calc(100% + 7px); transform:translateX(-50%) translateY(-2px);
-}
-.row-actions [title].icon-btn:hover::after{
-  transform:translateX(-50%) translateY(0);
-}
-@media(hover:none){
-  [title].icon-btn::after, [title].tb-btn::after, [title].sidebar-toggle::after{ display:none; }
-}
+/* Custom hover tooltip (CSS ::after popup driven by [title]) removed per request.
+   [title] attributes remain on elements for native accessibility, but no
+   custom floating popup is rendered on hover anymore. */
 
 /* ---- 6. Skeleton loading -------------------------------------------------
    GPU-friendly: animates background-position only (compositor-safe),

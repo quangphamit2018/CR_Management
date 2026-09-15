@@ -601,6 +601,33 @@ td.cell-actions{
 }
 tbody tr:hover td.cell-actions{ background: var(--bg-surface-hover); z-index:20; }
 tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
+
+/* Freeze columns (CR Log only): checkbox + CR ID + Title stay pinned to the
+   left edge while the rest of the row scrolls horizontally. Left offsets are
+   computed live in JS (updateCrFreezeOffsets) as CSS custom properties,
+   since these columns are user-resizable so a fixed px value would drift out
+   of sync. Opaque background prevents cells scrolling underneath from
+   showing through the pinned columns — same reasoning as the actions column
+   above. */
+#crTable th.col-check, #crTable td.cell-check{
+  position:sticky; left:0; z-index:3; background: var(--bg-surface);
+}
+#crTable th.col-check{ z-index:7; background: var(--bg-topbar-solid); }
+#crTable th[data-sort-key="cr_id"], #crTable td.cell-id{
+  position:sticky; left: var(--cr-freeze-id-left, 44px); z-index:2; background: var(--bg-surface);
+}
+#crTable th[data-sort-key="cr_id"]{ z-index:6; background: var(--bg-topbar-solid); }
+#crTable th[data-sort-key="title"], #crTable td.cell-title{
+  position:sticky; left: var(--cr-freeze-title-left, 150px); z-index:1;
+  background: var(--bg-surface); box-shadow: inset -1px 0 0 rgba(255,255,255,0.06);
+}
+#crTable th[data-sort-key="title"]{ z-index:5; background: var(--bg-topbar-solid); box-shadow:none; }
+#crTable tbody tr:hover td.cell-check,
+#crTable tbody tr:hover td.cell-id,
+#crTable tbody tr:hover td.cell-title{ background: var(--bg-surface-hover); }
+#crTable tbody tr.detail-selected td.cell-check,
+#crTable tbody tr.detail-selected td.cell-id,
+#crTable tbody tr.detail-selected td.cell-title{ background:#163a4a; }
 .row-actions{ display:flex; gap:6px; justify-content:flex-end; }
 .icon-btn{
   width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center;
@@ -725,6 +752,13 @@ tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
 .view .note-clamp{ color:#5f7690; }
 .view td.cell-actions{ background:#ffffff; box-shadow: inset 1px 0 0 #e4ebf0; }
 .view tbody tr:hover td.cell-actions{ background:#f0f7f7; z-index:20; }
+
+.view #crTable td.cell-check, .view #crTable td.cell-id, .view #crTable td.cell-title{ background:#ffffff; }
+.view #crTable th.col-check, .view #crTable th[data-sort-key="cr_id"], .view #crTable th[data-sort-key="title"]{ background:#f6fafb; }
+.view #crTable td.cell-title{ box-shadow: inset -1px 0 0 #e4ebf0; }
+.view #crTable tbody tr:hover td.cell-check,
+.view #crTable tbody tr:hover td.cell-id,
+.view #crTable tbody tr:hover td.cell-title{ background:#f0f7f7; }
 
 .view .icon-btn{ background:#f2f6f8; border-color:#dde7ec; color:#3a4f60; }
 .view .icon-btn:hover{ background:#e0f2f1; border-color:#0e9a94; color:#0e9a94; }
@@ -5350,7 +5384,25 @@ const HSCROLL_IDS = {
 };
 const HSCROLL_WIRED = {};
 
+/* CR Log only: recompute the sticky "left" offsets for the CR ID and Title
+   columns from the checkbox/CR ID header cells' *current* rendered width.
+   Both columns are user-resizable (attachColumnResize), so a hardcoded px
+   offset would drift out of sync the moment someone drags a handle — reading
+   the live width here keeps the freeze aligned no matter how the columns
+   have been resized. Safe to call often; it's cheap and idempotent. */
+function updateCrFreezeOffsets(){
+  const table = document.getElementById("crTable");
+  if(!table) return;
+  const checkTh = table.querySelector("thead th.col-check");
+  const idTh = table.querySelector('thead th[data-sort-key="cr_id"]');
+  const checkW = checkTh ? checkTh.getBoundingClientRect().width : 44;
+  const idW = idTh ? idTh.getBoundingClientRect().width : 106;
+  table.style.setProperty("--cr-freeze-id-left", checkW + "px");
+  table.style.setProperty("--cr-freeze-title-left", (checkW + idW) + "px");
+}
+
 function updateHScrollUI(kind){
+  if(kind === "cr") updateCrFreezeOffsets();
   const ids = HSCROLL_IDS[kind];
   if(!ids) return;
   const wrap = document.getElementById(ids.wrap);

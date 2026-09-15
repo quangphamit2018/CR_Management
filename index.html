@@ -4038,42 +4038,62 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 .import-stat.danger b{ color:#d0524e; }
 @media(max-width:640px){ .import-summary{ grid-template-columns:repeat(2,1fr); } }
 
-/* ---- Danh sách BRD (dạng thẻ) --------------------------------------------- */
-.brd-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
-.brd-toolbar .brd-count{ font-size:13px; color:#7890a2; font-weight:600; }
-.brd-toolbar .brd-count b{ color:#16344e; font-size:15px; }
-.brd-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:14px; }
-.brd-card{
-  background:#fff; border:1px solid #e3ebf0; border-radius:14px; padding:16px 18px;
-  display:flex; flex-direction:column; gap:8px; transition:box-shadow .15s ease, border-color .15s ease;
-}
-.brd-card:hover{ border-color:#c7dbe2; box-shadow:0 6px 18px rgba(22,52,78,.06); }
-.brd-card-title{ font-family:var(--font-head); font-weight:800; font-size:15px; color:#16344e; line-height:1.35; }
-.brd-card-sub{ font-size:12.5px; color:#7890a2; font-weight:600; }
-.brd-card-meta{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:11.5px; color:#8a9aa8; margin-top:2px; }
-.brd-card-meta b{ color:#4d6473; }
-.brd-card-actions{ display:flex; gap:8px; margin-top:10px; }
-.brd-card-actions .btn{ flex:1; justify-content:center; }
-.brd-empty, .brd-error{
-  grid-column:1/-1; text-align:center; padding:48px 20px; color:#7890a2; font-size:13.5px;
-  border:1px dashed #d7e2e7; border-radius:14px;
-}
-.brd-error{ color:#c0433f; border-color:#f3c9c6; background:#fdf4f3; }
+/* ---- Danh sách BRD (đồng bộ cấu trúc các tab quản lý) ---------------------- */
+.brd-workspace{ background:#fff; border:1px solid #dfe9ed; border-radius:14px; overflow:hidden; box-shadow:0 4px 14px rgba(22,52,78,.035); }
+.brd-toolbar{ min-height:66px; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:15px 18px; border-bottom:1px solid #e5edf0; background:#fbfdfe; flex-wrap:wrap; }
+.brd-toolbar-copy{ display:flex; align-items:center; gap:12px; min-width:0; }
+.brd-toolbar-icon{ width:36px; height:36px; border-radius:9px; display:grid; place-items:center; color:#0c8f92; background:#e8f7f6; border:1px solid #c9e8e7; flex:0 0 auto; }
+.brd-toolbar-icon svg{ width:18px; height:18px; }
+.brd-toolbar-title{ font-family:var(--font-head); font-size:14px; font-weight:800; color:#16344e; }
+.brd-toolbar-note{ margin-top:2px; font-size:11.5px; color:#7c92a1; }
+.brd-toolbar .brd-count{ display:inline-flex; align-items:center; gap:7px; min-height:30px; padding:6px 10px; border:1px solid #dce8ec; border-radius:8px; background:#fff; font-size:12px; color:#6f8797; font-weight:700; white-space:nowrap; }
+.brd-toolbar .brd-count b{ min-width:21px; height:21px; padding:0 6px; display:grid; place-items:center; border-radius:6px; color:#087d82; background:#e6f7f6; font-size:12px; }
+.brd-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(310px,1fr)); gap:12px; padding:16px; }
+.brd-card{ position:relative; min-height:178px; background:#fff; border:1px solid #dfe8ec; border-radius:10px; padding:17px; display:flex; flex-direction:column; gap:8px; transition:box-shadow .18s ease, border-color .18s ease, transform .18s ease; }
+.brd-card::before{ content:""; position:absolute; inset:0 auto 0 0; width:3px; border-radius:10px 0 0 10px; background:#18a7a6; opacity:.72; }
+.brd-card:hover{ border-color:#bdd7dc; box-shadow:0 8px 20px rgba(22,52,78,.075); transform:translateY(-1px); }
+.brd-card-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.brd-card-docicon{ width:30px; height:30px; border-radius:8px; display:grid; place-items:center; color:#168f94; background:#edf8f8; flex:0 0 auto; }
+.brd-card-docicon svg{ width:15px; height:15px; }
+.brd-card-copy{ min-width:0; flex:1; }
+.brd-card-title{ font-family:var(--font-head); font-weight:800; font-size:14px; color:#16344e; line-height:1.4; overflow-wrap:anywhere; }
+.brd-card-sub{ margin-top:3px; font-size:11.5px; color:#7890a2; font-weight:650; }
+.brd-card-meta{ display:flex; flex-wrap:wrap; gap:6px 12px; padding:9px 0 2px; font-size:11px; color:#8296a4; border-top:1px solid #edf2f4; }
+.brd-card-meta span{ display:inline-flex; align-items:center; gap:4px; }
+.brd-card-meta b{ color:#526b7a; }
+.brd-card-actions{ display:flex; gap:7px; margin-top:auto; padding-top:7px; }
+.brd-card-actions .btn{ flex:1; justify-content:center; min-width:0; }
+.brd-card-actions .brd-delete-btn{ color:#c0433f; }
+.brd-empty, .brd-error{ grid-column:1/-1; text-align:center; padding:58px 20px; color:#7890a2; font-size:13px; border:1px dashed #d4e2e6; border-radius:10px; background:#fbfdfe; }
+.brd-empty-icon{ width:42px; height:42px; margin:0 auto 12px; border-radius:10px; display:grid; place-items:center; color:#7793a2; background:#edf4f6; }
+.brd-empty-icon svg{ width:21px; height:21px; }
+.brd-empty b{ display:block; margin-bottom:4px; color:#3c596a; font-size:13.5px; }
+.brd-error{ color:#c0433f; border-color:#f0cbc8; background:#fdf6f5; }
 
 /* ---- Form BRD trong modal -------------------------------------------------- */
-.brd-hint{ font-size:12px; color:#8a9aa8; margin-top:4px; line-height:1.5; }
-.brd-version-table{ width:100%; border-collapse:collapse; margin-top:8px; }
-.brd-version-table th, .brd-version-table td{ border:1px solid #e3ebf0; padding:6px 8px; font-size:12.5px; }
-.brd-version-table th{ background:#f5f9fa; color:#4d6473; font-weight:700; text-align:left; }
-.brd-version-table td input{ width:100%; border:1px solid transparent; background:transparent; font-size:12.5px; padding:4px 6px; border-radius:6px; }
-.brd-version-table td input:focus{ border-color:#bcd6dd; background:#fff; outline:none; }
-.brd-version-table td.brd-version-actcell{ width:36px; text-align:center; }
-.brd-version-rm{
-  appearance:none; border:none; background:transparent; cursor:pointer; color:#c0433f;
-  font-size:16px; line-height:1; padding:2px 6px; border-radius:6px;
-}
+.brd-modal .modal-head{ padding:18px 22px; border-bottom:1px solid #dfe9ed; background:#fbfdfe; }
+.brd-modal .modal-body{ background:#f4f8f9; padding:18px 22px 22px; }
+.brd-modal .modal-foot{ border-top:1px solid #dfe9ed; background:#fff; }
+.brd-modal .tc-form-groups{ gap:12px; }
+.brd-modal .tc-form-group{ border:1px solid #dde8ec; border-radius:10px; background:#fff; padding:16px; box-shadow:0 2px 8px rgba(22,52,78,.025); }
+.brd-modal .tc-form-group-title{ margin-bottom:13px; padding-bottom:9px; border-bottom:1px solid #edf2f4; color:#173d57; font-size:12.5px; letter-spacing:.01em; }
+.brd-modal .field label{ color:#4f6979; font-size:11.5px; font-weight:750; }
+.brd-modal .field input,.brd-modal .field select,.brd-modal .field textarea{ border-color:#d8e5e9; background:#fcfefe; }
+.brd-modal .field input:focus,.brd-modal .field select:focus,.brd-modal .field textarea:focus{ border-color:#55afb1; background:#fff; box-shadow:0 0 0 3px rgba(23,159,160,.09); }
+.brd-hint{ font-size:11.5px; color:#8296a4; margin-top:5px; line-height:1.45; }
+.brd-version-scroll{ width:100%; overflow-x:auto; border:1px solid #dfe8ec; border-radius:8px; }
+.brd-version-table{ width:100%; min-width:850px; border-collapse:separate; border-spacing:0; margin:0; }
+.brd-version-table th,.brd-version-table td{ border-right:1px solid #e3ebef; border-bottom:1px solid #e3ebef; padding:7px; font-size:12px; vertical-align:middle; }
+.brd-version-table th:last-child,.brd-version-table td:last-child{ border-right:0; }
+.brd-version-table tbody tr:last-child td{ border-bottom:0; }
+.brd-version-table th{ background:#f2f7f8; color:#4b6575; font-weight:750; text-align:left; white-space:nowrap; }
+.brd-version-table td input{ width:100%; min-width:78px; border:1px solid transparent; background:transparent; font-size:12px; padding:6px 7px; border-radius:6px; }
+.brd-version-table td input:focus{ border-color:#9acdd0; background:#fff; outline:none; box-shadow:0 0 0 2px rgba(23,159,160,.08); }
+.brd-version-table td.brd-version-actcell{ width:38px; text-align:center; }
+.brd-version-rm{ appearance:none; border:none; background:transparent; cursor:pointer; color:#c0433f; font-size:15px; line-height:1; padding:5px 7px; border-radius:6px; }
 .brd-version-rm:hover{ background:#fdf1f0; }
-.brd-version-addrow{ margin-top:8px; }
+.brd-version-addrow{ margin-top:9px; }
+@media(max-width:700px){ .brd-grid{ grid-template-columns:1fr; padding:12px; } .brd-toolbar{ padding:13px 14px; } .brd-toolbar-note{ display:none; } .brd-modal .modal-body{ padding:12px; } .brd-modal .tc-form-group{ padding:13px; } }
 
 /* ==========================================================================
    MOBILE & TABLET POLISH — bổ sung thêm để dùng mượt trên iPhone, iPad,
@@ -4706,10 +4726,16 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 
     <!-- ============ TẠO BRD VIEW (nav riêng) ============ -->
     <section class="view hidden" id="view-brd">
-      <div class="brd-toolbar">
-        <div class="brd-count"><b id="brdCount">0</b> BRD đã tạo</div>
+      <div class="brd-workspace">
+        <div class="brd-toolbar">
+          <div class="brd-toolbar-copy">
+            <div class="brd-toolbar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></div>
+            <div><div class="brd-toolbar-title">Danh sách Business Requirement Document</div><div class="brd-toolbar-note">Quản lý tài liệu yêu cầu nghiệp vụ và xuất file Word theo mẫu chuẩn</div></div>
+          </div>
+          <div class="brd-count"><b id="brdCount">0</b> BRD đã tạo</div>
+        </div>
+        <div class="brd-grid" id="brdGrid"></div>
       </div>
-      <div class="brd-grid" id="brdGrid"></div>
     </section>
 
     <!-- ============ ADMIN VIEW ============ -->
@@ -10962,13 +10988,15 @@ function renderBrdList(){
     return;
   }
   if(!STATE.brdList.length){
-    grid.innerHTML = `<div class="brd-empty">Chưa có BRD nào. Bấm "Tạo BRD mới" ở góc trên để bắt đầu.</div>`;
+    grid.innerHTML = `<div class="brd-empty"><div class="brd-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15h6"/></svg></div><b>Chưa có BRD nào</b>Bấm “Tạo BRD mới” ở góc trên để bắt đầu.</div>`;
     return;
   }
   grid.innerHTML = STATE.brdList.map(v=>`
-    <div class="brd-card" data-id="${esc(String(v.id))}">
-      <div class="brd-card-title">${esc(v.brd_title || "(Chưa đặt tên)")}</div>
-      <div class="brd-card-sub">for ${esc(v.system_name || "")}</div>
+    <article class="brd-card" data-id="${esc(String(v.id))}">
+      <div class="brd-card-head">
+        <div class="brd-card-docicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></div>
+        <div class="brd-card-copy"><div class="brd-card-title">${esc(v.brd_title || "(Chưa đặt tên)")}</div><div class="brd-card-sub">Hệ thống: ${esc(v.system_name || "—")}</div></div>
+      </div>
       <div class="brd-card-meta">
         ${v.cr_id ? `<span><b>CR</b> ${esc(v.cr_id)}</span>` : ""}
         <span><b>Phiên bản</b> ${(v.version_rows||[]).length || 0}</span>
@@ -10977,9 +11005,9 @@ function renderBrdList(){
       <div class="brd-card-actions">
         <button class="btn btn-ghost btn-sm" data-act="edit">Sửa</button>
         <button class="btn btn-ghost btn-sm" data-act="word">Xuất Word</button>
-        <button class="btn btn-ghost btn-sm" data-act="del" style="color:#c0433f;">Xóa</button>
+        <button class="btn btn-ghost btn-sm brd-delete-btn" data-act="del">Xóa</button>
       </div>
-    </div>`).join("");
+    </article>`).join("");
   $all("[data-act]", grid).forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const card = btn.closest(".brd-card");
@@ -11011,7 +11039,7 @@ function brdModalTemplate(v){
   const isEdit = !!v;
   const crOptions = STATE.crList.map(c=>c.cr_id);
   return `
-  <div class="modal modal-lg">
+  <div class="modal modal-lg brd-modal">
     <div class="modal-head">
       <div class="tc-modal-head-copy">
         <div class="tc-modal-kicker rel-modal-kicker">BRD BUILDER</div>
@@ -11103,10 +11131,12 @@ function brdModalTemplate(v){
 
         <section class="tc-form-group rel-form-group">
           <div class="tc-form-group-title">5. Lịch sử phiên bản (Version history)</div>
-          <table class="brd-version-table">
-            <thead><tr><th>V.No.</th><th>Change Description</th><th>Sections</th><th>Date</th><th>Author</th><th>Reviewer</th><th></th></tr></thead>
-            <tbody id="brdVersionBody"></tbody>
-          </table>
+          <div class="brd-version-scroll">
+            <table class="brd-version-table">
+              <thead><tr><th>V.No.</th><th>Change Description</th><th>Sections</th><th>Date</th><th>Author</th><th>Reviewer</th><th></th></tr></thead>
+              <tbody id="brdVersionBody"></tbody>
+            </table>
+          </div>
           <button type="button" class="btn btn-ghost btn-sm brd-version-addrow" id="brdAddVersionRow">+ Thêm dòng</button>
         </section>
 
@@ -11367,6 +11397,43 @@ function brdSafeFilenamePart(s){
     .replace(/[^a-zA-Z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,80) || "BRD";
 }
 
+function brdNormalizeDocxLayout(zip){
+  const file = zip.file("word/document.xml");
+  if(!file) return;
+  let xml = file.asText();
+
+  // Khổ A4 và lề cân đối 2 cm; giữ nguyên header/footer của template.
+  xml = xml.replace(/<w:pgSz\b[^>]*\/>/g, '<w:pgSz w:w="11906" w:h="16838"/>');
+  xml = xml.replace(/<w:pgMar\b[^>]*\/>/g, '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/>');
+
+  // Cố định layout bảng để các cột không tự co giãn khi nội dung dài.
+  xml = xml.replace(/<w:tblPr>([\s\S]*?)<\/w:tblPr>/g, (full, inner)=>{
+    let next = inner.replace(/<w:tblLayout\b[^>]*\/>/g, "");
+    next = next.replace(/<w:tblW\b[^>]*\/>/g, '<w:tblW w:w="0" w:type="auto"/>');
+    return `<w:tblPr>${next}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="80" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr>`;
+  });
+
+  // Chuẩn hóa đoạn văn do Docxtemplater sinh ra: bỏ tab/thụt bất thường,
+  // giữ bullet ở một mức thống nhất và tạo nhịp đọc đều.
+  xml = xml.replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/g, (full, inner)=>{
+    const isBullet = /<w:numPr>/.test(inner);
+    let next = inner.replace(/<w:tabs>[\s\S]*?<\/w:tabs>/g, "");
+    next = next.replace(/<w:ind\b[^>]*\/>/g, "");
+    next = next.replace(/<w:spacing\b[^>]*\/>/g, "");
+    const indent = isBullet ? '<w:ind w:left="540" w:hanging="270"/>' : '<w:ind w:left="0" w:right="0" w:firstLine="0"/>';
+    return `<w:pPr>${next}<w:spacing w:before="0" w:after="120" w:line="276" w:lineRule="auto"/>${indent}</w:pPr>`;
+  });
+
+  zip.file("word/document.xml", xml);
+
+  const stylesFile = zip.file("word/styles.xml");
+  if(stylesFile){
+    let styles = stylesFile.asText();
+    styles = styles.replace(/<w:docDefaults>[\s\S]*?<\/w:docDefaults>/, '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US" w:eastAsia="vi-VN"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>');
+    zip.file("word/styles.xml", styles);
+  }
+}
+
 async function generateBrdDocx(record){
   if(typeof PizZip === "undefined" || typeof window.docxtemplater === "undefined"){
     throw new Error("Thư viện tạo file Word (PizZip/Docxtemplater) chưa tải xong, vui lòng thử lại sau vài giây.");
@@ -11399,7 +11466,9 @@ async function generateBrdDocx(record){
     signoff_signature: record.signoff_signature || "",
   });
 
-  const blob = doc.getZip().generate({
+  const renderedZip = doc.getZip();
+  brdNormalizeDocxLayout(renderedZip);
+  const blob = renderedZip.generate({
     type: "blob",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   });

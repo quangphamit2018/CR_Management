@@ -2465,14 +2465,18 @@ tbody tr.detail-selected:hover{ background:
 }
 .file-card:hover .file-actions,
 .file-card:focus-within .file-actions{ opacity:1; transform:translateY(0); }
-.file-edit,.file-del{
+.file-edit,.file-download,.file-del{
   position:static; width:25px; height:25px; opacity:1; border:0; border-radius:7px;
   display:flex; align-items:center; justify-content:center; cursor:pointer;
   color:#fff; background:rgba(16,41,68,.72); font-size:13px;
 }
 .file-edit:hover{ background:#0e9a94; }
+.file-download:hover{ background:#2f6fed; }
 .file-del:hover{ background:var(--danger); }
-.file-edit svg{ width:13px; height:13px; }
+.file-edit svg,.file-download svg{ width:13px; height:13px; }
+.file-download.is-loading{ pointer-events:none; opacity:.6; }
+.file-download svg.spin{ animation:file-download-spin .8s linear infinite; }
+@keyframes file-download-spin{ to{ transform:rotate(360deg); } }
 
 /* Attachment workspace — a full-width document management surface rather
    than a loose row of small file tiles. */
@@ -9828,10 +9832,13 @@ function fileCardHtml(f, url){
   return `<div class="file-card" data-file="${f.id}" data-kind="${kind}" data-url="${url}">
     <span class="file-cat-tag">${esc(f.category||'Other')}</span>
     <div class="file-actions">
-      <button class="file-edit" data-edit="${f.id}" type="button">
+      <button class="file-download" data-download="${f.id}" data-url="${esc(url)}" data-name="${esc(f.file_name)}" type="button" title="Tải xuống">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+      </button>
+      <button class="file-edit" data-edit="${f.id}" type="button" title="Sửa">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L8 18l-4 1 1-4L16.5 3.5z"/></svg>
       </button>
-      <button class="file-del" data-del="${f.id}" data-path="${esc(f.file_path)}" type="button">✕</button>
+      <button class="file-del" data-del="${f.id}" data-path="${esc(f.file_path)}" type="button" title="Xóa">✕</button>
     </div>
     <div class="file-thumb">${thumb}</div>
     <div class="file-meta">
@@ -9840,6 +9847,36 @@ function fileCardHtml(f, url){
     </div>
     ${kind!=="image" ? `<a class="file-open" href="${url}" target="_blank" rel="noopener"></a>` : ""}
   </div>`;
+}
+
+// Tải file/ảnh về máy: fetch thành blob rồi ép trình duyệt "Save As" thay vì
+// mở tab mới (link Supabase Storage khác domain nên thuộc tính download trên
+// thẻ <a> thường bị bỏ qua). Nếu fetch lỗi (CORS, hết hạn signed URL…) thì
+// fallback mở URL ở tab mới để người dùng vẫn tải được.
+async function downloadAttachment(url, fileName, triggerEl){
+  if(!url || url === "#"){ toast("Không tìm thấy đường dẫn file", "err"); return; }
+  const icon = triggerEl ? triggerEl.querySelector("svg") : null;
+  if(triggerEl){ triggerEl.classList.add("is-loading"); }
+  if(icon){ icon.classList.add("spin"); }
+  try{
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = fileName || "download";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=> URL.revokeObjectURL(blobUrl), 4000);
+  }catch(e){
+    console.error("Tải file thất bại, mở tab mới thay thế:", e);
+    window.open(url, "_blank", "noopener");
+  }finally{
+    if(triggerEl){ triggerEl.classList.remove("is-loading"); }
+    if(icon){ icon.classList.remove("spin"); }
+  }
 }
 
 function bindFileCardEvents(container, cr_id, testcase_id){
@@ -9856,6 +9893,13 @@ function bindFileCardEvents(container, cr_id, testcase_id){
       e.stopPropagation();
       const file = STATE.attachmentIndex[String(btn.dataset.edit)];
       if(file) openAttachmentEditor(file);
+    });
+  });
+  $all("[data-download]", container).forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      e.preventDefault();
+      downloadAttachment(btn.dataset.url, btn.dataset.name, btn);
     });
   });
   $all("[data-del]", container).forEach(btn=>{

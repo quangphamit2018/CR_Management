@@ -520,7 +520,7 @@ table{ width:100%; border-collapse:collapse; min-width:900px; }
 thead th{
   text-align:left; font-size: var(--text-table-head-size); text-transform:uppercase; letter-spacing:.06em;
   color: var(--text-muted); font-weight: var(--text-table-head-weight); padding:12px 20px; border-bottom:1px solid var(--border);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; position:sticky; top:0; background: var(--bg-topbar-solid); z-index:5;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; position:sticky; top:0; background: var(--bg-topbar-solid); z-index:15;
 }
 .col-resize-handle{
   position:absolute; top:0; right:-4px; bottom:0; width:8px; cursor:col-resize;
@@ -595,9 +595,9 @@ td.cell-dim{ color: var(--text-secondary); }
 th.th-actions, td.cell-actions{
   position:sticky; right:0; text-align:right; white-space:nowrap;
 }
-th.th-actions{ z-index:6; background: var(--bg-topbar-solid); }
+th.th-actions{ z-index:20; background: var(--bg-topbar-solid); }
 td.cell-actions{
-  z-index:2; background: var(--bg-surface); box-shadow: inset 1px 0 0 rgba(255,255,255,0.06);
+  z-index:5; background: var(--bg-surface); box-shadow: inset 1px 0 0 rgba(255,255,255,0.06);
 }
 tbody tr:hover td.cell-actions{ background: var(--bg-surface-hover); z-index:20; }
 tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
@@ -610,18 +610,18 @@ tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
    showing through the pinned columns — same reasoning as the actions column
    above. */
 #crTable th.col-check, #crTable td.cell-check{
-  position:sticky; left:0; z-index:3; background: var(--bg-surface);
+  position:sticky; left:0; z-index:4; background: var(--bg-surface);
 }
-#crTable th.col-check{ z-index:7; background: var(--bg-topbar-solid); }
+#crTable th.col-check{ z-index:19; background: var(--bg-topbar-solid); }
 #crTable th[data-sort-key="cr_id"], #crTable td.cell-id{
-  position:sticky; left: var(--cr-freeze-id-left, 44px); z-index:2; background: var(--bg-surface);
+  position:sticky; left: var(--cr-freeze-id-left, 44px); z-index:3; background: var(--bg-surface);
 }
-#crTable th[data-sort-key="cr_id"]{ z-index:6; background: var(--bg-topbar-solid); }
+#crTable th[data-sort-key="cr_id"]{ z-index:18; background: var(--bg-topbar-solid); }
 #crTable th[data-sort-key="title"], #crTable td.cell-title{
-  position:sticky; left: var(--cr-freeze-title-left, 150px); z-index:1;
+  position:sticky; left: var(--cr-freeze-title-left, 150px); z-index:2;
   background: var(--bg-surface); box-shadow: inset -1px 0 0 rgba(255,255,255,0.06);
 }
-#crTable th[data-sort-key="title"]{ z-index:5; background: var(--bg-topbar-solid); box-shadow:none; }
+#crTable th[data-sort-key="title"]{ z-index:17; background: var(--bg-topbar-solid); box-shadow:none; }
 #crTable tbody tr:hover td.cell-check,
 #crTable tbody tr:hover td.cell-id,
 #crTable tbody tr:hover td.cell-title{ background: var(--bg-surface-hover); }
@@ -5245,7 +5245,7 @@ STATE.relColumns = loadRelColumnPrefs();
 --------------------------------------------------------------------------- */
 const COL_WIDTH_DEFAULTS = {
   cr: {
-    __check:44, cr_id:106, title:280, requester:130, category:140,
+    __check:44, cr_id:106, title:220, requester:130, category:140,
     priority:110, status:140, sub_status:170, brd:92, fsd:92, deadline:130, note:260, __actions:112,
   },
   tc: {
@@ -5265,7 +5265,7 @@ const COL_WIDTH_MIN = 64;
    width saved from before this cap existed) can never blow the column — and
    the whole table — out to an unreasonable width again. */
 const COL_WIDTH_MAX = {
-  cr: { note:420 },
+  cr: { title:320, note:420 },
   tc: { scenario:420 },
   rel: {},
 };

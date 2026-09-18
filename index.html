@@ -5059,6 +5059,10 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
                 <td>Danh sách các bước (step) yêu cầu evidence khi thực hiện UAT, kèm thứ tự và trạng thái bật/tắt. Quản lý trong tab này ở mục "Evidence Step".</td>
               </tr>
               <tr>
+                <td class="cell-id">cr_attachment_categories</td><td class="cell-dim">Table</td>
+                <td>Danh sách "Phân loại tài liệu" hiển thị trong dropdown khi tải file đính kèm (BRD, FSD, Quotation, Mail, Evidence, Other...), kèm thứ tự và trạng thái bật/tắt. Quản lý trong tab này ở mục "Phân loại tài liệu".</td>
+              </tr>
+              <tr>
                 <td class="cell-id">cr-attachments</td><td class="cell-dim">Storage Bucket</td>
                 <td>Nơi lưu file thật (BRD, FSD, ảnh evidence, quotation...) được người dùng upload. Bảng <code>cr_attachments</code> ở trên chỉ lưu đường dẫn trỏ tới các file nằm trong bucket này.</td>
               </tr>
@@ -5183,6 +5187,34 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
           <span id="evidenceStepFootCount">Hiển thị 0 / 0 Evidence Step</span>
         </div>
       </div>
+
+      <div class="list-panel" style="margin-top:16px;">
+        <div class="list-panel-head">
+          <div>
+            <div class="list-panel-count"><b id="attachCategoryCount">0</b> Phân loại tài liệu</div>
+            <div class="hint">Danh sách nhóm tài liệu hiển thị trong dropdown "Phân loại tài liệu" ở tab Tệp đính kèm của CR (BRD, FSD, Quotation...)</div>
+          </div>
+          <div class="status-create">
+            <input id="attachCategoryNameInput" type="text" maxlength="80" placeholder="Ví dụ: BRD">
+            <input id="attachCategoryOrderInput" type="number" min="0" step="1" value="0" style="width:86px;" aria-label="Thứ tự">
+            <button class="btn btn-primary btn-sm" id="btnAddAttachCategory" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              Thêm phân loại
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Phân loại</th><th>Thứ tự</th><th>Trạng thái</th><th></th>
+            </tr></thead>
+            <tbody id="attachCategoryTableBody"></tbody>
+          </table>
+        </div>
+        <div class="list-panel-foot">
+          <span id="attachCategoryFootCount">Hiển thị 0 / 0 phân loại</span>
+        </div>
+      </div>
     </section>
 
     <!-- ============ RECYCLE BIN VIEW (chỉ Quản trị viên cao nhất) ============ -->
@@ -5236,6 +5268,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 <div class="modal-overlay" id="confirmModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="attachmentModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="evidenceStepModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="attachCategoryModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="subStatusModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="importModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="exportSelectionOverlay" role="dialog" aria-modal="true"></div>
@@ -5277,6 +5310,9 @@ window.CR_LISTS = {
   yesNo: ["Yes","No"],
   environment: ["Dev","Staging","Prod"],
   releaseStatus: ["Planned","In Progress","Completed","Rolled Back"],
+  // Danh sách mặc định dùng tạm trước khi đăng nhập / trong lúc chờ tải từ Supabase.
+  // Sau khi đăng nhập, fetchAttachCategoryList() sẽ nạp danh sách thật từ bảng
+  // public.cr_attachment_categories và ghi đè mảng này (giống cơ chế evidenceSteps).
   attachCategory: ["BRD","FSD","Quotation","Mail","Evidence","Other"],
   // Được nạp từ public.evidence_steps sau khi đăng nhập; không hard-code tại đây.
   evidenceSteps: []
@@ -5358,6 +5394,7 @@ const STATE = {
   statusList: [],
   subStatusList: [],
   evidenceStepList: [],
+  attachCategoryList: [],
   currentView: getSavedView(),
   filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
   tcFilters: { cr:"", result:"", testor:"", owner:"", search:"" },
@@ -5391,7 +5428,7 @@ const STATE = {
   relColumns: null,
   relSelection: new Set(),
   relSort: [],
-  loadErrors: { cr:null, tc:null, rel:null, brd:null, admin:null, status:null, subStatus:null, evidence:null }, // last fetch error per dataset, null = ok
+  loadErrors: { cr:null, tc:null, rel:null, brd:null, admin:null, status:null, subStatus:null, evidence:null, attachCategory:null }, // last fetch error per dataset, null = ok
   statusLoadWarned: false,
   subStatusLoadWarned: false,
   editingStatusId: null,
@@ -6574,6 +6611,9 @@ function subscribeRealtime(){
   STATE.sb.channel("realtime-evidence_steps")
     .on("postgres_changes", { event:"*", schema:"public", table:"evidence_steps" }, debouncedConfigRefresh)
     .subscribe();
+  STATE.sb.channel("realtime-cr_attachment_categories")
+    .on("postgres_changes", { event:"*", schema:"public", table:"cr_attachment_categories" }, debouncedConfigRefresh)
+    .subscribe();
   STATE.sb.channel("realtime-cr_attachments")
     .on("postgres_changes", { event:"*", schema:"public", table:"cr_attachments" }, async ()=>{
       await fetchCrDocumentStatus();
@@ -6635,7 +6675,7 @@ const VIEW_META = {
   uat:       { title:"UAT Test Case", sub:"Test case UAT cho từng Change Request", search:false },
   release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:false },
   brd:       { title:"Tạo BRD", sub:"Nhập thông tin và xuất file BRD theo template chuẩn", search:false },
-  admin:     { title:"Quản Trị Dữ Liệu", sub:"Quản lý người dùng, Status, Evidence Step và dữ liệu Supabase", search:false },
+  admin:     { title:"Quản Trị Dữ Liệu", sub:"Quản lý người dùng, Status, Evidence Step, Phân loại tài liệu và dữ liệu Supabase", search:false },
   recycle:   { title:"Recycle Bin", sub:"Dữ liệu đã xóa — khôi phục hoặc xóa vĩnh viễn", search:false },
 };
 
@@ -6752,6 +6792,7 @@ function initShell(){
     openSubStatusModal({ name, sort_order: Number(order) });
   });
   $("#btnAddEvidenceStep").addEventListener("click", addEvidenceStep);
+  $("#btnAddAttachCategory").addEventListener("click", addAttachCategory);
   $("#statusNameInput").addEventListener("keydown", e=>{
     if(e.key === "Enter"){ e.preventDefault(); addStatus(); }
   });
@@ -6766,6 +6807,12 @@ function initShell(){
   });
   $("#evidenceStepOrderInput").addEventListener("keydown", e=>{
     if(e.key === "Enter"){ e.preventDefault(); addEvidenceStep(); }
+  });
+  $("#attachCategoryNameInput").addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); addAttachCategory(); }
+  });
+  $("#attachCategoryOrderInput").addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); addAttachCategory(); }
   });
 
   populateSelect($("#filterStatus"), CR_LISTS.status);
@@ -6881,7 +6928,8 @@ function initShell(){
     await refreshAll();
     const failedLabels = {
       cr:"CR Log", tc:"UAT Test Case", rel:"Release/PRD", brd:"BRD",
-      admin:"Người dùng", status:"Status", subStatus:"Sub-Status", evidence:"Evidence Step"
+      admin:"Người dùng", status:"Status", subStatus:"Sub-Status", evidence:"Evidence Step",
+      attachCategory:"Phân loại tài liệu"
     };
     const failed = Object.keys(STATE.loadErrors)
       .filter(k=> STATE.loadErrors[k] && failedLabels[k])
@@ -7493,7 +7541,7 @@ async function refreshAll(){
   setRefreshLoading(true);
   if(initialLoad) showLoadingSkeletons();
   try{
-    await Promise.all([fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchCrList(), fetchCrDocumentStatus(), fetchTcList(), fetchRelList(), fetchBrdList()]);
+    await Promise.all([fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchAttachCategoryList(), fetchCrList(), fetchCrDocumentStatus(), fetchTcList(), fetchRelList(), fetchBrdList()]);
     renderNavCounts();
     renderDashboard();
     renderCrTable();
@@ -7618,6 +7666,35 @@ async function fetchEvidenceStepList(){
   CR_LISTS.evidenceSteps = STATE.evidenceStepList
     .filter(s=>s.is_active !== false)
     .map(s=>s.name);
+}
+
+// Danh mục "Phân loại tài liệu" (BRD/FSD/Quotation/Mail/Evidence/Other...) dùng ở
+// khu vực Tệp đính kèm của CR. Quản lý thêm/sửa/xóa tại tab Quản Trị Dữ Liệu,
+// chỉ super_admin và senior_member mới thấy và thao tác được (canViewAdminTab()).
+async function fetchAttachCategoryList(){
+  const { data, error } = await STATE.sb
+    .from("cr_attachment_categories")
+    .select("id,name,sort_order,is_active,created_at")
+    .order("sort_order", { ascending:true })
+    .order("name", { ascending:true });
+  if(error){
+    STATE.attachCategoryList = [];
+    STATE.loadErrors.attachCategory = error.message;
+    if(!STATE.attachCategoryLoadWarned){
+      toast("Không tải được Phân loại tài liệu: " + error.message, "err");
+      STATE.attachCategoryLoadWarned = true;
+    }
+    return;
+  }
+  STATE.loadErrors.attachCategory = null;
+  STATE.attachCategoryLoadWarned = false;
+  STATE.attachCategoryList = (data || []).filter(c=>c && String(c.name||"").trim());
+  const activeNames = STATE.attachCategoryList
+    .filter(c=>c.is_active !== false)
+    .map(c=>c.name);
+  // Chỉ ghi đè khi có dữ liệu hợp lệ từ Supabase — tránh trường hợp bảng vừa mới
+  // tạo/còn trống làm mất luôn dropdown "Phân loại tài liệu" trong lúc chờ Admin thêm danh mục.
+  if(activeNames.length) CR_LISTS.attachCategory = activeNames;
 }
 
 /* ---------------------------------------------------------------------------
@@ -12049,8 +12126,10 @@ async function loadAndRenderAdmin(){
   if(subStatusBody) skeletonTableRows(subStatusBody, 3, 3);
   const evidenceBody = $("#evidenceStepTableBody");
   if(evidenceBody) skeletonTableRows(evidenceBody, 3, 3);
+  const attachCategoryBody = $("#attachCategoryTableBody");
+  if(attachCategoryBody) skeletonTableRows(attachCategoryBody, 3, 3);
 
-  const tasks = [fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList()];
+  const tasks = [fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchAttachCategoryList()];
   // Danh sách người dùng (app_users) chỉ dành cho super_admin — senior_member
   // không được fetch/thấy dữ liệu này dù cùng vào tab Quản Trị Dữ Liệu.
   if(canManageUsers()){
@@ -12064,6 +12143,7 @@ async function loadAndRenderAdmin(){
   renderAdminStatusTable();
   renderAdminSubStatusTable();
   renderAdminEvidenceStepTable();
+  renderAdminAttachCategoryTable();
 }
 
 async function fetchAppUsers(){
@@ -12476,6 +12556,230 @@ async function deleteEvidenceStep(step){
   toast(`Đã xóa Evidence Step "${step.name}"`, "ok");
   await fetchEvidenceStepList();
   renderAdminEvidenceStepTable();
+}
+
+/* ---------------------------------------------------------------------------
+   12e. ADMIN — PHÂN LOẠI TÀI LIỆU (cr_attachment_categories)
+   Cùng cơ chế phân quyền với Status/Sub-Status/Evidence Step ở trên:
+   chỉ super_admin và senior_member thấy được tab này (canViewAdminTab()),
+   nên thêm/sửa/xóa danh mục tài liệu cũng tự động giới hạn đúng 2 role đó.
+--------------------------------------------------------------------------- */
+function renderAdminAttachCategoryTable(){
+  const tbody = $("#attachCategoryTableBody");
+  if(!tbody) return;
+  const rows = STATE.attachCategoryList;
+  const countEl = $("#attachCategoryCount");
+  if(countEl) countEl.textContent = rows.length;
+  const footEl = $("#attachCategoryFootCount");
+  if(footEl) footEl.textContent = `Hiển thị ${rows.length} / ${rows.length} phân loại`;
+
+  if(STATE.loadErrors.attachCategory){
+    tbody.innerHTML = `<tr><td colspan="4">${errorStateBlock("Không tải được Phân loại tài liệu", STATE.loadErrors.attachCategory, "admin")}</td></tr>`;
+    return;
+  }
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="4">${emptyStateBlock("Chưa có Phân loại tài liệu", "Thêm phân loại đầu tiên bằng ô nhập phía trên.")}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(cat=>`
+    <tr data-attach-category-id="${esc(cat.id)}">
+      <td class="cell-title">${esc(cat.name)}</td>
+      <td class="cell-dim">${Number(cat.sort_order)||0}</td>
+      <td>${cat.is_active === false
+        ? '<span class="badge" style="background:var(--danger-dim); color:var(--danger);">Đã ẩn</span>'
+        : '<span class="badge" style="background:var(--success-dim); color:var(--success);">Đang dùng</span>'}</td>
+      <td class="cell-actions">
+        <div class="row-actions" style="opacity:1;">
+          <button class="icon-btn" data-attach-category-act="edit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn danger" data-attach-category-act="delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  $all("#attachCategoryTableBody tr[data-attach-category-id]").forEach(tr=>{
+    const cat = rows.find(c=>String(c.id) === String(tr.dataset.attachCategoryId));
+    if(!cat) return;
+    $("[data-attach-category-act='edit']", tr)?.addEventListener("click", e=>{
+      e.stopPropagation();
+      openAttachCategoryModal(cat);
+    });
+    $("[data-attach-category-act='delete']", tr)?.addEventListener("click", e=>{
+      e.stopPropagation();
+      confirmDelete(
+        "Xóa Phân loại tài liệu?",
+        `Phân loại "${cat.name}" sẽ bị xóa khỏi danh sách chọn. Tệp đã tải lên trước đó vẫn giữ nguyên nhãn phân loại cũ.`,
+        ()=> deleteAttachCategory(cat)
+      );
+    });
+  });
+}
+
+function attachCategoryModalTemplate(cat){
+  const isEdit = !!cat;
+  const v = cat || {};
+  return `
+    <div class="modal modal-sm">
+      <div class="modal-head">
+        <div>
+          <h3>${isEdit ? "Sửa Phân loại tài liệu" : "Thêm Phân loại tài liệu"}</h3>
+          <div class="sub">Danh sách được lưu trên Supabase</div>
+        </div>
+        <button class="modal-close" id="attachCategoryModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Tên phân loại *</label>
+          <input id="ac_name" type="text" maxlength="80" value="${esc(v.name||'')}" placeholder="Ví dụ: BRD">
+        </div>
+        <div class="field">
+          <label>Thứ tự</label>
+          <input id="ac_order" type="number" min="0" step="1" value="${Number(v.sort_order)||0}">
+          <div class="hint">Số nhỏ hơn sẽ hiển thị trước trong dropdown "Phân loại tài liệu".</div>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Trạng thái</label>
+          <select id="ac_active">
+            <option value="true" ${v.is_active !== false ? "selected" : ""}>Đang dùng</option>
+            <option value="false" ${v.is_active === false ? "selected" : ""}>Ẩn khỏi danh sách</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" id="attachCategoryModalCancel">Hủy</button>
+        <button class="btn btn-primary" id="attachCategoryModalSave">${isEdit ? "Lưu thay đổi" : "Thêm phân loại"}</button>
+      </div>
+    </div>`;
+}
+
+function closeAttachCategoryModal(){
+  const overlay = $("#attachCategoryModalOverlay");
+  if(!overlay) return;
+  overlay.classList.remove("show");
+  overlay.innerHTML = "";
+}
+
+function openAttachCategoryModal(cat){
+  if(!canViewAdminTab()) return;
+  const overlay = $("#attachCategoryModalOverlay");
+  if(!overlay) return;
+  overlay.innerHTML = attachCategoryModalTemplate(cat);
+  overlay.classList.add("show");
+  $("#attachCategoryModalClose").addEventListener("click", closeAttachCategoryModal);
+  $("#attachCategoryModalCancel").addEventListener("click", closeAttachCategoryModal);
+  $("#attachCategoryModalSave").addEventListener("click", ()=> saveAttachCategory(cat));
+  overlay.onclick = e=>{ if(e.target === overlay) closeAttachCategoryModal(); };
+  $("#ac_name").focus();
+}
+
+async function saveAttachCategory(existingCat){
+  if(!canViewAdminTab()) return;
+  const name = ($("#ac_name")?.value || "").trim().replace(/\s+/g, " ");
+  const sortOrder = Number.parseInt($("#ac_order")?.value, 10);
+  const isActive = $("#ac_active")?.value !== "false";
+  if(!name){ toast("Vui lòng nhập tên Phân loại tài liệu", "err"); $("#ac_name")?.focus(); return; }
+  if(!Number.isInteger(sortOrder) || sortOrder < 0){
+    toast("Thứ tự phải là số nguyên từ 0 trở lên.", "err"); return;
+  }
+  const duplicate = STATE.attachCategoryList.find(c=>
+    String(c.name||"").toLowerCase() === name.toLowerCase() &&
+    (!existingCat || String(c.id) !== String(existingCat.id))
+  );
+  if(duplicate){ toast("Phân loại tài liệu này đã tồn tại.", "err"); return; }
+
+  const payload = {
+    name,
+    sort_order: sortOrder,
+    is_active: isActive,
+    updated_at: new Date().toISOString()
+  };
+  let error, saved;
+  if(existingCat){
+    ({ data: saved, error } = await STATE.sb
+      .from("cr_attachment_categories")
+      .update(payload)
+      .eq("id", existingCat.id)
+      .select("id")
+      .maybeSingle());
+  }else{
+    ({ data: saved, error } = await STATE.sb
+      .from("cr_attachment_categories")
+      .insert({
+        ...payload,
+        created_by: STATE.session?.user?.id || null
+      })
+      .select("id")
+      .maybeSingle());
+  }
+  if(error || !saved){
+    toast(error
+      ? "Lưu Phân loại tài liệu thất bại: " + error.message
+      : "Không có dữ liệu nào được cập nhật. Kiểm tra quyền Admin/RLS.",
+      "err");
+    return;
+  }
+  closeAttachCategoryModal();
+  toast(existingCat ? `Đã cập nhật "${name}"` : `Đã thêm "${name}"`, "ok");
+  await fetchAttachCategoryList();
+  renderAdminAttachCategoryTable();
+}
+
+async function addAttachCategory(){
+  if(!canViewAdminTab()) return;
+  const nameInput = $("#attachCategoryNameInput");
+  const orderInput = $("#attachCategoryOrderInput");
+  const name = (nameInput?.value || "").trim().replace(/\s+/g, " ");
+  const sortOrder = Number.parseInt(orderInput?.value, 10);
+  if(!name){ toast("Vui lòng nhập tên Phân loại tài liệu", "err"); nameInput?.focus(); return; }
+  if(!Number.isInteger(sortOrder) || sortOrder < 0){
+    toast("Thứ tự phải là số nguyên từ 0 trở lên.", "err"); return;
+  }
+  if(STATE.attachCategoryList.some(c=>String(c.name||"").toLowerCase() === name.toLowerCase())){
+    toast("Phân loại tài liệu này đã tồn tại.", "err"); nameInput?.focus(); return;
+  }
+  const { data, error } = await STATE.sb.from("cr_attachment_categories").insert({
+    name,
+    sort_order: sortOrder,
+    is_active: true,
+    created_by: STATE.session?.user?.id || null
+  }).select("id").maybeSingle();
+  if(error || !data){
+    toast(error
+      ? "Thêm Phân loại tài liệu thất bại: " + error.message
+      : "Không có dữ liệu nào được thêm. Kiểm tra quyền Admin/RLS.",
+      "err");
+    return;
+  }
+  if(nameInput) nameInput.value = "";
+  if(orderInput) orderInput.value = "0";
+  toast(`Đã thêm Phân loại tài liệu "${name}"`, "ok");
+  await fetchAttachCategoryList();
+  renderAdminAttachCategoryTable();
+}
+
+async function deleteAttachCategory(cat){
+  if(!canViewAdminTab()) return;
+  const { data, error } = await STATE.sb
+    .from("cr_attachment_categories")
+    .delete()
+    .eq("id", cat.id)
+    .select("id")
+    .maybeSingle();
+  if(error || !data){
+    toast(error
+      ? "Xóa Phân loại tài liệu thất bại: " + error.message
+      : "Không có dữ liệu nào được xóa. Kiểm tra quyền Admin/RLS.",
+      "err");
+    return;
+  }
+  toast(`Đã xóa Phân loại tài liệu "${cat.name}"`, "ok");
+  await fetchAttachCategoryList();
+  renderAdminAttachCategoryTable();
 }
 
 function statusModalTemplate(status){

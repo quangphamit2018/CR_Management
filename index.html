@@ -878,18 +878,71 @@ tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
   padding:10px 20px; border-top:1px solid var(--border); font-size: var(--text-meta-size); color: var(--text-muted);
 }
 
-/* ---- panel "Yêu cầu cấp quyền" (access_requests) ở tab Quản Trị Dữ Liệu ---- */
-.access-request-panel{ border-color: rgba(242,184,75,.35); }
-.access-request-panel .list-panel-count{ color: var(--warning); }
-.access-request-panel .list-panel-count b{ color: var(--warning); }
+/* ---- panel "Yêu cầu cấp quyền" (access_requests) ở tab Quản Trị Dữ Liệu ----
+   Thiết kế dạng banner cảnh báo nổi bật để Super-admin không thể bỏ lỡ.
+   Màu chữ được ghi cứng (không dùng var(--text-primary)/var(--text-muted),
+   vốn là 2 biến theme TỐI gần-trắng) vì panel này luôn nằm trên nền SÁNG
+   của khu vực nội dung (.view) — dùng biến theme tối ở đây từng làm chữ
+   gần như vô hình trên nền trắng. */
+.access-request-panel,
+.view .access-request-panel{
+  border:1.5px solid rgba(242,184,75,.55);
+  background: linear-gradient(135deg, rgba(242,184,75,0.16) 0%, rgba(242,184,75,0.05) 60%, #ffffff 100%);
+  box-shadow: 0 10px 26px -14px rgba(242,184,75,0.45);
+  overflow: hidden;
+}
+.access-request-panel .list-panel-head{
+  align-items:flex-start; gap:12px; padding:18px 20px 14px;
+}
+.access-request-panel .list-panel-head::before{
+  content:"⚠"; flex-shrink:0; width:34px; height:34px; border-radius:50%;
+  background:#f2b84b; color:#3a2400; font-size:16px; font-style:normal;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 10px -4px rgba(242,184,75,0.7);
+}
+.access-request-panel .list-panel-count{
+  color:#8a5b0a; font-size:15px; font-weight:800; letter-spacing:.1px;
+}
+.access-request-panel .list-panel-count b{
+  color:#a3450a; font-size:17px; margin-right:2px;
+}
+.access-request-panel .hint{ color:#6b5326; }
 #accessRequestBody{ display:flex; flex-direction:column; }
 .access-request-row{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:12px 20px; border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  padding:14px 20px; border-top:1px solid rgba(242,184,75,.3);
+  background:#fffdf8;
+  transition:background .15s ease;
 }
-.access-request-info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
-.access-request-email{ font-weight:700; font-size:13px; color: var(--text-primary); }
-.access-request-time{ font-size:11.5px; color: var(--text-muted); }
+.access-request-row:hover{ background:#fff7e8; }
+.access-request-info{ display:flex; align-items:center; gap:12px; min-width:0; }
+.access-request-avatar{
+  flex-shrink:0; width:38px; height:38px; border-radius:50%;
+  background:linear-gradient(135deg,#f2b84b,#e08a3c); color:#3a2400;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:15px; text-transform:uppercase;
+  box-shadow:0 3px 8px -3px rgba(224,138,60,0.6);
+}
+.access-request-text{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.access-request-email{
+  font-weight:700; font-size:14px; color:#16283c;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.access-request-time{ font-size:12px; color:#8a6d3a; display:flex; align-items:center; gap:5px; }
+.access-request-time::before{ content:"🕒"; font-size:11px; }
+.access-request-row .row-actions{ flex-shrink:0; }
+.access-request-row .btn-primary{
+  background:#4cc38a; border-color:#4cc38a; color:#053821; font-weight:700;
+}
+.access-request-row .btn-primary:hover{ background:#3fae78; border-color:#3fae78; }
+.access-request-row .btn-ghost{
+  background:#fff; border:1.5px solid #ee6b74; color:#c23a43; font-weight:700;
+}
+.access-request-row .btn-ghost:hover{ background:#fdecec; }
+@media(max-width:640px){
+  .access-request-row{ flex-wrap:wrap; }
+  .access-request-email{ max-width:180px; }
+}
 
 /* ---- toolbar search field, matches filter-chip visual weight ---- */
 .tb-search{ position:relative; }
@@ -5095,6 +5148,10 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
               <tr>
                 <td class="cell-id">cr-attachments</td><td class="cell-dim">Storage Bucket</td>
                 <td>Nơi lưu file thật (BRD, FSD, ảnh evidence, quotation...) được người dùng upload. Bảng <code>cr_attachments</code> ở trên chỉ lưu đường dẫn trỏ tới các file nằm trong bucket này.</td>
+              </tr>
+              <tr>
+                <td class="cell-id">access_requests</td><td class="cell-dim">Table</td>
+                <td>Danh sách yêu cầu cấp quyền do người dùng đăng nhập bằng Google nhưng chưa có tài khoản tự gửi (email, thời điểm gửi, trạng thái pending/approved/rejected, người & thời điểm duyệt). Nguồn dữ liệu cho khối "Yêu cầu cấp quyền đang chờ duyệt" ở ngay trên mục này.</td>
               </tr>
             </tbody>
           </table>
@@ -12343,12 +12400,15 @@ function renderAccessRequestsPanel(){
   body.innerHTML = rows.map(req=>`
     <div class="access-request-row" data-request-id="${esc(req.id)}">
       <div class="access-request-info">
-        <span class="access-request-email">${esc(req.email)}</span>
-        <span class="access-request-time">Gửi lúc ${esc(fmtDateTime(req.requested_at))}</span>
+        <div class="access-request-avatar">${esc((req.email||"?").charAt(0))}</div>
+        <div class="access-request-text">
+          <span class="access-request-email">${esc(req.email)}</span>
+          <span class="access-request-time">Gửi lúc ${esc(fmtDateTime(req.requested_at))}</span>
+        </div>
       </div>
       <div class="row-actions" style="opacity:1;">
-        <button class="btn btn-primary btn-sm" data-req-act="approve">Duyệt</button>
-        <button class="btn btn-ghost btn-sm" data-req-act="reject">Từ chối</button>
+        <button class="btn btn-primary btn-sm" data-req-act="approve">✓ Duyệt</button>
+        <button class="btn btn-ghost btn-sm" data-req-act="reject">✕ Từ chối</button>
       </div>
     </div>
   `).join("");

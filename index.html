@@ -252,6 +252,7 @@ body.role-no-recycle #navRecycleBin{ display:none !important; }
    dùng và không được thấy bảng tham chiếu Supabase — hai mục đó chỉ dành
    riêng cho super_admin. */
 body.role-no-manage-users #adminUsersPanel,
+body.role-no-manage-users #adminAccessRequestsPanel,
 body.role-no-manage-users #supabaseTablesPanel{ display:none !important; }
 
 .role-readonly-banner{
@@ -876,6 +877,19 @@ tbody tr.detail-selected td.cell-actions{ background:#163a4a; }
   flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:12px;
   padding:10px 20px; border-top:1px solid var(--border); font-size: var(--text-meta-size); color: var(--text-muted);
 }
+
+/* ---- panel "Yêu cầu cấp quyền" (access_requests) ở tab Quản Trị Dữ Liệu ---- */
+.access-request-panel{ border-color: rgba(242,184,75,.35); }
+.access-request-panel .list-panel-count{ color: var(--warning); }
+.access-request-panel .list-panel-count b{ color: var(--warning); }
+#accessRequestBody{ display:flex; flex-direction:column; }
+.access-request-row{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:12px 20px; border-top:1px solid var(--border);
+}
+.access-request-info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.access-request-email{ font-weight:700; font-size:13px; color: var(--text-primary); }
+.access-request-time{ font-size:11.5px; color: var(--text-muted); }
 
 /* ---- toolbar search field, matches filter-chip visual weight ---- */
 .tb-search{ position:relative; }
@@ -4031,6 +4045,20 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   box-shadow:0 0 0 3px rgba(242,184,75,.15);
   animation:authPulse 2.4s ease-in-out infinite;
 }
+.auth-pending-request{ margin-bottom:20px; }
+.auth-pending-request:empty{ margin-bottom:0; }
+.auth-pending-request-status{
+  display:flex; align-items:center; gap:8px;
+  padding:11px 13px; border-radius:12px;
+  font-size:12px; font-weight:600; line-height:1.4;
+  border:1px solid rgba(255,255,255,.08);
+}
+.auth-pending-request-status .dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.auth-pending-request-status.is-pending{ background:rgba(91,141,239,.1); color:#9db8ef; }
+.auth-pending-request-status.is-pending .dot{ background:#5b8def; box-shadow:0 0 0 3px rgba(91,141,239,.18); }
+.auth-pending-request-status.is-rejected{ background:rgba(238,107,116,.1); color:#f0a2a8; margin-bottom:10px; }
+.auth-pending-request-status.is-rejected .dot{ background:#ee6b74; box-shadow:0 0 0 3px rgba(238,107,116,.18); }
+#btnSendAccessRequest{ width:100%; }
 .auth-pending-actions{ display:flex; gap:10px; }
 .auth-pending-btn{
   flex:1;
@@ -4553,6 +4581,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
           <div class="auth-pending-status"><span class="dot"></span> Chưa được cấp quyền truy cập</div>
         </div>
       </div>
+      <div class="auth-pending-request" id="pendingRequestArea"></div>
       <div class="config-actions auth-pending-actions">
         <button class="btn btn-ghost auth-pending-btn" id="btnLogoutPending">Đăng xuất</button>
         <button class="btn btn-primary auth-pending-btn" id="btnRecheckPending">
@@ -4608,6 +4637,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
     <div class="nav-item hidden" data-view="admin" id="navAdmin" title="Quản Trị Dữ Liệu">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
       <span class="nav-label">Quản Trị Dữ Liệu</span>
+      <span class="count hidden" id="navAdminRequestBadge" title="Yêu cầu cấp quyền đang chờ duyệt" style="background:var(--warning-dim); color:var(--warning);">0</span>
     </div>
 
     <div class="nav-item hidden" data-view="recycle" id="navRecycleBin" title="Recycle Bin">
@@ -5071,6 +5101,18 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
         </div>
       </div>
 
+      <div class="list-panel hidden access-request-panel" id="adminAccessRequestsPanel" style="margin-bottom:16px;">
+        <div class="list-panel-head">
+          <div>
+            <div class="list-panel-count">
+              <b id="accessRequestBadge">0</b> Yêu cầu cấp quyền đang chờ duyệt
+            </div>
+            <div class="hint">Người dùng đăng nhập bằng Google nhưng chưa được cấp quyền có thể tự gửi yêu cầu ở màn "Đang chờ được cấp quyền". Duyệt để mở modal cấp quyền có sẵn email, hoặc từ chối nếu không hợp lệ.</div>
+          </div>
+        </div>
+        <div id="accessRequestBody"></div>
+      </div>
+
       <div class="list-panel" id="adminUsersPanel">
         <div class="list-panel-head">
           <div class="list-panel-count"><b id="userCount">0</b> người dùng</div>
@@ -5395,6 +5437,9 @@ const STATE = {
   subStatusList: [],
   evidenceStepList: [],
   attachCategoryList: [],
+  accessRequestList: [],   // yêu cầu cấp quyền đang "pending" — chỉ super_admin fetch/thấy
+  myAccessRequest: null,   // yêu cầu cấp quyền của chính tài khoản đang đăng nhập (dùng ở màn Pending)
+  resolvingAccessRequestId: null, // id access_request đang được duyệt qua modal "Cấp quyền" (null nếu mở modal bình thường)
   currentView: getSavedView(),
   filters: { status:"", priority:"", category:"", requester:"", overdueOnly:false, search:"" },
   tcFilters: { cr:"", result:"", testor:"", owner:"", search:"" },
@@ -5428,7 +5473,7 @@ const STATE = {
   relColumns: null,
   relSelection: new Set(),
   relSort: [],
-  loadErrors: { cr:null, tc:null, rel:null, brd:null, admin:null, status:null, subStatus:null, evidence:null, attachCategory:null }, // last fetch error per dataset, null = ok
+  loadErrors: { cr:null, tc:null, rel:null, brd:null, admin:null, status:null, subStatus:null, evidence:null, attachCategory:null, accessRequests:null }, // last fetch error per dataset, null = ok
   statusLoadWarned: false,
   subStatusLoadWarned: false,
   editingStatusId: null,
@@ -6447,6 +6492,8 @@ async function handleAuthState(){
     if(shouldReportLoginFailure) toast("Đăng nhập thất bại: không kiểm tra được quyền truy cập.", "err");
     showScreen("pending");
     $("#pendingEmail").textContent = STATE.userEmail;
+    await fetchMyAccessRequest();
+    renderPendingRequestUI();
     return;
   }
   if(!data || !data.active){
@@ -6457,6 +6504,8 @@ async function handleAuthState(){
     if(shouldReportLoginFailure) toast("Đăng nhập chưa hoàn tất: tài khoản chưa được cấp quyền.", "err");
     showScreen("pending");
     $("#pendingEmail").textContent = STATE.userEmail;
+    await fetchMyAccessRequest();
+    renderPendingRequestUI();
     return;
   }
   STATE.userRole = data.role;
@@ -6632,6 +6681,25 @@ function subscribeRealtime(){
       if(STATE.currentView === "admin"){ loadAndRenderAdmin(); }
     })
     .subscribe();
+  // Chỉ super_admin mới quản lý Yêu cầu cấp quyền — subscribeRealtime() chỉ
+  // chạy sau khi đăng nhập thành công nên canManageUsers() ở đây phản ánh
+  // đúng quyền của người đang dùng app.
+  if(canManageUsers()){
+    STATE.sb.channel("realtime-access_requests")
+      .on("postgres_changes", { event:"INSERT", schema:"public", table:"access_requests" }, payload=>{
+        const email = payload.new && payload.new.email;
+        const status = payload.new && payload.new.status;
+        if(status !== "pending") return;
+        toast(`${email || "Một người dùng"} vừa gửi yêu cầu cấp quyền truy cập.`, "warn");
+        if(STATE.currentView === "admin"){ loadAndRenderAdmin(); }
+        else{ fetchAccessRequests().then(renderAccessRequestsPanel); }
+      })
+      .on("postgres_changes", { event:"UPDATE", schema:"public", table:"access_requests" }, ()=>{
+        if(STATE.currentView === "admin"){ loadAndRenderAdmin(); }
+        else{ fetchAccessRequests().then(renderAccessRequestsPanel); }
+      })
+      .subscribe();
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -6784,7 +6852,7 @@ function initShell(){
   $("#btnLogout").addEventListener("click", ()=>{
     confirmDelete("Đăng xuất?", "Bạn sẽ cần đăng nhập lại bằng Google để tiếp tục sử dụng.", async ()=>{ await logout(); }, "Đăng xuất");
   });
-  $("#btnAddUser").addEventListener("click", ()=> openUserModal(null));
+  $("#btnAddUser").addEventListener("click", ()=>{ STATE.resolvingAccessRequestId = null; openUserModal(null); });
   $("#btnAddStatus").addEventListener("click", addStatus);
   $("#btnAddSubStatus").addEventListener("click", ()=>{
     const name = ($("#subStatusNameInput").value || "").trim();
@@ -12130,16 +12198,21 @@ async function loadAndRenderAdmin(){
   if(attachCategoryBody) skeletonTableRows(attachCategoryBody, 3, 3);
 
   const tasks = [fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchAttachCategoryList()];
-  // Danh sách người dùng (app_users) chỉ dành cho super_admin — senior_member
-  // không được fetch/thấy dữ liệu này dù cùng vào tab Quản Trị Dữ Liệu.
+  // Danh sách người dùng (app_users) + Yêu cầu cấp quyền (access_requests) chỉ
+  // dành cho super_admin — senior_member không được fetch/thấy dữ liệu này dù
+  // cùng vào tab Quản Trị Dữ Liệu.
   if(canManageUsers()){
     const tbody = $("#userTableBody");
     if(tbody) skeletonTableRows(tbody, 5, 4);
     tasks.push(fetchAppUsers());
+    tasks.push(fetchAccessRequests());
   }
   await Promise.all(tasks);
 
-  if(canManageUsers()) renderAdminTable();
+  if(canManageUsers()){
+    renderAdminTable();
+    renderAccessRequestsPanel();
+  }
   renderAdminStatusTable();
   renderAdminSubStatusTable();
   renderAdminEvidenceStepTable();
@@ -12151,6 +12224,169 @@ async function fetchAppUsers(){
   if(error){ toast("Lỗi tải danh sách người dùng: " + error.message, "err"); STATE.userList = []; STATE.loadErrors.admin = error.message; return; }
   STATE.loadErrors.admin = null;
   STATE.userList = data || [];
+}
+
+// Yêu cầu cấp quyền do người dùng chưa được cấp quyền tự gửi ở màn "Đang chờ
+// được cấp quyền". Chỉ super_admin fetch/thấy — hiển thị trong panel riêng ở
+// tab Quản Trị Dữ Liệu, ngay trên bảng danh sách người dùng.
+async function fetchAccessRequests(){
+  if(!canManageUsers()){ STATE.accessRequestList = []; return; }
+  const { data, error } = await STATE.sb
+    .from("access_requests")
+    .select("*")
+    .eq("status", "pending")
+    .order("requested_at", { ascending:true });
+  if(error){
+    STATE.accessRequestList = [];
+    STATE.loadErrors.accessRequests = error.message;
+    return;
+  }
+  STATE.loadErrors.accessRequests = null;
+  STATE.accessRequestList = data || [];
+}
+
+// Yêu cầu cấp quyền của chính tài khoản đang đăng nhập — dùng để hiển thị
+// trạng thái ("đang chờ duyệt" / "đã bị từ chối") ở màn Pending.
+async function fetchMyAccessRequest(){
+  if(!STATE.userEmail){ STATE.myAccessRequest = null; return; }
+  const { data, error } = await STATE.sb
+    .from("access_requests")
+    .select("*")
+    .eq("email", STATE.userEmail)
+    .maybeSingle();
+  if(error){ STATE.myAccessRequest = null; return; }
+  STATE.myAccessRequest = data || null;
+}
+
+// Vẽ khu vực "Gửi yêu cầu cấp quyền" ở màn Pending, tuỳ theo trạng thái yêu
+// cầu gần nhất của chính người dùng (chưa gửi / đang chờ duyệt / đã bị từ chối).
+function renderPendingRequestUI(){
+  const area = $("#pendingRequestArea");
+  if(!area) return;
+  const req = STATE.myAccessRequest;
+  if(req && req.status === "pending"){
+    area.innerHTML = `
+      <div class="auth-pending-request-status is-pending">
+        <span class="dot"></span>
+        Đã gửi yêu cầu lúc ${esc(fmtDateTime(req.requested_at))} — đang chờ Quản trị viên duyệt.
+      </div>`;
+    return;
+  }
+  if(req && req.status === "rejected"){
+    area.innerHTML = `
+      <div class="auth-pending-request-status is-rejected">
+        <span class="dot"></span>
+        Yêu cầu trước đó (gửi lúc ${esc(fmtDateTime(req.requested_at))}) đã bị từ chối.
+      </div>
+      <button class="btn btn-primary auth-pending-btn" id="btnSendAccessRequest" type="button">Gửi lại yêu cầu</button>`;
+    $("#btnSendAccessRequest")?.addEventListener("click", sendAccessRequest);
+    return;
+  }
+  area.innerHTML = `<button class="btn btn-primary auth-pending-btn" id="btnSendAccessRequest" type="button">Gửi yêu cầu cấp quyền</button>`;
+  $("#btnSendAccessRequest")?.addEventListener("click", sendAccessRequest);
+}
+
+// Ghi (hoặc cập nhật lại) một dòng "pending" vào access_requests cho email
+// hiện tại — super_admin sẽ thấy ngay trong panel "Yêu cầu cấp quyền".
+async function sendAccessRequest(){
+  const btn = $("#btnSendAccessRequest");
+  const originalLabel = btn ? btn.textContent : "";
+  if(btn){ btn.disabled = true; btn.textContent = "Đang gửi..."; }
+  const { data, error } = await STATE.sb
+    .from("access_requests")
+    .upsert({
+      email: STATE.userEmail,
+      status: "pending",
+      requested_at: new Date().toISOString(),
+      resolved_at: null,
+      resolved_by: null
+    }, { onConflict: "email" })
+    .select("*")
+    .maybeSingle();
+  if(error){
+    toast("Gửi yêu cầu thất bại: " + error.message, "err");
+    if(btn){ btn.disabled = false; btn.textContent = originalLabel; }
+    return;
+  }
+  STATE.myAccessRequest = data;
+  renderPendingRequestUI();
+  toast("Đã gửi yêu cầu cấp quyền tới Quản trị viên.", "ok");
+}
+
+/* ---------------------------------------------------------------------------
+   12b2. ADMIN — YÊU CẦU CẤP QUYỀN (access_requests, chỉ super_admin)
+   Người dùng đăng nhập bằng Google nhưng chưa có trong app_users (hoặc đã bị
+   khóa) có thể tự gửi yêu cầu ở màn "Đang chờ được cấp quyền". Panel này hiện
+   danh sách yêu cầu đang "pending" để super_admin duyệt hoặc từ chối.
+--------------------------------------------------------------------------- */
+function renderAccessRequestsPanel(){
+  const panel = $("#adminAccessRequestsPanel");
+  const countBadge = $("#accessRequestBadge");
+  if(!panel) return;
+  const rows = STATE.accessRequestList;
+  panel.classList.toggle("hidden", !rows.length && !STATE.loadErrors.accessRequests);
+  if(countBadge) countBadge.textContent = rows.length ? String(rows.length) : "";
+  const navBadge = $("#navAdminRequestBadge");
+  if(navBadge) navBadge.classList.toggle("hidden", !rows.length);
+  if(navBadge) navBadge.textContent = rows.length ? String(rows.length) : "";
+
+  const body = $("#accessRequestBody");
+  if(!body) return;
+  if(STATE.loadErrors.accessRequests){
+    body.innerHTML = errorStateBlock("Không tải được Yêu cầu cấp quyền", STATE.loadErrors.accessRequests, "admin");
+    return;
+  }
+  if(!rows.length){
+    body.innerHTML = "";
+    return;
+  }
+  body.innerHTML = rows.map(req=>`
+    <div class="access-request-row" data-request-id="${esc(req.id)}">
+      <div class="access-request-info">
+        <span class="access-request-email">${esc(req.email)}</span>
+        <span class="access-request-time">Gửi lúc ${esc(fmtDateTime(req.requested_at))}</span>
+      </div>
+      <div class="row-actions" style="opacity:1;">
+        <button class="btn btn-primary btn-sm" data-req-act="approve">Duyệt</button>
+        <button class="btn btn-ghost btn-sm" data-req-act="reject">Từ chối</button>
+      </div>
+    </div>
+  `).join("");
+
+  $all("#accessRequestBody [data-request-id]").forEach(row=>{
+    const req = rows.find(r=>String(r.id) === String(row.dataset.requestId));
+    if(!req) return;
+    $("[data-req-act='approve']", row)?.addEventListener("click", ()=> approveAccessRequest(req));
+    $("[data-req-act='reject']", row)?.addEventListener("click", ()=>{
+      confirmDelete(
+        "Từ chối yêu cầu cấp quyền?",
+        `Yêu cầu từ "${req.email}" sẽ bị từ chối. Người này vẫn có thể gửi lại yêu cầu sau.`,
+        ()=> rejectAccessRequest(req),
+        "Từ chối"
+      );
+    });
+  });
+}
+
+// Mở modal "Cấp quyền truy cập" có sẵn, prefill email từ yêu cầu — sau khi
+// super_admin lưu thành công, đánh dấu yêu cầu này là "approved".
+function approveAccessRequest(req){
+  if(!canManageUsers()) return;
+  STATE.resolvingAccessRequestId = req.id;
+  openUserModal(null, req.email);
+}
+
+async function rejectAccessRequest(req){
+  if(!canManageUsers()) return;
+  const { error } = await STATE.sb.from("access_requests").update({
+    status: "rejected",
+    resolved_at: new Date().toISOString(),
+    resolved_by: STATE.session?.user?.id || null
+  }).eq("id", req.id);
+  if(error){ toast("Từ chối yêu cầu thất bại: " + error.message, "err"); return; }
+  toast(`Đã từ chối yêu cầu của "${req.email}"`, "info");
+  await fetchAccessRequests();
+  renderAccessRequestsPanel();
 }
 
 function filteredUserList(){
@@ -12209,7 +12445,7 @@ function renderAdminTable(){
     $all("[data-act]", tr).forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const act = btn.dataset.act;
-        if(act==="edit") openUserModal(u);
+        if(act==="edit"){ STATE.resolvingAccessRequestId = null; openUserModal(u); }
         if(act==="toggle") toggleUserActive(u);
         if(act==="del"){
           if(u.role === "super_admin"){ toast("Tài khoản Quản trị viên không thể bị xóa.", "err"); return; }
@@ -13113,7 +13349,7 @@ function userModalTemplate(u){
   </div>`;
 }
 
-function openUserModal(u){
+function openUserModal(u, prefillEmail){
   if(u && u.role === "super_admin" && !isSuperAdmin()){
     toast("Chỉ Quản trị viên mới có thể sửa tài khoản Quản trị viên.", "err");
     return;
@@ -13122,6 +13358,10 @@ function openUserModal(u){
   const overlay = $("#userModalOverlay");
   overlay.innerHTML = userModalTemplate(u);
   overlay.classList.add("show");
+  if(prefillEmail && !u){
+    const emailInput = $("#u_email");
+    if(emailInput) emailInput.value = prefillEmail;
+  }
   $("#userModalClose").addEventListener("click", ()=> overlay.classList.remove("show"));
   $("#userModalCancel").addEventListener("click", ()=> overlay.classList.remove("show"));
   if(!overlay.dataset.dismissBound){
@@ -13152,6 +13392,17 @@ async function saveUser(overlay, isEdit){
     if(String(error.message||"").includes("duplicate")){ toast("Email này đã được cấp quyền trước đó.", "err"); }
     else toast("Lưu thất bại: " + error.message, "err");
     return;
+  }
+  // Nếu modal này được mở từ nút "Duyệt" ở panel Yêu cầu cấp quyền, đánh dấu
+  // yêu cầu tương ứng là đã duyệt (approved) ngay sau khi cấp quyền thành công.
+  if(!isEdit && STATE.resolvingAccessRequestId){
+    const reqId = STATE.resolvingAccessRequestId;
+    STATE.resolvingAccessRequestId = null;
+    await STATE.sb.from("access_requests").update({
+      status: "approved",
+      resolved_at: new Date().toISOString(),
+      resolved_by: STATE.session?.user?.id || null
+    }).eq("id", reqId);
   }
   toast(isEdit? "Đã cập nhật quyền" : "Đã cấp quyền truy cập", "ok");
   overlay.classList.remove("show");

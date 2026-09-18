@@ -1318,14 +1318,14 @@ let srcMode = 'file';
 async function loadApps() {
   try {
     const { data, error } = await sb
-      .from('apps')
+      .from('solar_apps')
       .select('*')
       .order('position', { ascending: true });
     if (error) throw error;
     if (!data || data.length === 0) {
       
       const seed = DEFAULT_APPS.map((a, i) => ({ ...a, position: i }));
-      const { data: inserted, error: insErr } = await sb.from('apps').insert(seed).select();
+      const { data: inserted, error: insErr } = await sb.from('solar_apps').insert(seed).select();
       if (insErr) throw insErr;
       return inserted.sort((a, b) => a.position - b.position);
     }
@@ -1337,12 +1337,12 @@ async function loadApps() {
 }
 
 async function upsertApp(app) {
-  const { error } = await sb.from('apps').upsert(app, { onConflict: 'id' });
+  const { error } = await sb.from('solar_apps').upsert(app, { onConflict: 'id' });
   if (error) { console.error('[Supabase] upsert failed:', error); alert('Lưu lên Supabase thất bại: ' + error.message); }
 }
 
 async function removeApp(id) {
-  const { error } = await sb.from('apps').delete().eq('id', id);
+  const { error } = await sb.from('solar_apps').delete().eq('id', id);
   if (error) { console.error('[Supabase] delete failed:', error); alert('Xóa trên Supabase thất bại: ' + error.message); }
 }
 
@@ -1846,7 +1846,7 @@ async function submitLogin() {
   const loginBtn = document.getElementById('loginSubmitBtn');
   if (loginBtn) loginBtn.disabled = true;
   try {
-    const { data, error } = await sb.rpc('verify_admin_password', { password: pw });
+    const { data, error } = await sb.rpc('verify_solar_admin_password', { password: pw });
     if (error) throw error;
     if (data === true) {
       sessionStorage.setItem('itHub_admin', '1');

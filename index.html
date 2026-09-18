@@ -7335,7 +7335,39 @@ async function fetchAttachments(cr_id){
 async function fetchTcAttachments(testcase_id){
   const { data, error } = await STATE.sb.from("cr_attachments").select("*").eq("testcase_id", testcase_id).order("uploaded_at", { ascending:false });
   if(error){ toast("Lỗi tải evidence: " + error.message, "err"); return []; }
-  return data || [];
+  return sortEvidenceFiles(data || []);
+}
+/* --------------------------------------------------------------------------
+   Sắp xếp evidence ỔN ĐỊNH cho MỌI nơi dùng chung fetchTcAttachments():
+   lưới hiển thị (renderEvidenceGrid), xuất ZIP ảnh, và xuất Report Excel
+   (UAT_Testcase). Trước đây chỉ order theo uploaded_at DESC nên nếu evidence
+   được thêm không đúng thứ tự thời gian (sửa lại, upload bổ sung, gộp từ
+   nhiều lần...) thì ảnh 01..09 bị xáo trộn ở TẤT CẢ 3 nơi trên vì cả 3 đều
+   gọi hàm fetchTcAttachments() này.
+   Thứ tự chuẩn: theo sort_order của Evidence Step (khớp bảng evidence_steps,
+   đúng cấu hình tại "Quản Trị Dữ Liệu") → rồi theo tên file tự nhiên
+   (prepare_data_testing_02 đứng trước _10, không bị so sánh như chuỗi) →
+   cuối cùng mới fallback theo thời gian upload để không bao giờ trả về thứ
+   tự "không xác định" khi tên file trùng nhau. */
+function naturalCompare(a, b){
+  return String(a || "").localeCompare(String(b || ""), undefined, { numeric:true, sensitivity:"base" });
+}
+function evidenceStepSortRank(stepName){
+  const key = String(stepName || "").trim();
+  if(!key) return Number.MAX_SAFE_INTEGER; // Chưa gán bước -> xếp cuối cùng
+  const found = (STATE.evidenceStepList || []).find(s=> String(s.name || "").trim() === key);
+  return found ? Number(found.sort_order ?? 0) : Number.MAX_SAFE_INTEGER - 1;
+}
+function sortEvidenceFiles(files){
+  return [...files].sort((a, b)=>{
+    const stepRankDiff = evidenceStepSortRank(a.evidence_step) - evidenceStepSortRank(b.evidence_step);
+    if(stepRankDiff) return stepRankDiff;
+    const stepNameDiff = naturalCompare(a.evidence_step, b.evidence_step);
+    if(stepNameDiff) return stepNameDiff;
+    const fileNameDiff = naturalCompare(a.file_name, b.file_name);
+    if(fileNameDiff) return fileNameDiff;
+    return new Date(a.uploaded_at || 0) - new Date(b.uploaded_at || 0);
+  });
 }
 
 function zipFolderName(value, fallback){

@@ -4513,6 +4513,491 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 @media (max-width:480px){
   .dlprog-card{ padding:22px 18px 18px; border-radius:16px; }
 }
+
+/* ==========================================================================
+   IPHONE-FIRST UI PASS
+   --------------------------------------------------------------------------
+   CSS-only enhancement. Existing markup, IDs, event handlers and data logic
+   stay unchanged. This layer intentionally comes last so it wins over older
+   responsive rules without changing the desktop layout.
+   ========================================================================== */
+html{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+
+@media(max-width:640px){
+  :root{
+    --mobile-gutter:12px;
+    --mobile-radius:14px;
+  }
+
+  html, body{
+    width:100%;
+    min-width:0;
+    min-height:100%;
+    overflow-x:hidden;
+  }
+
+  body{
+    -webkit-tap-highlight-color:rgba(14,154,148,.14);
+  }
+
+  #app{
+    display:block;
+    width:100%;
+    min-height:100dvh;
+  }
+
+  .main{
+    width:100%;
+    height:100dvh;
+    min-height:100dvh;
+    overflow:hidden;
+  }
+
+  /* Keep the topbar compact and leave a clear lane for the fixed menu button. */
+  .topbar{
+    position:relative;
+    gap:10px;
+    padding:calc(12px + env(safe-area-inset-top,0px)) var(--mobile-gutter) 10px;
+    align-items:center;
+    background:rgba(13,36,56,.94);
+  }
+  .topbar > div:first-child{
+    min-width:0;
+    flex:1 1 auto;
+    margin-left:48px;
+  }
+  .topbar h1{
+    max-width:calc(100vw - 90px);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:clamp(16px,4.6vw,19px);
+    line-height:1.2;
+  }
+  .topbar .sub{
+    max-width:calc(100vw - 90px);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:11px;
+  }
+  .topbar-actions{
+    order:2;
+    width:100%;
+    min-width:0;
+    margin:0;
+    padding:1px 0 2px;
+    gap:7px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    flex-wrap:nowrap;
+    justify-content:flex-start;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .topbar-actions::-webkit-scrollbar{ display:none; }
+  .topbar-actions .btn{
+    flex:0 0 auto;
+    min-height:38px;
+    padding:9px 12px;
+    font-size:12px;
+  }
+  .topbar-actions .btn svg{ width:14px; height:14px; }
+  .search-box{
+    order:3;
+    flex:0 0 100%;
+    width:100%;
+    max-width:none;
+    margin:0;
+  }
+  .search-box input{
+    height:42px;
+    padding-top:10px;
+    padding-bottom:10px;
+    font-size:16px !important;
+    border-radius:12px;
+  }
+  .search-box .kbd-hint{ display:none; }
+
+  .mobile-nav-toggle{
+    top:calc(12px + env(safe-area-inset-top,0px)) !important;
+    left:12px !important;
+    width:40px;
+    height:40px;
+    border-radius:12px;
+  }
+
+  /* Workspace canvas: small, stable gutters; content scrolls once, vertically. */
+  .view,
+  .view#view-crlog{
+    width:100%;
+    min-width:0;
+    padding:14px var(--mobile-gutter) calc(34px + env(safe-area-inset-bottom,0px));
+    overflow-y:auto;
+    overflow-x:hidden;
+  }
+  .view-head{
+    margin-bottom:14px;
+    gap:9px;
+  }
+  .view-head h2{ font-size:19px; line-height:1.25; }
+  .view-head p{ font-size:11.5px; line-height:1.45; }
+
+  /* Dashboard: two compact columns are easier to scan than one oversized stack. */
+  .kpi-grid,
+  .crlog-kpis{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    margin-bottom:12px;
+  }
+  .kpi-card,
+  .crlog-kpis .kpi-card{
+    min-width:0;
+    padding:12px 12px;
+    border-radius:var(--mobile-radius);
+  }
+  .kpi-card .kpi-label{ margin-bottom:7px; font-size:10.5px; line-height:1.3; }
+  .kpi-card .kpi-value,
+  .crlog-kpis .kpi-value{ font-size:21px; }
+  .kpi-card .kpi-foot{ margin-top:6px; font-size:10px; line-height:1.35; }
+  .kpi-icon{ right:10px; top:10px; width:24px; height:24px; }
+
+  .panel,
+  .list-panel,
+  .brd-workspace{
+    border-radius:var(--mobile-radius);
+  }
+  .panel-pad{ padding:14px; }
+  .dash-section{ margin-bottom:10px; }
+  .dash-section-head{
+    align-items:flex-start;
+    gap:6px;
+    margin-bottom:11px;
+  }
+  .dash-section-head h3{ font-size:13.5px; }
+  .dash-section-hint{ font-size:10.5px; line-height:1.35; }
+  .stat-tile-grid,
+  .substat-grid{ gap:8px; }
+  .stat-tile,
+  .substat-pill{ padding:11px 10px; }
+
+  /* Tables use the existing mobile card renderers. Keep their command area tidy. */
+  .crlog-shell,
+  #view-uat .crlog-shell,
+  #view-release .crlog-shell{
+    height:auto;
+    min-height:100%;
+    gap:10px;
+  }
+  .crlog-panel{
+    flex:0 0 auto;
+    min-height:0;
+  }
+  .list-panel-head{
+    display:block;
+    padding:12px;
+  }
+  .list-panel-count{
+    display:block;
+    margin:0 0 10px;
+    font-size:12px;
+  }
+  .table-toolbar{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+    width:100%;
+  }
+  .table-toolbar > *{ min-width:0; }
+  .tb-search{
+    grid-column:1/-1;
+    width:100%;
+  }
+  .tb-search input{
+    width:100%;
+    height:40px;
+    padding-top:9px;
+    padding-bottom:9px;
+    font-size:16px !important;
+    border-radius:10px;
+  }
+  .tb-search input:focus{ width:100%; }
+  .filter-chip{
+    width:100%;
+    min-height:38px;
+    min-width:0;
+    padding:7px 9px;
+    border-radius:9px;
+  }
+  .filter-chip span{
+    flex:0 0 auto;
+    font-size:10px;
+  }
+  .filter-chip select{
+    min-width:0;
+    width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-size:16px !important;
+  }
+  .tb-dropdown{ min-width:0; }
+  .tb-dropdown > .tb-btn,
+  .table-toolbar > .tb-btn{
+    width:100%;
+    min-height:38px;
+    padding:8px 9px;
+    font-size:11.5px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .chip-clear{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:38px;
+    border:1px dashed #dbe7eb;
+    background:#fbfdfe;
+    font-size:11px;
+  }
+  .tb-menu{
+    position:fixed;
+    left:12px !important;
+    right:12px !important;
+    top:auto;
+    bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    width:auto;
+    min-width:0;
+    max-height:60dvh;
+    overflow-y:auto;
+    border-radius:16px;
+    padding:14px;
+    z-index:1200;
+  }
+  .tb-menu select{ font-size:16px !important; min-height:40px; }
+  .bulk-bar{
+    padding:9px 12px;
+    gap:8px;
+    font-size:11.5px;
+  }
+  .bulk-actions{ gap:6px; }
+  .bulk-actions .btn{ min-height:34px; padding:7px 10px; }
+  .crlog-table-outer{ min-height:0; }
+  .crlog-table-wrap{
+    overflow-x:hidden !important;
+    overflow-y:visible;
+  }
+  .cr-mobile-list{
+    gap:8px;
+    padding:10px;
+  }
+  .cr-card{
+    gap:9px;
+    padding:13px;
+    border-radius:12px;
+    box-shadow:0 3px 12px rgba(22,52,78,.045);
+  }
+  .cr-card-top{ align-items:flex-start; }
+  .cr-card-title{
+    min-width:0;
+    font-size:13px;
+    line-height:1.4;
+    overflow-wrap:anywhere;
+  }
+  .cr-card-meta{ gap:5px 10px; font-size:11px; line-height:1.35; }
+  .cr-card-badges{ gap:5px; }
+  .cr-card-actions{ gap:7px; }
+  .cr-card-actions .btn{ min-height:36px; padding:8px 11px; font-size:11.5px; }
+  .list-panel-foot{
+    padding:9px 12px;
+    font-size:10.5px;
+  }
+
+  /* Mobile-safe admin tables: scroll only inside their own table region. */
+  .view .table-wrap{
+    max-width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .view .table-wrap table{ min-width:680px; }
+  .view .crlog-table-wrap table{ min-width:0; }
+
+  .status-create{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:7px;
+  }
+  .status-create input{
+    width:100% !important;
+    min-width:0;
+    height:40px;
+    font-size:16px !important;
+  }
+  .status-create input[type="number"]{ max-width:84px; }
+  .status-create .btn{
+    grid-column:1/-1;
+    width:100%;
+  }
+
+  .brd-toolbar{
+    display:block;
+    padding:12px;
+  }
+  .brd-toolbar-copy{ align-items:flex-start; gap:9px; }
+  .brd-toolbar-icon{ width:32px; height:32px; }
+  .brd-toolbar-title{ font-size:13px; line-height:1.35; }
+  .brd-count{ margin-top:9px; }
+  .brd-grid{ grid-template-columns:1fr; gap:9px; padding:10px; }
+  .brd-card{ min-height:0; padding:14px; }
+
+  /* Full-screen detail surfaces become true edge-to-edge iPhone pages. */
+  .modal-overlay{
+    padding:0;
+    align-items:flex-end;
+  }
+  .modal{
+    width:100%;
+    max-width:none;
+    max-height:94dvh;
+    border-radius:18px 18px 0 0;
+  }
+  .modal-overlay.full{
+    align-items:stretch;
+    padding:0;
+  }
+  .modal-overlay.full .modal{
+    width:100%;
+    height:100dvh;
+    max-height:none;
+    border-radius:0;
+  }
+  .modal-head{
+    gap:10px;
+    padding:14px 14px;
+    min-height:58px;
+  }
+  .modal-head h3{ font-size:15px; line-height:1.3; }
+  .modal-head .sub{ font-size:10.5px; }
+  .modal-body{
+    padding:14px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .modal-foot{
+    gap:8px;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));
+  }
+  .modal-foot .btn{
+    min-height:42px;
+    flex:1 1 0;
+    min-width:0;
+    padding:9px 10px;
+    font-size:12px;
+  }
+  .modal-overlay.full .modal-head{
+    padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;
+  }
+  .modal-overlay.full .modal-body{
+    padding:14px 14px calc(40px + env(safe-area-inset-bottom,0px));
+  }
+  .modal-overlay.full .modal-foot{
+    padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  }
+  .drawer,
+  .drawer-overlay{
+    left:0 !important;
+  }
+  .drawer-head{
+    padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;
+  }
+  .drawer-head h2{ font-size:17px; }
+  .drawer-body{
+    padding:14px 14px calc(44px + env(safe-area-inset-bottom,0px));
+  }
+  .drawer .tabs,
+  .tabs{
+    padding:0 10px;
+    gap:2px;
+    overflow-x:auto;
+    justify-content:flex-start;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .drawer .tabs::-webkit-scrollbar,
+  .tabs::-webkit-scrollbar{ display:none; }
+  .drawer .tabs .tab-btn,
+  .tabs .tab-btn{
+    flex:0 0 auto;
+    min-width:108px;
+    min-height:48px;
+    padding:12px 10px;
+    font-size:11.5px;
+  }
+  .info-grid,
+  .crlog-field-grid{ grid-template-columns:1fr; gap:10px; }
+  .info-card,
+  .crlog-field-group{ padding:13px; }
+  .file-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+
+  #toastHost{
+    left:calc(12px + env(safe-area-inset-left,0px)) !important;
+    right:calc(12px + env(safe-area-inset-right,0px)) !important;
+    bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important;
+    width:auto !important;
+  }
+  .toast{ border-radius:12px; padding:11px 12px 13px; }
+  .toast .t-title{ font-size:12px; }
+  .toast .t-message{ font-size:11.5px; }
+
+  /* Login and pending screens fit short iPhone viewports without oversized type. */
+  #loginScreen,
+  #pendingScreen{
+    min-height:100dvh;
+    height:auto;
+    overflow-y:auto;
+    padding:calc(16px + env(safe-area-inset-top,0px))
+            calc(12px + env(safe-area-inset-right,0px))
+            calc(18px + env(safe-area-inset-bottom,0px))
+            calc(12px + env(safe-area-inset-left,0px));
+  }
+  .auth-layout{
+    width:100%;
+    grid-template-columns:minmax(0,1fr);
+  }
+  .auth-card{
+    width:100%;
+    padding:22px 16px 18px;
+    border-radius:17px;
+  }
+  .auth-card-rule{ margin-left:-16px; margin-right:-16px; }
+  .auth-card h2{ font-size:21px; }
+  .auth-card p.lead{ font-size:12px; }
+  .auth-pending-actions{ flex-direction:column; }
+  .auth-pending-btn{ width:100%; }
+}
+
+@media(max-width:390px){
+  .topbar{ padding-left:10px; padding-right:10px; }
+  .topbar > div:first-child{ margin-left:46px; }
+  .mobile-nav-toggle{ left:10px !important; }
+  .view,
+  .view#view-crlog{
+    padding-left:10px;
+    padding-right:10px;
+  }
+  .kpi-grid,
+  .crlog-kpis{ gap:6px; }
+  .kpi-card,
+  .crlog-kpis .kpi-card{ padding:10px; }
+  .kpi-card .kpi-value,
+  .crlog-kpis .kpi-value{ font-size:19px; }
+  .list-panel-head{ padding:10px; }
+  .table-toolbar{ gap:6px; }
+  .filter-chip{ padding-left:7px; padding-right:7px; }
+  .tb-menu{ left:10px !important; right:10px !important; }
+}
 </style>
 </head>
 <body>

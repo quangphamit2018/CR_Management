@@ -4261,6 +4261,94 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   .nav-item{ padding:11px 12px; }
   .icon-btn{ width:32px; height:32px; }
 }
+/* =============================================================================
+   DOWNLOAD PROGRESS OVERLAY — UI hiển thị tiến trình khi tải/tạo file
+   (Thành phần bổ sung thuần hiển thị, không thay đổi logic tải hiện có)
+============================================================================= */
+.dlprog-overlay{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(10,25,41,0.42);
+  backdrop-filter:blur(3px);
+  opacity:0; pointer-events:none;
+  transition:opacity .22s ease;
+  padding:16px;
+}
+.dlprog-overlay.show{ opacity:1; pointer-events:auto; }
+.dlprog-card{
+  width:100%; max-width:360px;
+  background:#ffffff;
+  border-radius:18px;
+  box-shadow:0 24px 60px -18px rgba(10,30,51,.45), 0 4px 14px rgba(10,30,51,.12);
+  padding:26px 24px 22px;
+  text-align:center;
+  transform:translateY(14px) scale(.96);
+  transition:transform .28s cubic-bezier(.34,1.4,.64,1);
+}
+.dlprog-overlay.show .dlprog-card{ transform:translateY(0) scale(1); }
+.dlprog-icon{
+  width:64px; height:64px; margin:0 auto 14px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#e8fbf9,#dff3ff);
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.dlprog-icon svg{ width:30px; height:30px; color:#0e9a94; animation:dlprog-bounce 1.1s ease-in-out infinite; }
+@keyframes dlprog-bounce{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-5px); }
+}
+.dlprog-icon::after{
+  content:""; position:absolute; inset:-4px;
+  border-radius:50%;
+  border:2px solid rgba(14,154,148,.35);
+  animation:dlprog-ring 1.6s ease-out infinite;
+}
+@keyframes dlprog-ring{
+  0%{ transform:scale(.85); opacity:.9; }
+  100%{ transform:scale(1.35); opacity:0; }
+}
+.dlprog-title{ font-size:15px; font-weight:800; color:#18364f; margin-bottom:4px; }
+.dlprog-step{
+  font-size:12.5px; color:#6e8798; min-height:18px; margin-bottom:14px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.dlprog-bar-track{
+  position:relative; width:100%; height:10px; border-radius:999px;
+  background:#eaf3f4; overflow:hidden; margin-bottom:8px;
+}
+.dlprog-bar-fill{
+  position:absolute; inset:0 auto 0 0; width:0%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#3fd0c9,#0e9a94);
+  transition:width .28s ease;
+}
+.dlprog-bar-fill::after{
+  content:""; position:absolute; inset:0;
+  background-image:linear-gradient(115deg, rgba(255,255,255,.35) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.35) 50%, rgba(255,255,255,.35) 75%, transparent 75%, transparent);
+  background-size:22px 22px;
+  animation:dlprog-stripes 1s linear infinite;
+}
+.dlprog-bar-fill.indeterminate{
+  width:38% !important;
+  animation:dlprog-indeterminate 1.15s ease-in-out infinite;
+}
+@keyframes dlprog-stripes{ from{ background-position:0 0; } to{ background-position:22px 0; } }
+@keyframes dlprog-indeterminate{
+  0%{ transform:translateX(-100%); }
+  100%{ transform:translateX(360%); }
+}
+.dlprog-pct{ font-size:12.5px; font-weight:800; color:#0e9a94; margin-bottom:10px; min-height:16px; }
+.dlprog-tip{
+  font-size:11.5px; color:#93a7b5; font-style:italic;
+  min-height:16px; transition:opacity .3s ease;
+}
+.dlprog-cancel{
+  display:none; /* dự phòng cho tương lai nếu cần nút hủy; hiện chưa dùng để không đổi hành vi tải */
+}
+@media (max-width:480px){
+  .dlprog-card{ padding:22px 18px 18px; border-radius:16px; }
+}
 </style>
 </head>
 <body>
@@ -5838,6 +5926,93 @@ const FILE_ICON = {
   zip: `<svg viewBox="0 0 24 24" fill="none" stroke="#b78af0" stroke-width="1.8" width="26" height="26"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>`,
   other: `<svg viewBox="0 0 24 24" fill="none" stroke="#7488a0" stroke-width="1.8" width="26" height="26"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>`
 };
+
+/* ---------------------------------------------------------------------------
+   1b. DOWNLOAD PROGRESS OVERLAY
+   Thành phần UI thuần hiển thị, dùng chung cho MỌI thao tác tải/tạo file
+   (Tải ảnh ZIP, Tải báo cáo Excel, Tải template Excel, Xuất Word BRD,
+   Tải file/ảnh đính kèm...). KHÔNG thay đổi logic tải hiện có — chỉ "lắng
+   nghe" lại % / trạng thái mà các hàm downloadXxx đã tính toán sẵn (hoặc
+   hiển thị dạng "indeterminate" cho các bước không tính được % chính xác),
+   giúp người dùng thấy trực quan tiến trình thay vì màn hình đứng im.
+--------------------------------------------------------------------------- */
+const DLProgress = (function(){
+  let overlay = null, cardTitleEl, stepEl, fillEl, pctEl, tipEl;
+  let tipTimer = null, closeTimer = null;
+  const TIPS = [
+    "Đang pha trà chờ dữ liệu về nhé ☕",
+    "Sắp xong rồi, ráng thêm chút nữa nha 🚀",
+    "Dữ liệu đang trên đường tới máy bạn ✈️",
+    "Kiên nhẫn là chìa khoá của mọi bộ báo cáo đẹp ✨",
+    "Đang gói ghém dữ liệu cẩn thận cho bạn 📦",
+    "Chỉ còn vài giây thôi, đừng tắt tab nhé 🙏",
+    "Máy chủ đang chạy hết tốc lực vì bạn 💪",
+  ];
+  function ensureDom(){
+    if(overlay) return;
+    overlay = document.createElement("div");
+    overlay.className = "dlprog-overlay";
+    overlay.innerHTML = `
+      <div class="dlprog-card">
+        <div class="dlprog-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        </div>
+        <div class="dlprog-title" id="dlprogTitle">Đang xử lý...</div>
+        <div class="dlprog-step" id="dlprogStep">Đang chuẩn bị...</div>
+        <div class="dlprog-bar-track"><div class="dlprog-bar-fill" id="dlprogFill"></div></div>
+        <div class="dlprog-pct" id="dlprogPct">0%</div>
+        <div class="dlprog-tip" id="dlprogTip"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    cardTitleEl = $("#dlprogTitle", overlay);
+    stepEl = $("#dlprogStep", overlay);
+    fillEl = $("#dlprogFill", overlay);
+    pctEl = $("#dlprogPct", overlay);
+    tipEl = $("#dlprogTip", overlay);
+  }
+  function startTips(){
+    stopTips();
+    let i = Math.floor(Math.random() * TIPS.length);
+    const render = ()=>{ if(tipEl){ tipEl.style.opacity = "0"; setTimeout(()=>{ if(tipEl){ tipEl.textContent = TIPS[i % TIPS.length]; tipEl.style.opacity = "1"; } }, 180); i++; } };
+    render();
+    tipTimer = setInterval(render, 2600);
+  }
+  function stopTips(){ if(tipTimer){ clearInterval(tipTimer); tipTimer = null; } }
+  // title: tiêu đề overlay (vd "Đang tải báo cáo Excel")
+  function open(title){
+    ensureDom();
+    if(closeTimer){ clearTimeout(closeTimer); closeTimer = null; }
+    cardTitleEl.textContent = title || "Đang xử lý...";
+    fillEl.classList.remove("indeterminate");
+    fillEl.style.width = "0%";
+    pctEl.textContent = "0%";
+    stepEl.textContent = "Đang chuẩn bị...";
+    overlay.classList.add("show");
+    startTips();
+  }
+  // percent: 0-100 (số thực tế đã tính được từ tiến trình tải)
+  function setProgress(percent, stepText){
+    ensureDom();
+    const p = Math.max(0, Math.min(100, Math.round(percent)));
+    fillEl.classList.remove("indeterminate");
+    fillEl.style.width = p + "%";
+    pctEl.textContent = p + "%";
+    if(stepText) stepEl.textContent = stepText;
+  }
+  // Dùng khi bước hiện tại không tính được % chính xác (vd ExcelJS writeBuffer)
+  function setIndeterminate(stepText){
+    ensureDom();
+    fillEl.classList.add("indeterminate");
+    pctEl.textContent = "";
+    if(stepText) stepEl.textContent = stepText;
+  }
+  function close(delay=350){
+    if(!overlay) return;
+    stopTips();
+    closeTimer = setTimeout(()=> overlay.classList.remove("show"), delay);
+  }
+  return { open, setProgress, setIndeterminate, close };
+})();
 
 /* ---------------------------------------------------------------------------
    2. TOAST
@@ -7654,9 +7829,11 @@ async function downloadEvidenceImagesZip(selectedCrIds = null){
   const label = $(".evidence-zip-label", btn);
   const originalLabel = label?.textContent || "Tải ảnh";
   const setLabel = text=>{ if(label) label.textContent = text; };
+  DLProgress.open("Đang tải ảnh Evidence");
 
   try{
     setLabel("Đang tìm ảnh...");
+    DLProgress.setIndeterminate("Đang tìm ảnh evidence...");
     const records = [];
     await Promise.all(selectedTcList.map(async testcase=>{
       const files = await fetchTcAttachments(testcase.id);
@@ -7678,6 +7855,7 @@ async function downloadEvidenceImagesZip(selectedCrIds = null){
     for(let index = 0; index < records.length; index++){
       const { testcase, file } = records[index];
       setLabel(`Đang tải ${index + 1}/${records.length}...`);
+      DLProgress.setProgress((index / records.length) * 80, `Đang tải ảnh ${index + 1}/${records.length}...`);
       try{
         const signedUrl = await getSignedUrl(file.file_path);
         if(!signedUrl || signedUrl === "#") throw new Error("Không tạo được đường dẫn tải ảnh");
@@ -7715,10 +7893,12 @@ async function downloadEvidenceImagesZip(selectedCrIds = null){
     }
 
     setLabel("Đang đóng gói...");
+    DLProgress.setProgress(80, "Đang đóng gói file ZIP...");
     const zipBlob = await zip.generateAsync(
       { type:"blob", compression:"STORE", streamFiles:true },
       metadata=>{
         setLabel(`Đang đóng gói ${Math.round(metadata.percent)}%...`);
+        DLProgress.setProgress(80 + metadata.percent * 0.2, `Đang đóng gói file ZIP... ${Math.round(metadata.percent)}%`);
       }
     );
     const url = URL.createObjectURL(zipBlob);
@@ -7733,6 +7913,7 @@ async function downloadEvidenceImagesZip(selectedCrIds = null){
     setTimeout(()=>URL.revokeObjectURL(url), 1000);
 
     const suffix = failedCount ? ` Bỏ qua ${failedCount} ảnh lỗi.` : "";
+    DLProgress.setProgress(100, "Hoàn tất!");
     toast(`Đã tải ${addedCount} ảnh gốc vào file ZIP theo cấu trúc CR / UAT / Evidence Step.${suffix}`, failedCount ? "info" : "ok");
   }catch(error){
     console.error(error);
@@ -7742,6 +7923,7 @@ async function downloadEvidenceImagesZip(selectedCrIds = null){
     btn.classList.remove("is-loading");
     btn.removeAttribute("aria-busy");
     setLabel(originalLabel);
+    DLProgress.close();
   }
 }
 
@@ -8520,6 +8702,8 @@ async function downloadCrTemplate(){
   }
   const btn = $("#btnCrTemplate");
   if(btn){ btn.disabled = true; }
+  DLProgress.open("Đang tạo file Template Excel");
+  DLProgress.setIndeterminate("Đang dựng sheet & danh mục hợp lệ...");
   try{
     const headerRow = CR_IMPORT_COLUMNS.map(c=>c.header);
     const exampleRow = CR_IMPORT_COLUMNS.map(c=>{
@@ -8594,6 +8778,7 @@ async function downloadCrTemplate(){
       }
     });
 
+    DLProgress.setIndeterminate("Đang đóng gói file Excel...");
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = URL.createObjectURL(blob);
@@ -8602,11 +8787,13 @@ async function downloadCrTemplate(){
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
 
+    DLProgress.setProgress(100, "Hoàn tất!");
     toast("Đã tải file template (đã có dropdown cho Category/Priority/Status/Approved Status). Điền thông tin CR vào sheet \"" + CR_IMPORT_SHEET_NAME + "\" rồi nhập lại qua nút \"Nhập Excel\".", "ok");
   }catch(err){
     toast("Tạo file template thất bại: " + err.message, "err");
   }finally{
     if(btn){ btn.disabled = false; }
+    DLProgress.close();
   }
 }
 
@@ -8886,6 +9073,8 @@ async function downloadProgressReport(selectedCrIds = null, sheetFilter = "all")
   const label = $(".report-label", btn);
   const originalLabel = label?.textContent || "Tải báo cáo";
   if(label) label.textContent = "Đang tạo...";
+  DLProgress.open("Đang tạo báo cáo Excel");
+  DLProgress.setIndeterminate("Đang chuẩn bị dữ liệu...");
 
   try{
     const reportOption = REPORT_SHEET_OPTIONS.find(o=>o.value === sheetFilter) || REPORT_SHEET_OPTIONS.find(o=>o.value==="all");
@@ -8936,6 +9125,8 @@ async function downloadProgressReport(selectedCrIds = null, sheetFilter = "all")
     let maxImageCount = 0;
     let maxImageDisplayWidth = 0;
     if(wantUat){
+      let evidenceDoneCount = 0;
+      DLProgress.setProgress(5, `Đang tải ảnh evidence 0/${selectedTcList.length} Test Case...`);
       await Promise.all(selectedTcList.map(async testcase=>{
         const files = testcase.id ? await fetchTcAttachments(testcase.id) : [];
         const images = [];
@@ -8950,6 +9141,13 @@ async function downloadProgressReport(selectedCrIds = null, sheetFilter = "all")
         }
         evidenceMap.set(String(testcase.id), { files, images });
         maxImageCount = Math.max(maxImageCount, images.length);
+        evidenceDoneCount++;
+        // 5%-70%: tỉ lệ theo số Test Case đã tải xong ảnh evidence (bước tốn
+        // thời gian nhất của cả báo cáo).
+        DLProgress.setProgress(
+          5 + (evidenceDoneCount / selectedTcList.length) * 65,
+          `Đang tải ảnh evidence ${evidenceDoneCount}/${selectedTcList.length} Test Case...`
+        );
       }));
     }
     maxImageCount = Math.max(maxImageCount, 1);
@@ -8957,6 +9155,7 @@ async function downloadProgressReport(selectedCrIds = null, sheetFilter = "all")
       ? Math.max(48, Math.ceil(maxImageDisplayWidth / 6.5) + 4)
       : 48;
 
+    DLProgress.setProgress(75, "Đang dựng các sheet báo cáo...");
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "CR Control";
     workbook.lastModifiedBy = "CR Control";
@@ -9181,6 +9380,7 @@ async function downloadProgressReport(selectedCrIds = null, sheetFilter = "all")
     const pad = number=>String(number).padStart(2, "0");
     const filenamePrefix = sheetFilter === "all" ? "CR_Progress_Report" : `CR_${reportOption.label.replace(/\s+/g,"_")}_Report`;
     const filename = `${filenamePrefix}_${timestamp.year}${pad(timestamp.month)}${pad(timestamp.day)}_${pad(timestamp.hour)}${pad(timestamp.minute)}.xlsx`;
+    DLProgress.setProgress(92, "Đang đóng gói file Excel...");
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = URL.createObjectURL(blob);
@@ -9195,6 +9395,7 @@ async function downloadProgressReport(selectedCrIds = null, sheetFilter = "all")
     summaryParts.push(`${selectedCrList.length} CR`);
     if(wantUat) summaryParts.push(`${selectedTcList.length} test case`);
     if(wantRelease) summaryParts.push(`${selectedRelList.length} release`);
+    DLProgress.setProgress(100, "Hoàn tất!");
     toast(`Đã tải báo cáo (${reportOption.label}) gồm ${summaryParts.join(", ")}.`, "ok");
   }catch(error){
     console.error(error);
@@ -9204,6 +9405,7 @@ async function downloadProgressReport(selectedCrIds = null, sheetFilter = "all")
     btn.classList.remove("is-loading");
     btn.removeAttribute("aria-busy");
     if(label) label.textContent = originalLabel;
+    DLProgress.close();
   }
 }
 
@@ -9950,10 +10152,36 @@ async function downloadAttachment(url, fileName, triggerEl){
   const icon = triggerEl ? triggerEl.querySelector("svg") : null;
   if(triggerEl){ triggerEl.classList.add("is-loading"); }
   if(icon){ icon.classList.add("spin"); }
+  DLProgress.open("Đang tải file" + (fileName ? ": " + fileName : ""));
+  DLProgress.setIndeterminate("Đang kết nối...");
   try{
     const res = await fetch(url);
     if(!res.ok) throw new Error("HTTP " + res.status);
-    const blob = await res.blob();
+    // Nếu server trả về Content-Length và hỗ trợ streaming, đọc theo từng
+    // chunk để hiển thị % tải thực theo byte cho người dùng theo dõi.
+    // Nếu không (thiếu header hoặc trình duyệt không hỗ trợ), fallback về
+    // đúng hành vi cũ: res.blob() trực tiếp, chỉ hiển thị dạng indeterminate.
+    const totalBytes = Number(res.headers.get("content-length")) || 0;
+    let blob;
+    if(totalBytes && res.body && res.body.getReader){
+      const reader = res.body.getReader();
+      const chunks = [];
+      let receivedBytes = 0;
+      while(true){
+        const { done, value } = await reader.read();
+        if(done) break;
+        chunks.push(value);
+        receivedBytes += value.length;
+        DLProgress.setProgress(
+          (receivedBytes / totalBytes) * 100,
+          `Đã tải ${fmtBytes(receivedBytes)} / ${fmtBytes(totalBytes)}`
+        );
+      }
+      blob = new Blob(chunks);
+    }else{
+      DLProgress.setIndeterminate("Đang tải file...");
+      blob = await res.blob();
+    }
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = blobUrl;
@@ -9962,12 +10190,14 @@ async function downloadAttachment(url, fileName, triggerEl){
     a.click();
     a.remove();
     setTimeout(()=> URL.revokeObjectURL(blobUrl), 4000);
+    DLProgress.setProgress(100, "Hoàn tất!");
   }catch(e){
     console.error("Tải file thất bại, mở tab mới thay thế:", e);
     window.open(url, "_blank", "noopener");
   }finally{
     if(triggerEl){ triggerEl.classList.remove("is-loading"); }
     if(icon){ icon.classList.remove("spin"); }
+    DLProgress.close();
   }
 }
 
@@ -11600,6 +11830,9 @@ async function generateBrdDocx(record){
   if(typeof PizZip === "undefined" || typeof window.docxtemplater === "undefined"){
     throw new Error("Thư viện tạo file Word (PizZip/Docxtemplater) chưa tải xong, vui lòng thử lại sau vài giây.");
   }
+  DLProgress.open("Đang xuất file Word (BRD)");
+  DLProgress.setIndeterminate("Đang điền dữ liệu vào template...");
+  try{
   const zip = new PizZip(brdB64ToUint8Array(window.BRD_TEMPLATE_BASE64));
   const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true, nullGetter: ()=> "" });
 
@@ -11629,6 +11862,7 @@ async function generateBrdDocx(record){
     signoff_signature: record.signoff_signature || "",
   });
 
+  DLProgress.setProgress(70, "Đang đóng gói file Word...");
   const renderedZip = doc.getZip();
   brdNormalizeDocxLayout(renderedZip);
   const blob = renderedZip.generate({
@@ -11641,7 +11875,11 @@ async function generateBrdDocx(record){
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=> URL.revokeObjectURL(url), 4000);
+  DLProgress.setProgress(100, "Hoàn tất!");
   toast("Đã xuất file: " + filename, "ok");
+  }finally{
+    DLProgress.close();
+  }
 }
 
 /* ---------------------------------------------------------------------------

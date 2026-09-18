@@ -1374,18 +1374,11 @@ td.cell-id .id-chip{
 .evidence-group-title{ font-size:12px; font-weight:700; color: var(--text-dim); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
 .evidence-group-title .line{ flex:1; height:1px; background: var(--panel-border); }
 
-/* toast */
+/* toast: positioning fallback only — full visual styling (colors, icon, timer bar,
+   enter/exit animation) lives further down in the "TOAST — nâng cấp" block, which
+   overrides #toastHost/.toast with the real design. The old inline dot/box style
+   that used to live here was dead code (superseded) and has been removed. */
 #toastHost{ position:fixed; bottom:20px; right:20px; z-index:999; display:flex; flex-direction:column; gap:10px; align-items:flex-end; }
-.toast{
-  background: var(--panel-solid); border:1px solid var(--panel-border); border-radius: var(--radius-sm);
-  padding:12px 16px; font-size:13px; box-shadow: var(--shadow-soft); display:flex; align-items:center; gap:10px;
-  min-width:240px; max-width:360px; animation: toastIn .25s ease;
-}
-@keyframes toastIn{ from{ opacity:0; transform: translateY(8px); } to{ opacity:1; transform:none; } }
-.toast .t-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.toast.ok .t-dot{ background: var(--success); }
-.toast.err .t-dot{ background: var(--danger); }
-.toast.info .t-dot{ background: var(--info); }
 
 /* lightbox */
 #lightbox{
@@ -4075,14 +4068,27 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   width:100%;
   min-width:0;
   max-width:none;
-  padding:13px 12px 13px 14px;
-  border-radius:13px;
-  border-color:rgba(180,222,230,.16);
-  background:rgba(14,38,60,.94);
-  box-shadow:0 18px 40px -22px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.07);
+  padding:13px 14px 15px 14px;
+  border-radius:14px;
+  border:1px solid rgba(180,222,230,.16);
+  background:linear-gradient(180deg,rgba(22,48,72,.96),rgba(12,32,52,.96));
+  box-shadow:0 20px 44px -20px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.08);
   backdrop-filter:blur(16px);
   -webkit-backdrop-filter:blur(16px);
   animation:toastEnter 360ms var(--ease-decel) both;
+  transition:box-shadow .2s ease, transform .2s ease;
+}
+.toast:hover{
+  box-shadow:0 24px 50px -18px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.1);
+  transform:translateY(-1px);
+}
+.toast::before{
+  content:"";
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:3px;
+  background:currentColor;
+  opacity:.85;
 }
 .toast::after{
   content:"";
@@ -4092,21 +4098,27 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   bottom:0;
   height:2px;
   background:currentColor;
-  opacity:.7;
+  opacity:.6;
   transform-origin:left;
   animation:toastTimer 4.2s linear both;
+  animation-play-state:running;
 }
+.toast:hover::after{ animation-play-state:paused; }
+.toast{ display:flex; align-items:flex-start; gap:10px; }
 .toast .t-icon{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  width:25px;
-  height:25px;
-  flex:0 0 25px;
-  border-radius:8px;
+  width:26px;
+  height:26px;
+  flex:0 0 26px;
+  border-radius:9px;
+  margin-top:1px;
 }
 .toast .t-icon svg{ width:14px; height:14px; }
-.toast .t-message{ color:#dceaf1; font-size:12px; line-height:1.45; }
+.toast .t-body{ flex:1; min-width:0; }
+.toast .t-title{ color:#f2f9fb; font-size:12.5px; font-weight:700; line-height:1.3; margin-bottom:2px; letter-spacing:.01em; }
+.toast .t-message{ color:#c7dbe4; font-size:12px; line-height:1.45; word-break:break-word; }
 .offline-banner{
   position:fixed;
   top:14px;
@@ -4152,6 +4164,11 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   color:#7d9bad;
   font-size:15px;
   line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:background .15s ease, color .15s ease;
 }
 .toast .t-close:hover{ background:rgba(255,255,255,.08); color:#eaf7f9; }
 .toast.ok{ color:var(--success); }
@@ -4160,6 +4177,8 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 .toast.err .t-icon{ background:var(--danger-dim); color:var(--danger); }
 .toast.info{ color:var(--info); }
 .toast.info .t-icon{ background:var(--info-dim); color:var(--info); }
+.toast.warn{ color:var(--warning); }
+.toast.warn .t-icon{ background:var(--warning-dim); color:var(--warning); }
 .toast.is-closing{ animation:toastExit 220ms var(--ease-standard) both; }
 @keyframes authStageIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
 @keyframes authCardIn{ from{ opacity:0; transform:translateY(18px) scale(.98); } to{ opacity:1; transform:none; } }
@@ -6088,28 +6107,56 @@ function toastIcon(type){
   if(type === "err"){
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v5M12 16.5v.1"/></svg>`;
   }
+  if(type === "warn"){
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 4.5l9 15.5H3l9-15.5Z" stroke-linejoin="round"/><path d="M12 10.2v4.3M12 17v.1"/></svg>`;
+  }
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8.5"/><path d="M12 10.5v5M12 8v.1"/></svg>`;
 }
 
-function toast(msg, type="info"){
+const TOAST_TITLES = { ok:"Thành công", err:"Có lỗi xảy ra", warn:"Cần lưu ý", info:"Thông báo" };
+
+// msg: nội dung chính. type: ok | err | warn | info.
+// title (tuỳ chọn): ghi đè dòng tiêu đề mặc định theo type ở trên.
+function toast(msg, type="info", title){
   const host = $("#toastHost");
   if(!host) return;
   const el = document.createElement("div");
   el.className = `toast ${type}`;
-  el.setAttribute("role", type === "err" ? "alert" : "status");
+  el.setAttribute("role", (type === "err" || type === "warn") ? "alert" : "status");
+  const heading = title || TOAST_TITLES[type] || TOAST_TITLES.info;
   el.innerHTML = `
     <span class="t-icon" aria-hidden="true">${toastIcon(type)}</span>
-    <span class="t-message">${esc(msg)}</span>
+    <span class="t-body">
+      <span class="t-title">${esc(heading)}</span>
+      <span class="t-message">${esc(msg)}</span>
+    </span>
     <button class="t-close" type="button" aria-label="Đóng thông báo">×</button>
   `;
   host.appendChild(el);
+
+  const DURATION = 4200;
+  let remaining = DURATION;
+  let timerId = null;
+  let startedAt = Date.now();
   const dismiss = ()=>{
     if(!el.isConnected || el.classList.contains("is-closing")) return;
+    clearTimeout(timerId);
     el.classList.add("is-closing");
     setTimeout(()=>el.remove(), 230);
   };
+  const arm = ()=>{
+    startedAt = Date.now();
+    timerId = setTimeout(dismiss, remaining);
+  };
+  const pause = ()=>{
+    clearTimeout(timerId);
+    remaining -= (Date.now() - startedAt);
+  };
+  // Di chuột vào toast để tạm dừng bộ đếm, rời chuột ra để tiếp tục đếm ngược.
+  el.addEventListener("mouseenter", pause);
+  el.addEventListener("mouseleave", arm);
   $(".t-close", el)?.addEventListener("click", dismiss);
-  setTimeout(dismiss, 4200);
+  arm();
 }
 
 /* ---------------------------------------------------------------------------
@@ -6828,10 +6875,22 @@ function initShell(){
   $("#btnAddRel").addEventListener("click", ()=> openRelModal(null));
   $("#btnAddBrd").addEventListener("click", ()=> openBrdModal(null));
   $("#btnEvidenceZip").addEventListener("click", ()=> openExportSelectionModal("images"));
-  $("#btnDashRefresh").addEventListener("click", ()=>{
+  $("#btnDashRefresh").addEventListener("click", async ()=>{
     if(STATE.refreshing) return;
     toast("Đang làm mới dữ liệu...", "info");
-    refreshAll();
+    await refreshAll();
+    const failedLabels = {
+      cr:"CR Log", tc:"UAT Test Case", rel:"Release/PRD", brd:"BRD",
+      admin:"Người dùng", status:"Status", subStatus:"Sub-Status", evidence:"Evidence Step"
+    };
+    const failed = Object.keys(STATE.loadErrors)
+      .filter(k=> STATE.loadErrors[k] && failedLabels[k])
+      .map(k=> failedLabels[k]);
+    if(failed.length){
+      toast(`Một số dữ liệu chưa tải được: ${failed.join(", ")}.`, "warn");
+    }else{
+      toast("Dữ liệu đã được cập nhật mới nhất.", "ok");
+    }
   });
   $("#btnProgressReport").addEventListener("click", ()=> openExportSelectionModal("report"));
 

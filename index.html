@@ -2086,6 +2086,66 @@ body.focus-mode .modal-overlay.full{ left:0 !important; }
   pointer-events:none;
 }
 
+/* ==========================================================================
+   SIDEBAR DECORATIVE PATTERN — additive only, does not touch any existing
+   sidebar rule above. Sits behind all sidebar content (nav items, brand,
+   footer keep full contrast/readability — .sidebar > * is already z-index:1).
+   Pure visual texture: soft color glow + faint dot-grid + hairline diagonal
+   accents, all in the sidebar's own teal/gold palette at low opacity.
+   ========================================================================== */
+.sidebar::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  border-radius: inherit;
+  background:
+    /* soft glow blobs, top-right teal + bottom-left gold, very subtle */
+    radial-gradient(480px 320px at 108% -8%, rgba(63,208,201,0.16), transparent 60%),
+    radial-gradient(340px 260px at -12% 104%, rgba(242,184,75,0.10), transparent 62%),
+    /* faint dot-grid texture */
+    radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px);
+  background-size: auto, auto, 16px 16px;
+  background-position: 0 0, 0 0, 4px 4px;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.85) 100%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.85) 100%);
+}
+/* Thin decorative diagonal hairlines threaded behind the brand mark only,
+   so the texture reads as an intentional accent near the logo rather than
+   noise across the whole rail. */
+.sidebar .brand{ position:relative; }
+.sidebar .brand::after{
+  content:"";
+  position:absolute;
+  right:-14px; top:-18px; width:120px; height:120px;
+  background: repeating-linear-gradient(115deg,
+    rgba(63,208,201,0.16) 0px, rgba(63,208,201,0.16) 1px,
+    transparent 1px, transparent 11px);
+  -webkit-mask-image: radial-gradient(circle at 30% 40%, rgba(0,0,0,0.9), transparent 68%);
+  mask-image: radial-gradient(circle at 30% 40%, rgba(0,0,0,0.9), transparent 68%);
+  pointer-events:none;
+  z-index:0;
+}
+.sidebar .brand > *{ position:relative; z-index:1; }
+/* Small accent tick beside each group label — echoes the active-item bar
+   so the section headers feel part of the same visual language. */
+.nav-group-label{ position:relative; padding-left:20px !important; }
+.nav-group-label::before{
+  content:"";
+  position:absolute; left:2px; top:50%; transform:translateY(-50%);
+  width:10px; height:2px; border-radius:2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity:.85;
+}
+@media (prefers-reduced-motion: no-preference){
+  .nav-item.active{ animation: nav-active-pop 260ms var(--ease-decel) both; }
+}
+@keyframes nav-active-pop{
+  from{ box-shadow:0 0 0 0 rgba(63,208,201,0.35); }
+  to{ box-shadow:0 7px 16px -12px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(4,34,39,0.2); }
+}
+
 .topbar{
   background:
     linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0) 72%),

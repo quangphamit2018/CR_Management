@@ -1379,6 +1379,16 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   #aaLogTable td{ white-space:nowrap; }
   #aaLogTable .aa-detail-row td{ white-space:normal; }
 
+  .aa-src-note{ margin:-4px 0 14px; padding:9px 12px; border-radius:9px; background:var(--warn-bg); border:1px solid var(--warn-line); color:#5c4500; font-size:12.5px; font-weight:600; line-height:1.55; }
+  .aa-cron-info{ margin-bottom:14px; padding:14px 16px; border-radius:12px; background:#fff; border:1px solid var(--brand-tint-border); border-left:5px solid var(--accent); font-size:13px; line-height:1.7; color:var(--ink); }
+  .aa-cron-info.aa-cron-warn{ border-left-color:#e0a800; background:var(--warn-bg); border-color:var(--warn-line); }
+  .aa-cron-info.aa-cron-err{ border-left-color:#d64550; background:var(--danger-bg); border-color:var(--danger-line); color:var(--danger); }
+  .aa-cron-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+  .aa-cron-name{ font-weight:700; color:var(--navy-800); }
+  .aa-cron-desc{ margin-top:6px; color:var(--ink-2); font-size:12.5px; }
+  .aa-cron-meta{ margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); color:var(--ink-2); font-size:12px; }
+  .aa-chip small em{ font-style:normal; color:var(--accent); font-weight:700; }
+
   @media (max-width:900px){
     .aa-grid{ grid-template-columns:1fr; }
   }
@@ -1999,7 +2009,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>
           <div><b>Chưa cài đặt phần server cho Auto Assign.</b> Trang này chỉ là nơi cấu hình — job chạy trên Supabase.
             Cần chạy file <code>01_auto_assign_schema.sql</code> trong SQL Editor và deploy Edge Function <code>jira-auto-assign</code>
-            (hướng dẫn nằm trong 2 file đi kèm).</div>
+            (hướng dẫn nằm trong 2 file đi kèm).
+            <br><b>Đã chạy SQL mà vẫn báo lỗi?</b> Trong SQL Editor chạy <code>notify pgrst, 'reload schema';</code> rồi tải lại trang.
+            Nếu vẫn lỗi, chạy <code>select proname from pg_proc where proname like 'auto_assign%';</code> — phải ra đủ 4 hàm.</div>
         </div>
 
         <div class="aa-next" id="aaNextRun" style="display:none;"></div>
@@ -2052,29 +2064,41 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         <!-- Lịch -->
         <div class="aa-box aa-schedule">
           <div class="aa-box-title">Lịch chạy — trước giờ đồng bộ dữ liệu</div>
-          <p class="us-help">Nhập giờ hệ thống <b>đồng bộ dữ liệu Jira</b>. Job Auto Assign sẽ tự chạy sớm hơn số phút bên dưới,
-            để ticket vừa giao được đồng bộ về Dashboard ngay lượt sync kế tiếp.</p>
+          <p class="us-help">Job Auto Assign chạy sớm hơn mỗi lượt <b>đồng bộ dữ liệu Jira</b> vài phút, để ticket vừa giao
+            được đồng bộ về Dashboard ngay lượt sync kế tiếp.</p>
 
-          <div class="us-mode-switch" role="group" aria-label="Kiểu lịch sync">
-            <button type="button" class="us-mode-btn active" id="aaModeFixedBtn">Giờ cố định</button>
-            <button type="button" class="us-mode-btn" id="aaModeIntervalBtn">Lặp theo chu kỳ</button>
+          <div class="us-mode-switch" id="aaSourceSwitch" role="group" aria-label="Nguồn lịch sync">
+            <button type="button" class="us-mode-btn active" id="aaSrcCronBtn">Tự động theo lịch sync hiện có</button>
+            <button type="button" class="us-mode-btn" id="aaSrcManualBtn">Nhập tay</button>
           </div>
+          <div class="aa-src-note" id="aaSourceNote" style="display:none;"></div>
 
-          <div id="aaFixedBox" class="aa-sched-row">
-            <div class="us-field aa-grow">
-              <label class="us-label" for="aaFixedTimes">Các giờ sync trong ngày</label>
-              <input type="text" class="us-input" id="aaFixedTimes" value="08:00, 12:00, 17:00" placeholder="VD: 08:00, 12:00, 17:00" autocomplete="off">
-              <p class="us-help" style="margin:4px 0 0;">Định dạng HH:mm, cách nhau bằng dấu phẩy.</p>
+          <!-- Nguồn: lịch cron của job jira-sync (chỉ đọc) -->
+          <div id="aaCronBox" class="aa-cron-info"></div>
+
+          <!-- Nguồn: nhập tay -->
+          <div id="aaManualBox" style="display:none;">
+            <div class="us-mode-switch" role="group" aria-label="Kiểu lịch sync nhập tay">
+              <button type="button" class="us-mode-btn active" id="aaModeFixedBtn">Giờ cố định</button>
+              <button type="button" class="us-mode-btn" id="aaModeIntervalBtn">Lặp theo chu kỳ</button>
             </div>
-          </div>
 
-          <div id="aaIntervalBox" class="aa-sched-row" style="display:none;">
-            <div class="us-field"><label class="us-label" for="aaIntervalMin">Sync mỗi (phút)</label>
-              <input type="number" class="us-input" id="aaIntervalMin" min="1" max="720" step="1" value="30"></div>
-            <div class="us-field"><label class="us-label" for="aaIntervalStart">Bắt đầu từ</label>
-              <input type="time" class="us-input" id="aaIntervalStart" value="07:00"></div>
-            <div class="us-field"><label class="us-label" for="aaIntervalEnd">Đến hết</label>
-              <input type="time" class="us-input" id="aaIntervalEnd" value="18:00"></div>
+            <div id="aaFixedBox" class="aa-sched-row">
+              <div class="us-field aa-grow">
+                <label class="us-label" for="aaFixedTimes">Các giờ sync trong ngày</label>
+                <input type="text" class="us-input" id="aaFixedTimes" value="08:00, 12:00, 17:00" placeholder="VD: 08:00, 12:00, 17:00" autocomplete="off">
+                <p class="us-help" style="margin:4px 0 0;">Định dạng HH:mm, cách nhau bằng dấu phẩy.</p>
+              </div>
+            </div>
+
+            <div id="aaIntervalBox" class="aa-sched-row" style="display:none;">
+              <div class="us-field"><label class="us-label" for="aaIntervalMin">Sync mỗi (phút)</label>
+                <input type="number" class="us-input" id="aaIntervalMin" min="1" max="720" step="1" value="30"></div>
+              <div class="us-field"><label class="us-label" for="aaIntervalStart">Bắt đầu từ</label>
+                <input type="time" class="us-input" id="aaIntervalStart" value="07:00"></div>
+              <div class="us-field"><label class="us-label" for="aaIntervalEnd">Đến hết</label>
+                <input type="time" class="us-input" id="aaIntervalEnd" value="18:00"></div>
+            </div>
           </div>
 
           <div class="aa-sched-row">
@@ -2097,7 +2121,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           </div>
 
           <div class="aa-preview">
-            <div class="aa-preview-title">Các mốc job sẽ chạy <span id="aaTzNote" class="aa-opt">(giờ Asia/Ho_Chi_Minh)</span></div>
+            <div class="aa-preview-title"><span id="aaPreviewTitle">Các mốc job sẽ chạy</span> <span id="aaTzNote" class="aa-opt">(giờ Asia/Ho_Chi_Minh)</span></div>
             <div class="aa-chips" id="aaRunPreview"></div>
           </div>
         </div>
@@ -5181,6 +5205,180 @@ async function autoRefreshFromSupabase(){
 }
 
 setInterval(autoRefreshFromSupabase, AUTO_REFRESH_MS);
+/* [Auto Assign] Bộ đọc lịch cron dùng chung với Edge Function (sinh tự động từ cùng một mã nguồn) */
+var AA_CRON = (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+  var client_src_exports = {};
+  __export(client_src_exports, {
+    cronMatches: () => cronMatches,
+    cronPartsAt: () => cronPartsAt,
+    findDueSlots: () => findDueSlots,
+    findDueSlotsFromCron: () => findDueSlotsFromCron,
+    localAsUtcMs: () => localAsUtcMs,
+    nextRunsFromCron: () => nextRunsFromCron,
+    parseCron: () => parseCron
+  });
+  const DUE_WINDOW_MIN = 3;
+  const fmtCache = /* @__PURE__ */ new Map();
+  function localAsUtcMs(d, tz) {
+    let f = fmtCache.get(tz);
+    if (!f) {
+      f = new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+      fmtCache.set(tz, f);
+    }
+    const parts = f.formatToParts(d);
+    const g = (t) => Number(parts.find((p) => p.type === t)?.value);
+    return Date.UTC(g("year"), g("month") - 1, g("day"), g("hour"), g("minute"));
+  }
+  function findDueSlots(now, cfg) {
+    const nowLocal = localAsUtcMs(now, cfg.timezone);
+    const dayStart = Math.floor(nowLocal / 864e5) * 864e5;
+    const out = [];
+    for (const dayOffset of [-1, 0, 1]) {
+      for (const hhmm of cfg.sync_times || []) {
+        const m = /^(\d{2}):(\d{2})$/.exec(hhmm);
+        if (!m) continue;
+        const slotMs = dayStart + dayOffset * 864e5 + (Number(m[1]) * 60 + Number(m[2]) - cfg.lead_minutes) * 6e4;
+        const diff = nowLocal - slotMs;
+        if (diff < 0 || diff >= DUE_WINDOW_MIN * 6e4) continue;
+        const dow = new Date(slotMs).getUTCDay() || 7;
+        if (!(cfg.days_of_week || []).includes(dow)) continue;
+        out.push({ slotKey: new Date(slotMs).toISOString().slice(0, 16), slotMs, syncAt: hhmm });
+      }
+    }
+    return out.sort((a, b) => a.slotMs - b.slotMs).map(({ slotKey, syncAt }) => ({ slotKey, syncAt }));
+  }
+  const NAMES_MONTH = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+  const NAMES_DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const pad2 = (n) => String(n).padStart(2, "0");
+  function cronNum(tok, names, offset) {
+    if (/^\d+$/.test(tok)) return Number(tok);
+    if (names) {
+      const i = names.indexOf(tok.toUpperCase());
+      if (i >= 0) return i + offset;
+    }
+    return null;
+  }
+  function parseCronField(src, min, max, names, nameOffset) {
+    const set = /* @__PURE__ */ new Set();
+    const star = src.startsWith("*");
+    for (const part of src.split(",")) {
+      if (!part) return null;
+      const pieces = part.split("/");
+      if (pieces.length > 2) return null;
+      const rangePart = pieces[0], stepPart = pieces[1];
+      let step = 1;
+      if (stepPart !== void 0) {
+        if (!/^\d+$/.test(stepPart)) return null;
+        step = Number(stepPart);
+        if (step < 1) return null;
+      }
+      let lo, hi;
+      if (rangePart === "*") {
+        lo = min;
+        hi = max;
+      } else if (rangePart.includes("-")) {
+        const ab = rangePart.split("-");
+        if (ab.length !== 2) return null;
+        const na = cronNum(ab[0], names, nameOffset), nb = cronNum(ab[1], names, nameOffset);
+        if (na === null || nb === null) return null;
+        lo = na;
+        hi = nb;
+      } else {
+        const n = cronNum(rangePart, names, nameOffset);
+        if (n === null) return null;
+        lo = n;
+        hi = stepPart !== void 0 ? max : n;
+      }
+      if (lo < min || hi > max || lo > hi) return null;
+      for (let v = lo; v <= hi; v += step) set.add(v);
+    }
+    return { star, set };
+  }
+  function parseCron(expr) {
+    const f = String(expr || "").trim().split(/\s+/);
+    if (f.length !== 5) return null;
+    const minute = parseCronField(f[0], 0, 59, null, 0);
+    const hour = parseCronField(f[1], 0, 23, null, 0);
+    const dom = parseCronField(f[2], 1, 31, null, 0);
+    const month = parseCronField(f[3], 1, 12, NAMES_MONTH, 1);
+    const dow = parseCronField(f[4], 0, 7, NAMES_DOW, 0);
+    if (!minute || !hour || !dom || !month || !dow) return null;
+    if (dow.set.has(7)) {
+      dow.set.delete(7);
+      dow.set.add(0);
+    }
+    return { minute, hour, dom, month, dow };
+  }
+  function cronPartsAt(ms, tz) {
+    const d = new Date(localAsUtcMs(new Date(ms), tz));
+    return { minute: d.getUTCMinutes(), hour: d.getUTCHours(), dom: d.getUTCDate(), month: d.getUTCMonth() + 1, dow: d.getUTCDay() };
+  }
+  function cronMatches(c, p) {
+    if (!c.minute.set.has(p.minute) || !c.hour.set.has(p.hour) || !c.month.set.has(p.month)) return false;
+    const domOk = c.dom.set.has(p.dom), dowOk = c.dow.set.has(p.dow);
+    return c.dom.star || c.dow.star ? domOk && dowOk : domOk || dowOk;
+  }
+  function findDueSlotsFromCron(now, cronExprs, cronTz, cfg) {
+    const parsed = cronExprs.map(parseCron).filter((c) => c !== null);
+    const out = [];
+    if (!parsed.length) return out;
+    const nowMin = Math.floor(now.getTime() / 6e4) * 6e4;
+    for (let back = DUE_WINDOW_MIN - 1; back >= 0; back--) {
+      const runMs = nowMin - back * 6e4;
+      const syncMs = runMs + cfg.lead_minutes * 6e4;
+      const parts = cronPartsAt(syncMs, cronTz);
+      if (!parsed.some((c) => cronMatches(c, parts))) continue;
+      const runLocal = localAsUtcMs(new Date(runMs), cfg.timezone);
+      const dow = new Date(runLocal).getUTCDay() || 7;
+      if (!(cfg.days_of_week || []).includes(dow)) continue;
+      const s = new Date(localAsUtcMs(new Date(syncMs), cfg.timezone));
+      out.push({ slotKey: new Date(runLocal).toISOString().slice(0, 16), syncAt: pad2(s.getUTCHours()) + ":" + pad2(s.getUTCMinutes()) });
+    }
+    return out;
+  }
+  function nextRunsFromCron(fromMs, cronExprs, cronTz, cfg, count, horizonMin = 8 * 1440) {
+    const parsed = cronExprs.map(parseCron).filter((c) => c !== null);
+    const out = [];
+    if (!parsed.length) return out;
+    const start = Math.floor(fromMs / 6e4) * 6e4 + 6e4;
+    for (let i = 0; i < horizonMin && out.length < count; i++) {
+      const runMs = start + i * 6e4;
+      const syncMs = runMs + cfg.lead_minutes * 6e4;
+      if (!parsed.some((c) => cronMatches(c, cronPartsAt(syncMs, cronTz)))) continue;
+      const dow = new Date(localAsUtcMs(new Date(runMs), cfg.timezone)).getUTCDay() || 7;
+      if (!(cfg.days_of_week || []).includes(dow)) continue;
+      out.push({ runMs, syncMs });
+    }
+    return out;
+  }
+  return __toCommonJS(client_src_exports);
+})();
+
 
 /* ================================================================
    [Auto Assign] — cấu hình job tự động giao ticket.
@@ -5197,6 +5395,9 @@ let aaApplying = false;        // đang đổ dữ liệu vào form (không tín
 let aaBusy = false;
 let aaSavedCfg = null;         // cấu hình đã lưu trên server
 let aaLogRows = [];
+let aaSource = 'cron';           // 'cron' = đọc lịch từ cron.job của jira-sync | 'manual' = giờ nhập tay
+let aaSupportsSource = false;    // false khi server chưa chạy 03_sync_schedule_source.sql
+let aaSyncInfo = null;           // { rows:[{jobname,schedule,active,cron_timezone}], tz, error } — lịch sync thật đọc từ server
 
 function aaEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function aaPad(n){ return String(n).padStart(2, '0'); }
@@ -5221,10 +5422,108 @@ function aaErrMsg(r){
   const d = r && r.data;
   return (d && (d.message || d.error || d.hint)) ? (d.message || d.error || d.hint) : ('HTTP ' + (r ? r.status : '?'));
 }
-function aaIsMissingServer(r){ return r && (r.status === 404 || (r.data && r.data.code === 'PGRST202')); }
+function aaErrFull(r){
+  const d = r && r.data;
+  if(!d) return 'HTTP ' + (r ? r.status : '?');
+  const msg = d.message || d.error || ('HTTP ' + r.status);
+  return d.hint ? msg + ' — Gợi ý từ Supabase: ' + d.hint : msg;
+}
+/* Chỉ coi là "chưa cài hàm" khi PostgREST báo PGRST202 (không có hàm trong schema cache).
+   Mã 42883 = một hàm BÊN TRONG bị thiếu (PostgREST cũng trả 404) -> đó là lỗi cấu hình server, phải hiện nguyên văn lý do. */
+function aaIsMissingServer(r){
+  if(!r) return false;
+  const code = r.data && r.data.code;
+  if(code === 'PGRST202') return true;
+  return r.status === 404 && code !== '42883' && !(r.data && r.data.message);
+}
 function aaShowSetup(show){ aaEl('aaSetupBanner').style.display = show ? 'flex' : 'none'; }
 
-/* ---------- Lịch: gom các mốc giờ SYNC từ form ---------- */
+/* ---------- Nguồn lịch sync: tự động (cron.job) hoặc nhập tay ---------- */
+function aaSetSource(src){
+  aaSource = (src === 'manual' || !aaSupportsSource) ? 'manual' : 'cron';
+  const sw = aaEl('aaSourceSwitch'), note = aaEl('aaSourceNote');
+  sw.style.display = aaSupportsSource ? '' : 'none';
+  note.style.display = aaSupportsSource ? 'none' : '';
+  if(!aaSupportsSource) note.textContent = 'Để Auto Assign tự đọc lịch sync hiện có (không phải nhập tay), hãy chạy file 03_sync_schedule_source.sql trong Supabase rồi tải lại trang.';
+  aaEl('aaSrcCronBtn').classList.toggle('active', aaSource === 'cron');
+  aaEl('aaSrcManualBtn').classList.toggle('active', aaSource === 'manual');
+  aaEl('aaCronBox').style.display = aaSource === 'cron' ? '' : 'none';
+  aaEl('aaManualBox').style.display = aaSource === 'manual' ? '' : 'none';
+}
+function aaCronExprs(){ return ((aaSyncInfo && aaSyncInfo.rows) || []).filter(r => r.active && r.schedule).map(r => String(r.schedule)); }
+function aaCfgTz(){ return (aaSavedCfg && aaSavedCfg.timezone) || AA_TZ_DEFAULT; }
+function aaFmtHM(ms, tz){ const d = new Date(AA_CRON.localAsUtcMs(new Date(ms), tz)); return aaPad(d.getUTCHours()) + ':' + aaPad(d.getUTCMinutes()); }
+function aaFmtDayLabel(ms, tz){
+  const d = AA_CRON.localAsUtcMs(new Date(ms), tz), today = AA_CRON.localAsUtcMs(new Date(), tz);
+  const dd = Math.floor(d / 86400000), td = Math.floor(today / 86400000), x = new Date(d);
+  return dd === td ? 'hôm nay' : dd === td + 1 ? 'ngày mai' : aaPad(x.getUTCDate()) + '/' + aaPad(x.getUTCMonth() + 1);
+}
+function aaFmtRun(ms, tz){ return aaFmtHM(ms, tz) + ' ' + aaFmtDayLabel(ms, tz); }
+
+async function aaLoadSyncSchedule(){
+  const token = getSessionToken(); if(!token) return;
+  try{
+    const r = await rpc('auto_assign_get_sync_schedule', { session_token: token });
+    if(aaIsMissingServer(r)) aaSyncInfo = { rows: [], tz: 'UTC', error: 'Chưa có hàm đọc lịch sync — hãy chạy file 03_sync_schedule_source.sql.' };
+    else if(r.status === 401 || r.status === 403) aaSyncInfo = { rows: [], tz: 'UTC', error: 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.' };
+    else if(!r.ok || !Array.isArray(r.data)) aaSyncInfo = { rows: [], tz: 'UTC', error: 'Không đọc được lịch sync: ' + aaErrFull(r) };
+    else aaSyncInfo = { rows: r.data, tz: (r.data[0] && r.data[0].cron_timezone) || 'UTC', error: '' };
+  }catch(e){
+    aaSyncInfo = { rows: [], tz: 'UTC', error: 'Lỗi kết nối khi đọc lịch sync: ' + e.message };
+  }
+  aaRenderCronInfo();
+  aaRenderPreview();
+  if(aaSavedCfg) aaRenderState(aaSavedCfg);
+}
+
+function aaDescribeCron(expr){
+  const c = AA_CRON.parseCron(expr);
+  if(!c) return 'Dạng lịch này chưa được hỗ trợ đọc tự động — hãy dùng "Nhập tay".';
+  const list = (f, fmt) => { const a = [...f.set].sort((x, y) => x - y); return (a.length > 8 ? a.slice(0, 8).map(fmt).join(', ') + '…' : a.map(fmt).join(', ')); };
+  const mins = 'phút ' + list(c.minute, n => aaPad(n));
+  const hours = c.hour.set.size === 24 ? 'mỗi giờ' : 'các giờ ' + list(c.hour, n => n);
+  const everyDay = c.dom.star && c.month.star && c.dow.star;
+  return 'Sync vào ' + mins + ', ' + hours + (everyDay ? ', mỗi ngày.' : ' (có giới hạn ngày/tháng — xem các mốc bên dưới).');
+}
+
+function aaRenderCronInfo(){
+  const box = aaEl('aaCronBox');
+  box.className = 'aa-cron-info';
+  if(!aaSyncInfo){ box.textContent = 'Đang đọc lịch sync từ hệ thống...'; return; }
+  if(aaSyncInfo.error){ box.classList.add('aa-cron-err'); box.textContent = aaSyncInfo.error; return; }
+  if(!aaSyncInfo.rows.length){
+    box.classList.add('aa-cron-warn');
+    box.innerHTML = '<b>Không tìm thấy job cron nào gọi jira-sync.</b> Hãy chuyển sang "Nhập tay" và nhập giờ sync của bạn.';
+    return;
+  }
+  box.innerHTML = aaSyncInfo.rows.map(r =>
+    '<div class="aa-cron-row"><span class="aa-cron-name">' + aaEsc(r.jobname || '(không tên)') + '</span><code class="us-code">' + aaEsc(r.schedule) + '</code>' +
+    (r.active ? '<span class="us-pill ok">Đang bật</span>' : '<span class="us-pill err">Đang tắt — bị bỏ qua</span>') + '</div>' +
+    '<div class="aa-cron-desc">' + aaEsc(aaDescribeCron(r.schedule)) + '</div>').join('') +
+    '<div class="aa-cron-meta">Đọc trực tiếp từ lịch cron của hệ thống — đổi lịch sync là Auto Assign tự chạy theo, không cần chỉnh ở đây. ' +
+    'Múi giờ của cron: <b>' + aaEsc(aaSyncInfo.tz) + '</b> · Auto Assign hiển thị theo <b>' + aaEsc(aaCfgTz()) + '</b>.</div>';
+}
+
+function aaRenderCronPreview(){
+  const box = aaEl('aaRunPreview');
+  aaEl('aaPreviewTitle').textContent = 'Các lần chạy kế tiếp (theo lịch sync thật)';
+  const lead = parseInt(aaEl('aaLeadMin').value, 10);
+  if(!aaSyncInfo){ box.innerHTML = '<span class="aa-opt">Đang đọc lịch sync...</span>'; return; }
+  if(aaSyncInfo.error){ box.innerHTML = '<span class="aa-preview-err">' + aaEsc(aaSyncInfo.error) + '</span>'; return; }
+  const exprs = aaCronExprs();
+  if(!exprs.length){ box.innerHTML = '<span class="aa-opt">Chưa có lịch sync đang bật để tính mốc.</span>'; return; }
+  if(!exprs.some(s => AA_CRON.parseCron(s))){ box.innerHTML = '<span class="aa-preview-err">Lịch sync hiện tại thuộc dạng chưa hỗ trợ đọc tự động. Hãy dùng "Nhập tay".</span>'; return; }
+  if(!Number.isFinite(lead) || lead < 0 || lead > 120){ box.innerHTML = '<span class="aa-preview-err">Số phút chạy trước phải từ 0 đến 120.</span>'; return; }
+  const days = aaSelectedDays();
+  if(!days.length){ box.innerHTML = '<span class="aa-preview-err">Hãy chọn ít nhất 1 ngày trong tuần.</span>'; return; }
+  const tz = aaCfgTz();
+  const runs = AA_CRON.nextRunsFromCron(Date.now(), exprs, aaSyncInfo.tz, { lead_minutes: lead, days_of_week: days, timezone: tz }, 12);
+  if(!runs.length){ box.innerHTML = '<span class="aa-opt">Không có lần chạy nào trong 8 ngày tới (kiểm tra ngày chạy).</span>'; return; }
+  box.innerHTML = runs.map(x =>
+    '<span class="aa-chip"><b>' + aaFmtHM(x.runMs, tz) + '</b><small>sync ' + aaFmtHM(x.syncMs, tz) + ' · <em>' + aaEsc(aaFmtDayLabel(x.runMs, tz)) + '</em></small></span>').join('');
+}
+
+/* ---------- Lịch: gom các mốc giờ SYNC từ form (chế độ nhập tay) ---------- */
 function aaSetMode(mode){
   aaMode = mode === 'interval' ? 'interval' : 'fixed';
   aaEl('aaModeFixedBtn').classList.toggle('active', aaMode === 'fixed');
@@ -5258,6 +5557,8 @@ function aaSelectedDays(){
 }
 
 function aaRenderPreview(){
+  if(aaSource === 'cron' && aaSupportsSource){ aaRenderCronPreview(); return; }
+  aaEl('aaPreviewTitle').textContent = 'Các mốc job sẽ chạy';
   const box = aaEl('aaRunPreview');
   const lead = parseInt(aaEl('aaLeadMin').value, 10);
   const { times, error } = aaCollectSyncTimes();
@@ -5280,6 +5581,13 @@ function aaLocalAsUtcMs(d, tz){
   return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'));
 }
 function aaNextRun(cfg){
+  if(cfg.schedule_source === 'cron'){
+    const exprs = aaCronExprs();
+    if(!exprs.length || !aaSyncInfo) return null;
+    const tz = cfg.timezone || AA_TZ_DEFAULT;
+    const n = AA_CRON.nextRunsFromCron(Date.now(), exprs, aaSyncInfo.tz, { lead_minutes: cfg.lead_minutes || 0, days_of_week: cfg.days_of_week || [], timezone: tz }, 1);
+    return n.length ? { text: aaFmtRun(n[0].runMs, tz), sync: aaFmtHM(n[0].syncMs, tz) } : null;
+  }
   const times = cfg.sync_times || [], days = cfg.days_of_week || [], lead = cfg.lead_minutes || 0;
   if(!times.length || !days.length) return null;
   let nowL;
@@ -5315,7 +5623,9 @@ function aaRenderState(cfg){
     next.style.display = '';
     next.innerHTML = n
       ? 'Lần chạy kế tiếp: <b>' + aaEsc(n.text) + '</b> <span>(trước lượt sync ' + aaEsc(n.sync) + ' — múi giờ ' + aaEsc(cfg.timezone || AA_TZ_DEFAULT) + ')</span>'
-      : 'Job đang bật nhưng chưa có mốc chạy nào phù hợp (kiểm tra mốc giờ và ngày chạy).';
+      : (cfg.schedule_source === 'cron'
+          ? 'Job đang bật nhưng <b>chưa đọc được lịch sync hợp lệ</b> từ hệ thống nên sẽ không chạy. Xem khung "Lịch chạy" bên dưới hoặc chuyển sang "Nhập tay".'
+          : 'Job đang bật nhưng chưa có mốc chạy nào phù hợp (kiểm tra mốc giờ và ngày chạy).');
   } else {
     next.style.display = 'none';
   }
@@ -5349,6 +5659,8 @@ function aaApplyConfig(c){
     aaEl('aaMaxPerRun').value = c.max_per_run != null ? c.max_per_run : 50;
     aaEl('aaLeadMin').value = c.lead_minutes != null ? c.lead_minutes : 5;
     aaEl('aaTzNote').textContent = '(giờ ' + (c.timezone || AA_TZ_DEFAULT) + ')';
+    aaSupportsSource = Object.prototype.hasOwnProperty.call(c, 'schedule_source');
+    aaSetSource(aaSupportsSource && c.schedule_source !== 'manual' ? 'cron' : 'manual');
     const days = c.days_of_week || [1, 2, 3, 4, 5, 6, 7];
     document.querySelectorAll('#aaDays input[type=checkbox]').forEach(i => { i.checked = days.indexOf(parseInt(i.dataset.day, 10)) !== -1; });
 
@@ -5380,7 +5692,11 @@ async function aaLoadConfig(){
   const token = getSessionToken();
   if(!token){ aaSetAlert('Phiên đăng nhập Admin đã hết hạn, vui lòng đăng nhập lại.', 'err'); return false; }
   const r = await rpc('auto_assign_get_config', { session_token: token });
-  if(aaIsMissingServer(r)){ aaShowSetup(true); aaEl('aaStateBadge').className = 'aa-state off'; aaEl('aaStateBadge').textContent = 'Chưa cài server'; return false; }
+  if(aaIsMissingServer(r)){
+    aaShowSetup(true); aaEl('aaStateBadge').className = 'aa-state off'; aaEl('aaStateBadge').textContent = 'Chưa cài server';
+    aaSetAlert('Supabase không tìm thấy hàm auto_assign_get_config. Chi tiết: ' + aaErrFull(r), 'err');
+    return false;
+  }
   if(r.status === 401 || r.status === 403){ aaSetAlert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 'err'); return false; }
   if(!r.ok || !Array.isArray(r.data) || !r.data[0]){ aaSetAlert('Không tải được cấu hình Auto Assign: ' + aaErrMsg(r), 'err'); return false; }
   aaShowSetup(false);
@@ -5394,9 +5710,11 @@ async function aaOnTabOpen(){
     if(!aaLoadedOnce){
       aaClearAlert();
       await aaLoadAssignees();
+      await aaLoadSyncSchedule();
       const ok = await aaLoadConfig();
       if(ok){ aaLoadedOnce = true; await aaLoadLog(); }
     } else {
+      await aaLoadSyncSchedule();        // đọc lại lịch sync thật (phòng khi cron vừa được đổi)
       aaRenderState(aaSavedCfg || {});   // cập nhật lại "lần chạy kế tiếp" theo giờ hiện tại
       await aaLoadLog();
     }
@@ -5410,8 +5728,10 @@ async function aaSave(){
   const token = getSessionToken();
   if(!token){ aaSetAlert('Phiên đăng nhập Admin đã hết hạn, vui lòng đăng nhập lại.', 'err'); return; }
 
+  const useCron = aaSupportsSource && aaSource === 'cron';
   const sched = aaCollectSyncTimes();
-  if(sched.error){ aaSetAlert(sched.error, 'err'); return; }
+  if(sched.error && !useCron){ aaSetAlert(sched.error, 'err'); return; }
+  const schedTimes = sched.error ? [] : sched.times;
   const lead = parseInt(aaEl('aaLeadMin').value, 10);
   const maxRun = parseInt(aaEl('aaMaxPerRun').value, 10);
   if(!Number.isFinite(lead) || lead < 0 || lead > 120){ aaSetAlert('Số phút chạy trước phải từ 0 đến 120.', 'err'); return; }
@@ -5426,12 +5746,15 @@ async function aaSave(){
   const opt = sel.selectedOptions[0];
   const assigneeName = accountId && opt ? (opt.dataset.name || opt.textContent) : '';
   if(enabled && !accountId){ aaSetAlert('Muốn bật job cần chọn người nhận ticket.', 'err'); return; }
-  if(enabled && !sched.times.length){ aaSetAlert('Muốn bật job cần có ít nhất 1 mốc giờ sync.', 'err'); return; }
+  if(enabled && useCron && !aaCronExprs().some(s => AA_CRON.parseCron(s))){
+    aaSetAlert('Không đọc được lịch sync hợp lệ từ cron.job. Hãy kiểm tra job cron của jira-sync, hoặc chuyển sang "Nhập tay".', 'err'); return;
+  }
+  if(enabled && !useCron && !schedTimes.length){ aaSetAlert('Muốn bật job cần có ít nhất 1 mốc giờ sync.', 'err'); return; }
 
   aaBusyOn(true);
   aaSetAlert('Đang lưu cấu hình...', 'info');
   try{
-    const r = await rpc('auto_assign_save_config', {
+    const payload = {
       session_token: token,
       p_enabled: enabled,
       p_assignee_name: assigneeName || null,
@@ -5441,7 +5764,7 @@ async function aaSave(){
       p_group_value: gValue,
       p_project_key: aaEl('aaProjectKey').value.trim() || null,
       p_lead_minutes: lead,
-      p_sync_times: sched.times,
+      p_sync_times: schedTimes,
       p_days_of_week: days,
       p_max_per_run: maxRun,
       p_schedule_ui: {
@@ -5451,8 +5774,14 @@ async function aaSave(){
         intervalStart: aaEl('aaIntervalStart').value,
         intervalEnd: aaEl('aaIntervalEnd').value
       }
-    });
-    if(aaIsMissingServer(r)){ aaShowSetup(true); aaSetAlert('Chưa cài đặt phần server cho Auto Assign (thiếu hàm auto_assign_save_config).', 'err'); return; }
+    };
+    if(aaSupportsSource) payload.p_schedule_source = aaSource;   // server cũ (chưa chạy file 03) không có tham số này
+    const r = await rpc('auto_assign_save_config', payload);
+    if(aaIsMissingServer(r)){
+      aaShowSetup(true);
+      aaSetAlert('Supabase không tìm thấy hàm auto_assign_save_config. Chi tiết: ' + aaErrFull(r), 'err');
+      return;
+    }
     if(r.status === 401 || r.status === 403){ aaSetAlert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 'err'); return; }
     if(!r.ok || r.data !== true){ aaSetAlert('Lưu thất bại: ' + aaErrMsg(r), 'err'); return; }
     await aaLoadConfig();   // đọc lại từ server để chắc chắn form khớp dữ liệu đã lưu
@@ -5578,6 +5907,8 @@ function aaToggleDetail(btn){
 }
 
 /* ---------- Gắn sự kiện ---------- */
+aaEl('aaSrcCronBtn').addEventListener('click', () => { aaSetSource('cron'); aaMarkDirty(); aaRenderPreview(); });
+aaEl('aaSrcManualBtn').addEventListener('click', () => { aaSetSource('manual'); aaMarkDirty(); aaRenderPreview(); });
 aaEl('aaModeFixedBtn').addEventListener('click', () => { aaSetMode('fixed'); aaMarkDirty(); aaRenderPreview(); });
 aaEl('aaModeIntervalBtn').addEventListener('click', () => { aaSetMode('interval'); aaMarkDirty(); aaRenderPreview(); });
 ['aaFixedTimes', 'aaIntervalMin', 'aaIntervalStart', 'aaIntervalEnd', 'aaLeadMin'].forEach(id => {
@@ -5586,12 +5917,13 @@ aaEl('aaModeIntervalBtn').addEventListener('click', () => { aaSetMode('interval'
 ['aaStatusName', 'aaGroupField', 'aaGroupValue', 'aaProjectKey', 'aaMaxPerRun'].forEach(id => aaEl(id).addEventListener('input', aaMarkDirty));
 aaEl('aaAssignee').addEventListener('change', aaMarkDirty);
 aaEl('aaEnabled').addEventListener('change', aaMarkDirty);
-aaEl('aaDays').addEventListener('change', aaMarkDirty);
+aaEl('aaDays').addEventListener('change', () => { aaMarkDirty(); aaRenderPreview(); });
 aaEl('aaSaveBtn').addEventListener('click', aaSave);
 aaEl('aaDryRunBtn').addEventListener('click', () => aaCallEdge('dry_run'));
 aaEl('aaRunNowBtn').addEventListener('click', () => aaCallEdge('run'));
 aaEl('aaRefreshLogBtn').addEventListener('click', aaLoadLog);
 aaEl('aaLogBody').addEventListener('click', (e) => { const b = e.target.closest('.aa-toggle'); if(b) aaToggleDetail(b); });
+aaRenderCronInfo();
 aaRenderPreview();
 
 </script>

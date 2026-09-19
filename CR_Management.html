@@ -243,6 +243,7 @@ body.role-no-edit [data-act="edit"]{ display:none !important; }
 
 body.role-no-delete [data-act="del"]{ display:none !important; }
 body.role-no-weekly-mom-edit #btnAddWeeklyMom,
+body.role-no-weekly-mom-edit #btnWeeklyMomImport,
 body.role-no-weekly-mom-edit [data-weekly-act="edit"],
 body.role-no-weekly-mom-edit [data-weekly-act="delete"]{ display:none !important; }
 
@@ -5326,6 +5327,14 @@ html{
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Tạo biên bản Weekly
         </button>
+        <button class="btn btn-ghost view-action hidden" data-for="weekly_mom" id="btnWeeklyMomImport" type="button" title="Nhập một batch Weekly MoM mới từ file Excel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5-5 5 5"/><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/></svg>
+          Nhập Excel
+        </button>
+        <button class="btn btn-ghost view-action hidden" data-for="weekly_mom" id="btnWeeklyMomDownload" type="button" title="Tải file Excel của batch Weekly MoM mới nhất">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16a1 1 0 001-1v-4H3v4a1 1 0 001 1z"/></svg>
+          Tải Excel
+        </button>
         <button class="btn btn-primary view-action hidden" data-for="admin" id="btnAddUser">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Thêm người dùng
@@ -7645,6 +7654,8 @@ function initShell(){
   $("#btnAddRel").addEventListener("click", ()=> openRelModal(null));
   $("#btnAddBrd").addEventListener("click", ()=> openBrdModal(null));
   $("#btnAddWeeklyMom").addEventListener("click", ()=> openWeeklyMomModal(null));
+  $("#btnWeeklyMomImport").addEventListener("click", openWeeklyMomExcelImportModal);
+  $("#btnWeeklyMomDownload").addEventListener("click", downloadWeeklyMomExcel);
   $("#btnEvidenceZip").addEventListener("click", ()=> openExportSelectionModal("images"));
   $("#btnDashRefresh").addEventListener("click", async ()=>{
     if(STATE.refreshing) return;
@@ -12325,13 +12336,67 @@ function weeklyMomRowsOf(record){
 
 function weeklyMomDateLabel(value){
   if(!value) return "Chưa có ngày";
-  const d = new Date(`${value}T00:00:00`);
-  if(Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+  if(m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return String(value);
 }
 
 function weeklyMomText(value){
   return String(value || "").trim();
+}
+
+const WEEKLY_MOM_EXCEL_SHEET_NAME = "Report_Weekly";
+const WEEKLY_MOM_EXCEL_HEADERS = [
+  "CR ID", "Description", "Priority", "Status", "Sub-Status",
+  "BRD", "FSD", "ETA", "Loop Mail Header", "Progress", "Note"
+];
+
+function weeklyMomExcelText(value){
+  if(value === null || value === undefined) return "";
+  return String(value).replace(/\r\n/g, "\n").trim();
+}
+
+function weeklyMomProgressParts(value){
+  const progress = weeklyMomExcelText(value);
+  if(!progress) return { current_update:"", next_action:"" };
+  const currentMatch = progress.match(/current\s*status\s*:\s*([\s\S]*?)(?=\n\s*next\s*action\s*:|$)/i);
+  const nextMatch = progress.match(/next\s*action\s*:\s*([\s\S]*)$/i);
+  return {
+    current_update: weeklyMomExcelText(currentMatch ? currentMatch[1] : progress),
+    next_action: weeklyMomExcelText(nextMatch ? nextMatch[1] : "")
+  };
+}
+
+function weeklyMomExcelRowToItem(row){
+  const progress = weeklyMomExcelText(row["Progress"]);
+  const parts = weeklyMomProgressParts(progress);
+  return {
+    cr_id: weeklyMomExcelText(row["CR ID"]),
+    description: weeklyMomExcelText(row["Description"]),
+    priority: weeklyMomExcelText(row["Priority"]),
+    status: weeklyMomExcelText(row["Status"]),
+    sub_status: weeklyMomExcelText(row["Sub-Status"]),
+    brd: weeklyMomExcelText(row["BRD"]),
+    fsd: weeklyMomExcelText(row["FSD"]),
+    eta: weeklyMomExcelText(row["ETA"]),
+    loop_mail_header: weeklyMomExcelText(row["Loop Mail Header"]),
+    progress,
+    current_update: parts.current_update,
+    next_action: parts.next_action,
+    note: weeklyMomExcelText(row["Note"])
+  };
+}
+
+function weeklyMomExcelValidateRows(rows){
+  const seen = new Set();
+  return rows.map((item, index)=>{
+    const errors = [];
+    if(!item.cr_id) errors.push('Thiếu "CR ID"');
+    const normalizedId = item.cr_id.toUpperCase();
+    if(item.cr_id && seen.has(normalizedId)) errors.push(`Trùng CR ID "${item.cr_id}" trong file`);
+    if(item.cr_id) seen.add(normalizedId);
+    return { rowIndex:index + 2, data:item, errors, valid:errors.length === 0 };
+  });
 }
 
 async function fetchWeeklyMomList(){
@@ -12390,15 +12455,21 @@ function renderWeeklyMomList(){
     `).join("") : `<tr><td colspan="5" style="text-align:center;color:#8a9ca9;">Buổi họp này chưa có CR.</td></tr>`;
     const participants = weeklyMomText(record.participants);
     const summary = weeklyMomText(record.overall_summary);
+    const uploadMeta = record.upload_date
+      ? `Upload ${weeklyMomDateLabel(record.upload_date)}${record.source_file_name ? ` · ${record.source_file_name}` : ""}`
+      : "";
+    const isExcelImport = record.source_type === "excel";
+    const isCurrentUploadDay = !record.upload_date || record.upload_date === todayISO();
     return `<article class="weekly-mom-card" data-weekly-id="${esc(String(record.id))}">
       <div class="weekly-mom-card-head">
         <div class="weekly-mom-card-date">${esc(weeklyMomDateLabel(record.meeting_date))}</div>
         <div>
           <div class="weekly-mom-card-vendor">${esc(weeklyMomText(record.vendor) || "Chưa nhập Vendor")}</div>
           <div class="weekly-mom-card-title">${esc(weeklyMomText(record.meeting_title) || "Weekly Vendor Meeting")}</div>
+          ${uploadMeta ? `<div class="hint">${esc(uploadMeta)}</div>` : ""}
         </div>
         <div class="weekly-mom-card-actions">
-          ${weeklyMomActionButton("edit", record.id, "Sửa")}
+          ${!isExcelImport && isCurrentUploadDay ? weeklyMomActionButton("edit", record.id, "Sửa") : ""}
           ${weeklyMomActionButton("delete", record.id, "Xóa", true)}
         </div>
       </div>
@@ -12493,6 +12564,14 @@ function renderWeeklyMomFormRows(){
 
 function openWeeklyMomModal(record){
   if(record && !canManageWeeklyMom()) return;
+  if(record && record.source_type === "excel"){
+    toast("Batch nhập từ Excel là dữ liệu append-only — hãy nhập file mới để cập nhật.", "warn");
+    return;
+  }
+  if(record && record.upload_date && record.upload_date !== todayISO()){
+    toast("Biên bản của ngày trước đã được khóa — không được ghi đè dữ liệu quá khứ.", "warn");
+    return;
+  }
   if(!record && !canManageWeeklyMom()){
     toast("Chỉ Super-admin và Senior-member được tạo biên bản Weekly.", "err");
     return;
@@ -12535,6 +12614,17 @@ function openWeeklyMomModal(record){
 
 async function saveWeeklyMom(overlay, isEdit){
   if(!canManageWeeklyMom()) return;
+  if(isEdit && STATE.editingWeeklyMomId){
+    const existing = STATE.weeklyMomList.find(item=>String(item.id) === String(STATE.editingWeeklyMomId));
+    if(existing?.source_type === "excel"){
+      toast("Batch nhập từ Excel là dữ liệu append-only — hãy nhập file mới để cập nhật.", "err");
+      return;
+    }
+    if(existing?.upload_date && existing.upload_date !== todayISO()){
+      toast("Không được cập nhật biên bản đã upload vào ngày trước.", "err");
+      return;
+    }
+  }
   const meetingDate = $("#wm_meeting_date").value;
   const vendor = $("#wm_vendor").value.trim();
   if(!meetingDate || !vendor){ toast("Vui lòng nhập Ngày họp và Vendor.", "err"); return; }
@@ -12586,6 +12676,259 @@ async function deleteWeeklyMom(record){
   toast("Đã chuyển biên bản Weekly vào Recycle Bin.", "ok");
   await fetchWeeklyMomList();
   renderWeeklyMomList();
+}
+
+function weeklyMomExcelImportModalTemplate(){
+  return `
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div>
+        <h3>Nhập Weekly MoM từ Excel</h3>
+        <div class="sub">Đọc sheet "${esc(WEEKLY_MOM_EXCEL_SHEET_NAME)}" theo cấu trúc file báo cáo Weekly.</div>
+      </div>
+      <button class="modal-close" id="weeklyMomExcelImportClose" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="hint" style="margin-bottom:14px;">
+        Ngày upload được hệ thống ghi tự động theo giờ Việt Nam (UTC+7): <b>${esc(todayISO())}</b>.
+        Mỗi lần nhập tạo một batch mới; không cập nhật hoặc xóa dữ liệu của các batch trước.
+      </div>
+      <div class="file-drop" id="weeklyMomExcelImportDrop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+        <p><b>Bấm để chọn file Excel</b> hoặc kéo thả vào đây</p>
+        <div class="hint">Khuyến nghị dùng sheet "${esc(WEEKLY_MOM_EXCEL_SHEET_NAME)}"; nếu không có, hệ thống sẽ đọc sheet đầu tiên.</div>
+        <input type="file" id="weeklyMomExcelImportInput" accept=".xlsx,.xls" hidden>
+      </div>
+      <div id="weeklyMomExcelImportPreview"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="weeklyMomExcelImportCancel" type="button">Đóng</button>
+      <button class="btn btn-primary hidden" id="weeklyMomExcelImportConfirm" disabled type="button">Xác nhận nhập</button>
+    </div>
+  </div>`;
+}
+
+function openWeeklyMomExcelImportModal(){
+  if(!canManageWeeklyMom()){
+    toast("Chỉ Super-admin và Senior-member được nhập Weekly MoM từ Excel.", "err");
+    return;
+  }
+  const overlay = $("#importModalOverlay");
+  overlay.innerHTML = weeklyMomExcelImportModalTemplate();
+  overlay.classList.add("show", "full");
+  overlay.dataset.weeklyMomExcelFileName = "";
+  const close = ()=> overlay.classList.remove("show");
+  $("#weeklyMomExcelImportClose").addEventListener("click", close);
+  $("#weeklyMomExcelImportCancel").addEventListener("click", close);
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  }
+  const drop = $("#weeklyMomExcelImportDrop");
+  const input = $("#weeklyMomExcelImportInput");
+  drop.addEventListener("click", ()=> input.click());
+  input.addEventListener("change", ()=>{ if(input.files[0]) handleWeeklyMomExcelFile(overlay, input.files[0]); });
+  ["dragenter","dragover"].forEach(ev=> drop.addEventListener(ev, e=>{
+    e.preventDefault(); drop.classList.add("drag");
+  }));
+  ["dragleave","drop"].forEach(ev=> drop.addEventListener(ev, e=>{
+    e.preventDefault(); drop.classList.remove("drag");
+  }));
+  drop.addEventListener("drop", e=>{
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(file) handleWeeklyMomExcelFile(overlay, file);
+  });
+}
+
+function handleWeeklyMomExcelFile(overlay, file){
+  if(typeof XLSX === "undefined"){
+    toast("Không tải được thư viện Excel (XLSX). Kiểm tra kết nối mạng rồi thử lại.", "err");
+    return;
+  }
+  const host = $("#weeklyMomExcelImportPreview");
+  overlay.dataset.weeklyMomExcelFileName = file.name || "weekly_mom_import.xlsx";
+  host.innerHTML = `<div class="loading-row" style="padding:24px 0;"><div class="spinner"></div>Đang đọc file "${esc(file.name)}"...</div>`;
+  const reader = new FileReader();
+  reader.onerror = ()=>{
+    host.innerHTML = "";
+    toast("Không đọc được file Excel. Vui lòng thử lại.", "err");
+  };
+  reader.onload = e=>{
+    let workbook;
+    try{
+      workbook = XLSX.read(new Uint8Array(e.target.result), { type:"array", cellDates:true });
+    }catch(error){
+      host.innerHTML = "";
+      toast("File không đúng định dạng Excel: " + error.message, "err");
+      return;
+    }
+    const sheetName = workbook.SheetNames.includes(WEEKLY_MOM_EXCEL_SHEET_NAME)
+      ? WEEKLY_MOM_EXCEL_SHEET_NAME
+      : workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet, { defval:"", raw:false });
+    if(!rows.length){
+      host.innerHTML = `<div class="empty-state" style="padding:30px 0;"><p>Sheet "${esc(sheetName)}" không có dữ liệu.</p></div>`;
+      return;
+    }
+    const headerKnown = WEEKLY_MOM_EXCEL_HEADERS.some(header=>
+      Object.prototype.hasOwnProperty.call(rows[0], header)
+    );
+    if(!headerKnown){
+      host.innerHTML = `<div class="empty-state" style="padding:30px 0;">
+        <p>Không nhận diện được cấu trúc file. Cần tối thiểu các cột theo mẫu: ${esc(WEEKLY_MOM_EXCEL_HEADERS.join(", "))}.</p>
+      </div>`;
+      return;
+    }
+    const parsed = rows.map(row=> weeklyMomExcelRowToItem(row));
+    renderWeeklyMomExcelImportPreview(overlay, weeklyMomExcelValidateRows(parsed), sheetName);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderWeeklyMomExcelImportPreview(overlay, annotated, sheetName){
+  const host = $("#weeklyMomExcelImportPreview");
+  const total = annotated.length;
+  const validCount = annotated.filter(row=>row.valid).length;
+  const errorCount = total - validCount;
+  host.innerHTML = `
+    <div class="import-summary">
+      <div class="import-stat"><b>${total}</b><span>Tổng dòng ở sheet ${esc(sheetName)}</span></div>
+      <div class="import-stat ok"><b>${validCount}</b><span>Hợp lệ (tạo batch mới)</span></div>
+      <div class="import-stat ${errorCount ? "danger" : ""}"><b>${errorCount}</b><span>Có lỗi (bỏ qua)</span></div>
+    </div>
+    <p style="font-size:12.5px;color:#7890a2;margin:-6px 0 14px;">
+      Hệ thống không dùng CR ID để update bản ghi cũ. Dữ liệu hợp lệ sẽ được lưu nguyên vẹn
+      trong một batch mới với ngày upload <b>${esc(todayISO())}</b>.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>CR ID</th><th>Description</th><th>Status</th><th>Progress</th><th>Kết quả</th></tr></thead>
+        <tbody>
+          ${annotated.map(row=>`
+            <tr>
+              <td class="cell-dim">${row.rowIndex}</td>
+              <td class="cell-id">${esc(row.data.cr_id || "—")}</td>
+              <td class="cell-title" title="${esc(row.data.description || "")}">${esc(row.data.description || "—")}</td>
+              <td>${esc(row.data.status || "—")}</td>
+              <td class="cell-title" title="${esc(row.data.progress || "")}">${esc(row.data.progress || "—")}</td>
+              <td>${
+                row.valid
+                  ? `<span class="badge" style="background:var(--success-dim);color:var(--success);"><span class="dot" style="background:var(--success)"></span>Hợp lệ</span>`
+                  : `<span class="badge" style="background:var(--danger-dim);color:var(--danger);" title="${esc(row.errors.join("; "))}"><span class="dot" style="background:var(--danger)"></span>${esc(row.errors[0])}</span>`
+              }</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>`;
+  const confirm = $("#weeklyMomExcelImportConfirm");
+  confirm.classList.remove("hidden");
+  confirm.disabled = validCount === 0;
+  confirm.textContent = `Xác nhận nhập ${validCount} dòng hợp lệ`;
+  confirm.onclick = ()=> executeWeeklyMomExcelImport(overlay, annotated);
+}
+
+async function executeWeeklyMomExcelImport(overlay, annotated){
+  if(!canManageWeeklyMom()) return;
+  const rows = annotated.filter(row=>row.valid);
+  if(!rows.length){
+    toast("Không có dòng hợp lệ để nhập.", "err");
+    return;
+  }
+  const confirm = $("#weeklyMomExcelImportConfirm");
+  const originalLabel = confirm.textContent;
+  confirm.disabled = true;
+  confirm.textContent = "Đang nhập...";
+  const uploadDate = todayISO();
+  const fileName = overlay.dataset.weeklyMomExcelFileName || "weekly_mom_import.xlsx";
+  const payload = {
+    // Database trigger sẽ ghi đè meeting_date/upload_date bằng ngày server UTC+7
+    // đối với source_type = excel; không bao giờ lấy ngày từ nội dung file.
+    meeting_date: uploadDate,
+    upload_date: uploadDate,
+    vendor: "Excel Import",
+    meeting_title: `Weekly CR Import - ${fileName}`,
+    participants: STATE.userEmail || "",
+    overall_summary: `Import ${rows.length} CR từ Excel vào ngày ${uploadDate} (UTC+7).`,
+    cr_items: rows.map(row=>row.data),
+    source_type: "excel",
+    source_file_name: fileName,
+    created_by: STATE.userEmail || null,
+    updated_by: STATE.userEmail || null,
+    uploaded_by: STATE.userEmail || null
+  };
+  const { error } = await STATE.sb.from("weekly_mom").insert(payload);
+  confirm.disabled = false;
+  confirm.textContent = originalLabel;
+  if(error){
+    toast("Nhập Weekly MoM thất bại: " + error.message, "err");
+    return;
+  }
+  toast(`Đã tạo batch Weekly MoM mới gồm ${rows.length} CR. Dữ liệu cũ không bị ghi đè.`, "ok");
+  overlay.classList.remove("show");
+  await fetchWeeklyMomList();
+  renderWeeklyMomList();
+}
+
+function weeklyMomExportRow(item){
+  const current = weeklyMomText(item.current_update);
+  const next = weeklyMomText(item.next_action);
+  const progress = weeklyMomText(item.progress)
+    || [current ? `Current Status: ${current}` : "", next ? `Next Action: ${next}` : ""].filter(Boolean).join("\n");
+  return [
+    weeklyMomText(item.cr_id),
+    weeklyMomText(item.description),
+    weeklyMomText(item.priority),
+    weeklyMomText(item.status),
+    weeklyMomText(item.sub_status),
+    weeklyMomText(item.brd),
+    weeklyMomText(item.fsd),
+    weeklyMomText(item.eta),
+    weeklyMomText(item.loop_mail_header),
+    progress,
+    weeklyMomText(item.note)
+  ];
+}
+
+function downloadWeeklyMomExcel(){
+  if(typeof XLSX === "undefined"){
+    toast("Không tải được thư viện Excel (XLSX). Kiểm tra kết nối mạng rồi thử lại.", "err");
+    return;
+  }
+  const excelBatches = STATE.weeklyMomList
+    .filter(record=>record.source_type === "excel")
+    .sort((a,b)=> new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0));
+  const latest = excelBatches[0] || null;
+  const items = latest
+    ? weeklyMomRowsOf(latest)
+    : STATE.weeklyMomList.flatMap(record=>weeklyMomRowsOf(record));
+  if(!items.length){
+    toast("Chưa có dữ liệu Weekly MoM để tải.", "warn");
+    return;
+  }
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.aoa_to_sheet([
+    WEEKLY_MOM_EXCEL_HEADERS,
+    ...items.map(weeklyMomExportRow)
+  ]);
+  worksheet["!cols"] = [
+    {wch:12}, {wch:45}, {wch:12}, {wch:20}, {wch:22},
+    {wch:10}, {wch:10}, {wch:22}, {wch:42}, {wch:70}, {wch:30}
+  ];
+  XLSX.utils.book_append_sheet(workbook, worksheet, WEEKLY_MOM_EXCEL_SHEET_NAME);
+  const metadata = [
+    ["Thông tin export", ""],
+    ["Batch", latest ? "Latest Excel import" : "All Weekly MoM records"],
+    ["Ngày upload", latest?.upload_date || todayISO()],
+    ["Nguồn file", latest?.source_file_name || "—"],
+    ["Số dòng", items.length],
+    ["Múi giờ", "Asia/Ho_Chi_Minh (UTC+7)"]
+  ];
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(metadata), "Import_Metadata");
+  const suffix = latest?.upload_date || todayISO();
+  XLSX.writeFile(workbook, `CR_Report_Summary_Weekly_${suffix.replaceAll("-", "")}.xlsx`);
+  toast(`Đã tải ${items.length} dòng từ ${latest ? "batch Excel mới nhất" : "Weekly MoM"}.`, "ok");
 }
 
 function fmtBrdDateTime(iso){

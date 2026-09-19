@@ -242,6 +242,9 @@ body.role-no-edit #drawerEditBtn,
 body.role-no-edit [data-act="edit"]{ display:none !important; }
 
 body.role-no-delete [data-act="del"]{ display:none !important; }
+body.role-no-weekly-mom-edit #btnAddWeeklyMom,
+body.role-no-weekly-mom-edit [data-weekly-act="edit"],
+body.role-no-weekly-mom-edit [data-weekly-act="delete"]{ display:none !important; }
 
 body.role-no-admin-tab #navAdmin{ display:none !important; }
 body.role-no-recycle #navRecycleBin{ display:none !important; }
@@ -387,6 +390,15 @@ body.sidebar-hidden .drawer{ left:0; }
   background: rgba(255,255,255,0.06); padding:1px 7px; border-radius:20px; flex-shrink:0;
 }
 .nav-item.active .count{ background: rgba(63,208,201,0.2); color: var(--accent); }
+.nav-item.nav-subitem{
+  margin-left:14px;
+  padding-left:24px;
+  font-size:13px;
+  border-left:1px solid rgba(255,255,255,0.08);
+  border-radius:0 10px 10px 0;
+}
+.nav-item.nav-subitem svg{ width:15px; height:15px; opacity:.72; }
+.nav-item.nav-subitem.active{ border-left-color:rgba(63,208,201,0.55); }
 
 .sidebar-foot{ margin-top:auto; padding-top:14px; border-top:1px solid var(--border); }
 .conn-pill{
@@ -4333,6 +4345,70 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 .brd-error{ color:#c0433f; border-color:#f0cbc8; background:#fdf6f5; }
 
 /* ---- Form BRD trong modal -------------------------------------------------- */
+.weekly-mom-workspace{ padding:18px 0 24px; }
+.weekly-mom-intro{
+  display:flex; align-items:center; gap:13px; padding:16px 18px; margin-bottom:14px;
+  border:1px solid #dfe9ed; border-radius:14px; background:#fff;
+  box-shadow:0 4px 14px rgba(22,52,78,.035);
+}
+.weekly-mom-intro-icon{
+  width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+  flex:0 0 auto; border-radius:11px; color:#167f83; background:#e5f5f3;
+}
+.weekly-mom-intro-icon svg{ width:21px; height:21px; }
+.weekly-mom-title{ color:#173d57; font-family:var(--font-head); font-size:15px; font-weight:800; }
+.weekly-mom-note{ margin-top:3px; color:#758b9b; font-size:12px; line-height:1.45; }
+.weekly-mom-total{ margin-left:auto; color:#5d7689; font-size:12px; white-space:nowrap; }
+.weekly-mom-total b{ color:#167f83; font-size:18px; margin-right:3px; }
+.weekly-mom-grid{ display:grid; gap:13px; }
+.weekly-mom-card{
+  overflow:hidden; border:1px solid #dfe9ed; border-radius:14px; background:#fff;
+  box-shadow:0 4px 14px rgba(22,52,78,.035);
+}
+.weekly-mom-card-head{
+  display:flex; align-items:flex-start; gap:12px; padding:15px 17px 12px;
+  border-bottom:1px solid #edf2f4; background:#fbfdfe;
+}
+.weekly-mom-card-date{ color:#167f83; font-size:12px; font-weight:800; white-space:nowrap; }
+.weekly-mom-card-vendor{ color:#173d57; font-size:14px; font-weight:800; }
+.weekly-mom-card-title{ color:#6d8391; font-size:12px; margin-top:3px; }
+.weekly-mom-card-actions{ margin-left:auto; display:flex; gap:6px; }
+.weekly-mom-card-body{ padding:13px 17px 16px; }
+.weekly-mom-summary{
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin-bottom:12px;
+}
+.weekly-mom-summary-item{ padding:9px 10px; border:1px solid #e6eef0; border-radius:9px; background:#fcfefe; }
+.weekly-mom-summary-label{ color:#8a9ca9; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+.weekly-mom-summary-value{ color:#405d70; font-size:12px; line-height:1.45; margin-top:3px; white-space:pre-wrap; }
+.weekly-mom-table{ width:100%; border-collapse:separate; border-spacing:0; border:1px solid #e1eaed; border-radius:9px; overflow:hidden; }
+.weekly-mom-table th,.weekly-mom-table td{ padding:8px 9px; border-right:1px solid #e6eef0; border-bottom:1px solid #e6eef0; vertical-align:top; text-align:left; font-size:11.5px; }
+.weekly-mom-table th:last-child,.weekly-mom-table td:last-child{ border-right:0; }
+.weekly-mom-table tbody tr:last-child td{ border-bottom:0; }
+.weekly-mom-table th{ color:#567083; background:#f3f8f9; font-size:10.5px; font-weight:800; white-space:nowrap; }
+.weekly-mom-table td{ color:#405d70; white-space:pre-wrap; line-height:1.4; }
+.weekly-mom-crid{ color:#167f83; font-weight:800; white-space:nowrap; }
+.weekly-mom-empty,.weekly-mom-error{
+  padding:44px 20px; border:1px dashed #cfdfe3; border-radius:13px; color:#78909f; text-align:center; background:#fff;
+}
+.weekly-mom-error{ color:#a1564f; border-color:#e8c9c5; background:#fffafa; }
+.weekly-mom-form-rows{ overflow-x:auto; border:1px solid #dfe8ec; border-radius:9px; }
+.weekly-mom-form-table{ width:100%; min-width:960px; border-collapse:separate; border-spacing:0; }
+.weekly-mom-form-table th,.weekly-mom-form-table td{ padding:7px; border-right:1px solid #e3ebef; border-bottom:1px solid #e3ebef; vertical-align:top; }
+.weekly-mom-form-table th:last-child,.weekly-mom-form-table td:last-child{ border-right:0; }
+.weekly-mom-form-table tbody tr:last-child td{ border-bottom:0; }
+.weekly-mom-form-table th{ color:#4b6575; background:#f2f7f8; font-size:11px; font-weight:750; text-align:left; white-space:nowrap; }
+.weekly-mom-form-table input,.weekly-mom-form-table textarea{ width:100%; min-width:105px; border:1px solid #d8e5e9; background:#fcfefe; border-radius:6px; padding:7px; font-size:12px; }
+.weekly-mom-form-table textarea{ min-height:54px; resize:vertical; }
+.weekly-mom-form-table input:focus,.weekly-mom-form-table textarea:focus{ border-color:#55afb1; background:#fff; outline:none; box-shadow:0 0 0 3px rgba(23,159,160,.09); }
+.weekly-mom-row-remove{ border:0; background:transparent; color:#c0433f; cursor:pointer; font-size:15px; padding:6px; }
+.weekly-mom-add-row{ margin-top:9px; }
+@media(max-width:700px){
+  .weekly-mom-intro{ align-items:flex-start; flex-wrap:wrap; padding:13px; }
+  .weekly-mom-total{ width:100%; margin-left:53px; }
+  .weekly-mom-card-head{ flex-wrap:wrap; }
+  .weekly-mom-card-actions{ width:100%; margin-left:0; }
+  .weekly-mom-summary{ grid-template-columns:1fr; }
+}
 .brd-modal .modal-head{ padding:18px 22px; border-bottom:1px solid #dfe9ed; background:#fbfdfe; }
 .brd-modal .modal-body{ background:#f4f8f9; padding:18px 22px 22px; }
 .brd-modal .modal-foot{ border-top:1px solid #dfe9ed; background:#fff; }
@@ -5171,6 +5247,11 @@ html{
       <span class="nav-label">Tạo BRD</span>
       <span class="count" id="navCountBrd">0</span>
     </div>
+    <div class="nav-item nav-subitem" data-view="weekly_mom" title="Weekly MoM">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M8 14h3M8 18h7"/></svg>
+      <span class="nav-label">Weekly MoM</span>
+      <span class="count" id="navCountWeeklyMom">0</span>
+    </div>
 
     <div class="nav-item hidden" data-view="admin" id="navAdmin" title="Quản Trị Dữ Liệu">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
@@ -5249,6 +5330,10 @@ html{
         <button class="btn btn-primary view-action hidden" data-for="brd" id="btnAddBrd">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Tạo BRD mới
+        </button>
+        <button class="btn btn-primary view-action hidden" data-for="weekly_mom" id="btnAddWeeklyMom">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Tạo biên bản Weekly
         </button>
         <button class="btn btn-primary view-action hidden" data-for="admin" id="btnAddUser">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -5575,6 +5660,23 @@ html{
       </div>
     </section>
 
+    <!-- ============ WEEKLY MOM VIEW ============ -->
+    <section class="view hidden" id="view-weekly_mom">
+      <div class="weekly-mom-workspace">
+        <div class="weekly-mom-intro">
+          <div class="weekly-mom-intro-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M8 14h3M8 18h7"/></svg>
+          </div>
+          <div>
+            <div class="weekly-mom-title">Biên bản Weekly với Vendor</div>
+            <div class="weekly-mom-note">Mỗi buổi họp có thể ghi nhận nhiều CR, cùng cập nhật hiện tại, next action, ETA và ghi chú.</div>
+          </div>
+          <div class="weekly-mom-total"><b id="weeklyMomCount">0</b> buổi họp</div>
+        </div>
+        <div id="weeklyMomGrid" class="weekly-mom-grid"></div>
+      </div>
+    </section>
+
     <!-- ============ ADMIN VIEW ============ -->
     <section class="view hidden" id="view-admin">
       <div class="list-panel" id="supabaseTablesPanel" style="margin-bottom:16px;">
@@ -5609,6 +5711,10 @@ html{
               <tr>
                 <td class="cell-id">brd_records</td><td class="cell-dim">Table</td>
                 <td>Nội dung các tài liệu BRD (Business Requirement Document) được soạn trong tab "Tạo BRD". Có soft-delete qua <code>deleted_at</code>.</td>
+              </tr>
+              <tr>
+                <td class="cell-id">weekly_mom</td><td class="cell-dim">Table</td>
+                <td>Biên bản các buổi họp Weekly với Vendor và danh sách CR cập nhật trong từng buổi họp. Các dòng CR được lưu trong cột <code>cr_items</code> dạng JSONB; có soft-delete qua <code>deleted_at</code>.</td>
               </tr>
               <tr>
                 <td class="cell-id">cr_attachments</td><td class="cell-dim">Table</td>
@@ -5807,7 +5913,7 @@ html{
         <div class="list-panel-head">
           <div>
             <div class="list-panel-count"><b id="recycleCount">0</b> mục đã xóa</div>
-            <div class="hint">Dữ liệu bị xóa từ CR Log, Test Case, Release/PRD, BRD được lưu tại đây thay vì xóa vĩnh viễn ngay. Chỉ Quản trị viên mới thấy và thao tác được tab này.</div>
+            <div class="hint">Dữ liệu bị xóa từ CR Log, Test Case, Release/PRD, BRD và Weekly MoM được lưu tại đây thay vì xóa vĩnh viễn ngay. Chỉ Quản trị viên mới thấy và thao tác được tab này.</div>
           </div>
           <div class="table-toolbar">
             <div class="filter-chip"><span>Loại dữ liệu</span>
@@ -5817,6 +5923,7 @@ html{
                 <option value="tc">Test Case</option>
                 <option value="rel">Release / PRD</option>
                 <option value="brd">BRD</option>
+                <option value="weekly_mom">Weekly MoM</option>
               </select>
             </div>
             <div class="chip-clear" id="clearRecycleFilters">Xóa lọc</div>
@@ -5848,6 +5955,7 @@ html{
 <div class="modal-overlay" id="tcModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="relModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="brdModalOverlay" role="dialog" aria-modal="true"></div>
+<div class="modal-overlay" id="weeklyMomModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="userModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="confirmModalOverlay" role="dialog" aria-modal="true"></div>
 <div class="modal-overlay" id="attachmentModalOverlay" role="dialog" aria-modal="true"></div>
@@ -5912,7 +6020,7 @@ window.CR_LISTS = {
    0. STATE
 --------------------------------------------------------------------------- */
 const VIEW_STORAGE_KEY = "crControlCurrentView";
-const VALID_VIEWS = new Set(["dashboard", "crlog", "uat", "release", "brd", "admin", "recycle"]);
+const VALID_VIEWS = new Set(["dashboard", "crlog", "uat", "release", "brd", "weekly_mom", "admin", "recycle"]);
 
 /* ==========================================================================
    PHÂN QUYỀN (ROLES)
@@ -5942,6 +6050,7 @@ function canManageUsers(){ return STATE.userRole === "super_admin"; }   // chỉ
 function canViewAdminTab(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.senior_member; }  // super_admin, senior_member
 function canDeleteData(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.senior_member; }    // super_admin, senior_member
 function canEditData(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.member; }             // super_admin, senior_member, member
+function canManageWeeklyMom(){ return roleLevel(STATE.userRole) >= ROLE_LEVEL.senior_member; }
 function roleLabel(role){ return ROLE_LABELS[role] || role || "—"; }
 
 /* Cập nhật các class trên <body> để CSS ẩn/hiện nút Thêm/Sửa/Xóa theo quyền,
@@ -5952,6 +6061,7 @@ function applyRolePermissionsToUI(){
   document.body.classList.toggle("role-no-admin-tab", !canViewAdminTab());
   document.body.classList.toggle("role-no-manage-users", !canManageUsers());
   document.body.classList.toggle("role-no-recycle", !isSuperAdmin());
+  document.body.classList.toggle("role-no-weekly-mom-edit", !canManageWeeklyMom());
 }
 function getSavedView(){
   try{
@@ -5974,6 +6084,7 @@ const STATE = {
   tcList: [],
   relList: [],
   brdList: [],
+  weeklyMomList: [],
   userList: [],
   statusList: [],
   subStatusList: [],
@@ -5991,6 +6102,8 @@ const STATE = {
   editingTcId: null,
   editingRelId: null,
   editingBrdId: null,
+  editingWeeklyMomId: null,
+  weeklyMomRows: [],
   editingUserId: null,
   brdVersionRows: [],     // dòng lịch sử phiên bản đang soạn trong form BRD (mảng object)
   drawerCrId: null,       // cr_id (text) currently shown in drawer
@@ -6015,13 +6128,13 @@ const STATE = {
   relColumns: null,
   relSelection: new Set(),
   relSort: [],
-  loadErrors: { cr:null, tc:null, rel:null, brd:null, admin:null, status:null, subStatus:null, evidence:null, attachCategory:null, accessRequests:null }, // last fetch error per dataset, null = ok
+  loadErrors: { cr:null, tc:null, rel:null, brd:null, weeklyMom:null, admin:null, status:null, subStatus:null, evidence:null, attachCategory:null, accessRequests:null }, // last fetch error per dataset, null = ok
   statusLoadWarned: false,
   subStatusLoadWarned: false,
   editingStatusId: null,
   editingSubStatusId: null,
   evidenceLoadWarned: false,
-  recycleList: [],   // các dòng đã soft-delete, gộp từ cr_log / uat_testcase / release_prd / brd_records
+  recycleList: [],   // các dòng đã soft-delete từ các bảng dữ liệu chính
 };
 
 /* Togglable CR Log columns (CR ID + Status + Actions are structural, not toggled) */
@@ -7193,6 +7306,14 @@ function subscribeRealtime(){
       afterDataPatch((payload.new && payload.new.cr_id) || (payload.old && payload.old.cr_id));
     })
     .subscribe();
+  STATE.sb.channel("realtime-weekly_mom")
+    .on("postgres_changes", { event:"*", schema:"public", table:"weekly_mom" }, payload=>{
+      if(!patchListInPlace(STATE.weeklyMomList, payload, "id")) return;
+      STATE.weeklyMomList = STATE.weeklyMomList.filter(item=>!item.deleted_at);
+      renderWeeklyMomList();
+      renderNavCounts();
+    })
+    .subscribe();
   STATE.sb.channel("realtime-cr_statuses")
     .on("postgres_changes", { event:"*", schema:"public", table:"cr_statuses" }, debouncedConfigRefresh)
     .subscribe();
@@ -7285,6 +7406,7 @@ const VIEW_META = {
   uat:       { title:"UAT Test Case", sub:"Test case UAT cho từng Change Request", search:false },
   release:   { title:"Release / PRD", sub:"Thông tin phát hành cho từng Change Request", search:false },
   brd:       { title:"Tạo BRD", sub:"Nhập thông tin và xuất file BRD theo template chuẩn", search:false },
+  weekly_mom:{ title:"Weekly MoM", sub:"Biên bản họp Weekly với Vendor và cập nhật theo từng CR", search:false },
   admin:     { title:"Quản Trị Dữ Liệu", sub:"Quản lý người dùng, Status, Evidence Step, Phân loại tài liệu và dữ liệu Supabase", search:false },
   recycle:   { title:"Recycle Bin", sub:"Dữ liệu đã xóa — khôi phục hoặc xóa vĩnh viễn", search:false },
 };
@@ -7531,6 +7653,7 @@ function initShell(){
   $("#btnAddTc").addEventListener("click", ()=> openTcModal(null));
   $("#btnAddRel").addEventListener("click", ()=> openRelModal(null));
   $("#btnAddBrd").addEventListener("click", ()=> openBrdModal(null));
+  $("#btnAddWeeklyMom").addEventListener("click", ()=> openWeeklyMomModal(null));
   $("#btnEvidenceZip").addEventListener("click", ()=> openExportSelectionModal("images"));
   $("#btnDashRefresh").addEventListener("click", async ()=>{
     if(STATE.refreshing) return;
@@ -7538,7 +7661,7 @@ function initShell(){
     await refreshAll();
     const failedLabels = {
       cr:"CR Log", tc:"UAT Test Case", rel:"Release/PRD", brd:"BRD",
-      admin:"Người dùng", status:"Status", subStatus:"Sub-Status", evidence:"Evidence Step",
+      admin:"Người dùng", weeklyMom:"Weekly MoM", status:"Status", subStatus:"Sub-Status", evidence:"Evidence Step",
       attachCategory:"Phân loại tài liệu"
     };
     const failed = Object.keys(STATE.loadErrors)
@@ -7900,6 +8023,7 @@ function setView(view){
   });
   if(view === "admin") loadAndRenderAdmin();
   if(view === "brd") fetchBrdList().then(renderBrdList);
+  if(view === "weekly_mom") fetchWeeklyMomList().then(renderWeeklyMomList);
   if(view === "recycle") loadAndRenderRecycleBin();
 }
 
@@ -8151,12 +8275,13 @@ async function refreshAll(){
   setRefreshLoading(true);
   if(initialLoad) showLoadingSkeletons();
   try{
-    await Promise.all([fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchAttachCategoryList(), fetchCrList(), fetchCrDocumentStatus(), fetchTcList(), fetchRelList(), fetchBrdList()]);
+    await Promise.all([fetchStatusList(), fetchSubStatusList(), fetchEvidenceStepList(), fetchAttachCategoryList(), fetchCrList(), fetchCrDocumentStatus(), fetchTcList(), fetchRelList(), fetchBrdList(), fetchWeeklyMomList()]);
     renderNavCounts();
     renderDashboard();
     renderCrTable();
     renderTcTable();
     renderRelTable();
+    renderWeeklyMomList();
     populateCrDropdowns();
     STATE.initialLoadComplete = true;
   }finally{
@@ -8742,6 +8867,7 @@ function renderNavCounts(){
   $("#navCountUat").textContent = STATE.tcList.length;
   $("#navCountRel").textContent = STATE.relList.length;
   $("#navCountBrd").textContent = STATE.brdList.length;
+  if($("#navCountWeeklyMom")) $("#navCountWeeklyMom").textContent = STATE.weeklyMomList.length;
 }
 
 function populateCrDropdowns(){
@@ -12198,6 +12324,279 @@ async function fetchBrdList(){
   STATE.loadErrors.brd = null;
 }
 
+/* ---------------------------------------------------------------------------
+   11c. WEEKLY MOM — biên bản họp Vendor + các CR được cập nhật trong buổi họp.
+   Dữ liệu các dòng CR được lưu trong cột jsonb `cr_items` của weekly_mom.
+--------------------------------------------------------------------------- */
+function weeklyMomRowsOf(record){
+  return Array.isArray(record?.cr_items) ? record.cr_items : [];
+}
+
+function weeklyMomDateLabel(value){
+  if(!value) return "Chưa có ngày";
+  const d = new Date(`${value}T00:00:00`);
+  if(Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
+}
+
+function weeklyMomText(value){
+  return String(value || "").trim();
+}
+
+async function fetchWeeklyMomList(){
+  const { data, error } = await STATE.sb
+    .from("weekly_mom")
+    .select("*")
+    .is("deleted_at", null)
+    .order("meeting_date", { ascending:false })
+    .order("updated_at", { ascending:false });
+  if(error){
+    STATE.weeklyMomList = [];
+    STATE.loadErrors.weeklyMom = error.message;
+    return;
+  }
+  STATE.weeklyMomList = data || [];
+  STATE.loadErrors.weeklyMom = null;
+  renderNavCounts();
+}
+
+function weeklyMomActionButton(action, id, label, danger=false){
+  return `<button class="btn btn-ghost btn-sm" data-weekly-act="${action}" data-id="${esc(String(id))}"${danger ? ' style="color:#c0433f;"' : ""}>${label}</button>`;
+}
+
+function renderWeeklyMomList(){
+  const grid = $("#weeklyMomGrid");
+  if(!grid) return;
+  const countEl = $("#weeklyMomCount");
+  if(countEl) countEl.textContent = STATE.weeklyMomList.length;
+  if($("#navCountWeeklyMom")) $("#navCountWeeklyMom").textContent = STATE.weeklyMomList.length;
+
+  if(STATE.loadErrors.weeklyMom){
+    grid.innerHTML = `<div class="weekly-mom-error">
+      Không tải được dữ liệu Weekly MoM: ${esc(STATE.loadErrors.weeklyMom)}<br>
+      <span style="font-size:11.5px;">Hãy chạy migration <code>weekly_mom.sql</code> trên Supabase rồi bấm “Làm mới”.</span>
+    </div>`;
+    return;
+  }
+  if(!STATE.weeklyMomList.length){
+    grid.innerHTML = `<div class="weekly-mom-empty">
+      <b>Chưa có biên bản Weekly nào</b><br>
+      <span style="font-size:12px;">Bấm “Tạo biên bản Weekly” để ghi nhận buổi họp đầu tiên.</span>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = STATE.weeklyMomList.map(record=>{
+    const rows = weeklyMomRowsOf(record);
+    const crRows = rows.length ? rows.map(row=>`
+      <tr>
+        <td class="weekly-mom-crid">${esc(weeklyMomText(row.cr_id) || "—")}</td>
+        <td>${esc(weeklyMomText(row.current_update) || "—")}</td>
+        <td>${esc(weeklyMomText(row.next_action) || "—")}</td>
+        <td>${esc(weeklyMomText(row.eta) || "—")}</td>
+        <td>${esc(weeklyMomText(row.note) || "—")}</td>
+      </tr>
+    `).join("") : `<tr><td colspan="5" style="text-align:center;color:#8a9ca9;">Buổi họp này chưa có CR.</td></tr>`;
+    const participants = weeklyMomText(record.participants);
+    const summary = weeklyMomText(record.overall_summary);
+    return `<article class="weekly-mom-card" data-weekly-id="${esc(String(record.id))}">
+      <div class="weekly-mom-card-head">
+        <div class="weekly-mom-card-date">${esc(weeklyMomDateLabel(record.meeting_date))}</div>
+        <div>
+          <div class="weekly-mom-card-vendor">${esc(weeklyMomText(record.vendor) || "Chưa nhập Vendor")}</div>
+          <div class="weekly-mom-card-title">${esc(weeklyMomText(record.meeting_title) || "Weekly Vendor Meeting")}</div>
+        </div>
+        <div class="weekly-mom-card-actions">
+          ${weeklyMomActionButton("edit", record.id, "Sửa")}
+          ${weeklyMomActionButton("delete", record.id, "Xóa", true)}
+        </div>
+      </div>
+      <div class="weekly-mom-card-body">
+        <div class="weekly-mom-summary">
+          <div class="weekly-mom-summary-item"><div class="weekly-mom-summary-label">Số CR</div><div class="weekly-mom-summary-value">${rows.length}</div></div>
+          <div class="weekly-mom-summary-item"><div class="weekly-mom-summary-label">Thành phần</div><div class="weekly-mom-summary-value">${esc(participants || "—")}</div></div>
+          <div class="weekly-mom-summary-item"><div class="weekly-mom-summary-label">Tóm tắt</div><div class="weekly-mom-summary-value">${esc(summary || "—")}</div></div>
+        </div>
+        <div class="weekly-mom-form-rows">
+          <table class="weekly-mom-table">
+            <thead><tr><th>CR ID</th><th>Cập nhật hiện tại</th><th>Next action</th><th>ETA</th><th>Ghi chú</th></tr></thead>
+            <tbody>${crRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+
+  $all("#weeklyMomGrid [data-weekly-act]").forEach(btn=>{
+    const record = STATE.weeklyMomList.find(item=>String(item.id) === String(btn.dataset.id));
+    if(!record) return;
+    btn.addEventListener("click", ()=>{
+      if(btn.dataset.weeklyAct === "edit") openWeeklyMomModal(record);
+      if(btn.dataset.weeklyAct === "delete"){
+        if(!canManageWeeklyMom()) return;
+        confirmDelete(
+          "Xóa biên bản Weekly?",
+          `Biên bản ngày ${weeklyMomDateLabel(record.meeting_date)} sẽ được chuyển vào Recycle Bin.`,
+          ()=> deleteWeeklyMom(record),
+          "Chuyển vào Recycle Bin"
+        );
+      }
+    });
+  });
+}
+
+function weeklyMomModalTemplate(record){
+  const rows = weeklyMomRowsOf(record);
+  const datalist = STATE.crList.map(cr=>`<option value="${esc(String(cr.cr_id || ""))}">${esc(String(cr.title || ""))}</option>`).join("");
+  return `<div class="modal modal-lg brd-modal">
+    <div class="modal-head">
+      <div><h3>${record ? "Sửa biên bản Weekly" : "Tạo biên bản Weekly"}</h3><div class="hint">Ghi nhận thông tin buổi họp và từng CR được cập nhật.</div></div>
+      <button class="icon-btn" id="weeklyMomModalClose" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tc-form-group">
+        <div class="tc-form-group-title">Thông tin buổi họp</div>
+        <div class="form-grid">
+          <div class="field"><label for="wm_meeting_date">Ngày họp <span class="req">*</span></label><input id="wm_meeting_date" type="date" value="${esc(record?.meeting_date || "")}"></div>
+          <div class="field"><label for="wm_vendor">Vendor <span class="req">*</span></label><input id="wm_vendor" type="text" value="${esc(record?.vendor || "")}" placeholder="Tên Vendor"></div>
+          <div class="field span-2"><label for="wm_meeting_title">Tên / chủ đề buổi họp</label><input id="wm_meeting_title" type="text" value="${esc(record?.meeting_title || "")}" placeholder="Ví dụ: Weekly CR Status Update"></div>
+          <div class="field span-2"><label for="wm_participants">Thành phần tham dự</label><input id="wm_participants" type="text" value="${esc(record?.participants || "")}" placeholder="Vendor, Product, Tech..."></div>
+          <div class="field span-2"><label for="wm_summary">Tóm tắt chung</label><textarea id="wm_summary" rows="3" placeholder="Các điểm chính hoặc quyết định chung">${esc(record?.overall_summary || "")}</textarea></div>
+        </div>
+      </div>
+      <div class="tc-form-group">
+        <div class="tc-form-group-title">Danh sách CR <span class="hint" style="font-weight:500;">(<span id="weeklyMomRowCount">${rows.length}</span> dòng)</span></div>
+        <div class="weekly-mom-form-rows">
+          <table class="weekly-mom-form-table">
+            <thead><tr><th style="width:120px;">CR ID</th><th>Cập nhật hiện tại</th><th>Next action</th><th style="width:135px;">ETA</th><th>Ghi chú</th><th style="width:38px;"></th></tr></thead>
+            <tbody id="weeklyMomFormBody"></tbody>
+          </table>
+        </div>
+        <datalist id="weeklyMomCrOptions">${datalist}</datalist>
+        <button class="btn btn-ghost btn-sm weekly-mom-add-row" id="weeklyMomAddRow" type="button">+ Thêm CR</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="weeklyMomModalCancel" type="button">Hủy</button>
+      <button class="btn btn-primary" id="weeklyMomModalSave" type="button">${record ? "Lưu thay đổi" : "Tạo biên bản"}</button>
+    </div>
+  </div>`;
+}
+
+function renderWeeklyMomFormRows(){
+  const tbody = $("#weeklyMomFormBody");
+  if(!tbody) return;
+  const rows = STATE.weeklyMomRows;
+  $("#weeklyMomRowCount").textContent = rows.length;
+  tbody.innerHTML = rows.length ? rows.map((row, idx)=>`
+    <tr data-idx="${idx}">
+      <td><input data-field="cr_id" list="weeklyMomCrOptions" value="${esc(row.cr_id || "")}" placeholder="CR_001"></td>
+      <td><textarea data-field="current_update" placeholder="Tiến độ / cập nhật">${esc(row.current_update || "")}</textarea></td>
+      <td><textarea data-field="next_action" placeholder="Việc tiếp theo">${esc(row.next_action || "")}</textarea></td>
+      <td><input data-field="eta" type="text" value="${esc(row.eta || "")}" placeholder="dd/mm/yyyy"></td>
+      <td><textarea data-field="note" placeholder="Ghi chú">${esc(row.note || "")}</textarea></td>
+      <td><button class="weekly-mom-row-remove" data-remove-row="${idx}" type="button" title="Xóa dòng">✕</button></td>
+    </tr>
+  `).join("") : `<tr><td colspan="6" style="text-align:center;color:#8a9ca9;padding:20px;">Chưa có CR. Bấm “Thêm CR” để bắt đầu.</td></tr>`;
+}
+
+function openWeeklyMomModal(record){
+  if(record && !canManageWeeklyMom()) return;
+  if(!record && !canManageWeeklyMom()){
+    toast("Chỉ Super-admin và Senior-member được tạo biên bản Weekly.", "err");
+    return;
+  }
+  STATE.editingWeeklyMomId = record ? record.id : null;
+  STATE.weeklyMomRows = JSON.parse(JSON.stringify(weeklyMomRowsOf(record)));
+  const overlay = $("#weeklyMomModalOverlay");
+  overlay.innerHTML = weeklyMomModalTemplate(record);
+  initAutoGrow(overlay);
+  renderWeeklyMomFormRows();
+  overlay.classList.add("show");
+
+  const close = ()=> overlay.classList.remove("show");
+  $("#weeklyMomModalClose").addEventListener("click", close);
+  $("#weeklyMomModalCancel").addEventListener("click", close);
+  $("#weeklyMomAddRow").addEventListener("click", ()=>{
+    STATE.weeklyMomRows.push({ cr_id:"", current_update:"", next_action:"", eta:"", note:"" });
+    renderWeeklyMomFormRows();
+    initAutoGrow(overlay);
+  });
+  $("#weeklyMomFormBody").addEventListener("input", e=>{
+    const field = e.target.dataset.field;
+    const tr = e.target.closest("tr[data-idx]");
+    if(!field || !tr || !STATE.weeklyMomRows[Number(tr.dataset.idx)]) return;
+    STATE.weeklyMomRows[Number(tr.dataset.idx)][field] = e.target.value;
+  });
+  $("#weeklyMomFormBody").addEventListener("click", e=>{
+    const btn = e.target.closest("[data-remove-row]");
+    if(!btn) return;
+    STATE.weeklyMomRows.splice(Number(btn.dataset.removeRow), 1);
+    renderWeeklyMomFormRows();
+    initAutoGrow(overlay);
+  });
+  $("#weeklyMomModalSave").addEventListener("click", ()=> saveWeeklyMom(overlay, !!record));
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target === overlay) close(); });
+  }
+}
+
+async function saveWeeklyMom(overlay, isEdit){
+  if(!canManageWeeklyMom()) return;
+  const meetingDate = $("#wm_meeting_date").value;
+  const vendor = $("#wm_vendor").value.trim();
+  if(!meetingDate || !vendor){ toast("Vui lòng nhập Ngày họp và Vendor.", "err"); return; }
+  const crItems = STATE.weeklyMomRows
+    .map(row=>({
+      cr_id: weeklyMomText(row.cr_id),
+      current_update: weeklyMomText(row.current_update),
+      next_action: weeklyMomText(row.next_action),
+      eta: weeklyMomText(row.eta),
+      note: weeklyMomText(row.note),
+    }))
+    .filter(row=>Object.values(row).some(Boolean));
+  const payload = {
+    meeting_date: meetingDate,
+    vendor,
+    meeting_title: $("#wm_meeting_title").value.trim(),
+    participants: $("#wm_participants").value.trim(),
+    overall_summary: $("#wm_summary").value.trim(),
+    cr_items: crItems,
+    updated_at: new Date().toISOString(),
+    updated_by: STATE.userEmail || null,
+  };
+  const btn = $("#weeklyMomModalSave");
+  btn.disabled = true; btn.textContent = "Đang lưu...";
+  let error;
+  if(isEdit){
+    ({ error } = await STATE.sb.from("weekly_mom").update(payload).eq("id", STATE.editingWeeklyMomId));
+  }else{
+    payload.created_by = STATE.userEmail || null;
+    ({ error } = await STATE.sb.from("weekly_mom").insert(payload));
+  }
+  btn.disabled = false; btn.textContent = isEdit ? "Lưu thay đổi" : "Tạo biên bản";
+  if(error){ toast("Lưu biên bản Weekly thất bại: " + error.message, "err"); return; }
+  toast(isEdit ? "Đã cập nhật biên bản Weekly." : "Đã tạo biên bản Weekly.", "ok");
+  overlay.classList.remove("show");
+  await fetchWeeklyMomList();
+  renderWeeklyMomList();
+}
+
+async function deleteWeeklyMom(record){
+  if(!canManageWeeklyMom()){ toast("Bạn không có quyền xóa Weekly MoM.", "err"); return; }
+  const { error } = await STATE.sb.from("weekly_mom").update({
+    deleted_at: new Date().toISOString(),
+    deleted_by: STATE.userEmail || null,
+    updated_at: new Date().toISOString(),
+    updated_by: STATE.userEmail || null,
+  }).eq("id", record.id);
+  if(error){ toast("Xóa biên bản Weekly thất bại: " + error.message, "err"); return; }
+  toast("Đã chuyển biên bản Weekly vào Recycle Bin.", "ok");
+  await fetchWeeklyMomList();
+  renderWeeklyMomList();
+}
+
 function fmtBrdDateTime(iso){
   if(!iso) return "—";
   try{
@@ -12483,16 +12882,17 @@ async function deleteBrd(v){
 
 /* ---------------------------------------------------------------------------
    RECYCLE BIN — chỉ Quản trị viên (super_admin) mới thấy và thao tác.
-   Gộp các dòng đã soft-delete (cột deleted_at IS NOT NULL) từ 4 bảng dữ liệu
-   chính: cr_log, uat_testcase, release_prd, brd_records.
+   Gộp các dòng đã soft-delete (cột deleted_at IS NOT NULL) từ các bảng dữ liệu
+   chính: cr_log, uat_testcase, release_prd, brd_records, weekly_mom.
 --------------------------------------------------------------------------- */
 const RECYCLE_TABLES = [
   { key:"cr",  table:"cr_log",       labelField:"cr_id",         titleField:"title" },
   { key:"tc",  table:"uat_testcase", labelField:"test_case_id",  titleField:"description" },
   { key:"rel", table:"release_prd",  labelField:"release_id",    titleField:"release_name" },
   { key:"brd", table:"brd_records",  labelField:"brd_title",     titleField:"" },
+  { key:"weekly_mom", table:"weekly_mom", labelField:"meeting_date", titleField:"vendor" },
 ];
-const RECYCLE_TYPE_LABEL = { cr:"Change Request", tc:"Test Case", rel:"Release / PRD", brd:"BRD" };
+const RECYCLE_TYPE_LABEL = { cr:"Change Request", tc:"Test Case", rel:"Release / PRD", brd:"BRD", weekly_mom:"Weekly MoM" };
 
 async function loadAndRenderRecycleBin(){
   if(!isSuperAdmin()){ return; }

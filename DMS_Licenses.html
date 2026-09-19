@@ -10,6 +10,7 @@
   <meta name="description" content="Cổng quản lý Masterdata với xác thực Google và phân quyền Supabase." />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <style>
     /* =====================================================================
        Masterdata DMS — Crimson theme
@@ -798,6 +799,40 @@
       .pending-card { padding: 36px 22px 24px; border-radius: 26px; }
       .step { font-size: 11px; }
     }
+
+    /* ---------- Công Cụ Hỗ Trợ ---------- */
+    .tl-seg { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 18px; background: #fff; border: 1px solid var(--line-strong); border-radius: 14px; box-shadow: var(--shadow-card); }
+    .tl-seg button { border: 0; background: transparent; color: var(--ink-2); font-weight: 600; font-size: 13px; padding: 9px 16px; border-radius: 10px; display: flex; align-items: center; gap: 8px; }
+    .tl-seg button svg { width: 16px; height: 16px; }
+    .tl-seg button.on { color: #fff; background: var(--g-brand); box-shadow: 0 6px 16px rgba(183, 28, 28, .28); }
+    .tl-panel { margin-bottom: 18px; }
+    .tl-check { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); cursor: pointer; }
+    .tl-scroll { max-height: 340px; }
+    .tl-table { border-collapse: collapse; width: 100%; min-width: max-content; font-size: 12px; }
+    .tl-table th { position: sticky; top: 0; z-index: 1; background: var(--surface-soft); text-align: left; padding: 9px 12px; font-size: 11.5px; color: var(--ink-2); border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+    .tl-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .tl-table tbody tr[data-pk] { cursor: pointer; }
+    .tl-table tbody tr[data-pk]:hover td { background: #fff0ef; }
+    .tl-table tbody tr.sel td { background: var(--brand-soft); }
+    .tl-foot { padding: 10px 20px; font-size: 12px; color: var(--muted); }
+    .tl-card { border: 1px solid var(--line-strong); border-radius: 14px; padding: 14px; margin-bottom: 14px; background: linear-gradient(180deg, #fff, #fffafa); }
+    .tl-card:last-child { margin-bottom: 0; }
+    .tl-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .tl-idx { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--g-brand); color: #fff; font-weight: 700; font-size: 12px; flex: 0 0 auto; }
+    .tl-old { flex: 1; min-width: 0; font-size: 12.5px; }
+    .tl-lbl { color: var(--muted); }
+    .tl-msg { font-size: 11.5px; font-weight: 650; padding: 3px 10px; border-radius: 99px; background: #f4eeee; color: var(--muted); white-space: nowrap; }
+    .tl-msg.err { background: var(--danger-soft); color: var(--danger); }
+    .tl-msg.warn { background: var(--warning-soft); color: var(--warning); }
+    .tl-msg.ok { background: var(--success-soft); color: var(--success); }
+    .tl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .tl-sum { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .tl-prev th { background: #f3dcf2; }
+    .tl-prev tr.r-old td { background: #e6e6e6; }
+    .tl-prev tr.r-new td { background: #d8f0cf; }
+    #tl-export:disabled { opacity: .5; cursor: not-allowed; }
+    @media (max-width: 900px) { .tl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 600px) { .tl-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body class="auth">
@@ -818,6 +853,8 @@
     const APP_CHANNEL_PREFIX = "masterdata-portal-dms-licenses";
 
     const ICONS = {
+      tools: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3.5 17.3a1.8 1.8 0 0 0 2.5 2.5l5.8-5.8a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.2-.6-.6-2.2 2.6-2.6Z"/></svg>',
+      swap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13m0 0-3-3m3 3-3 3M17 17H4m0 0 3-3m-3 3 3 3"/></svg>',
       send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5 21 3Z"/></svg>',
       check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
       logout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M16 8l4 4-4 4M20 12H9"/></svg>',
@@ -1041,6 +1078,7 @@
         ["dashboard", "Tổng quan", ICONS.grid],
         ["dms", "DMS Userlist", ICONS.users],
         ["central", "Central User list", ICONS.users],
+        ["tools", "Công Cụ Hỗ Trợ", ICONS.tools],
         ...(isAdmin() ? [["admin", "Quản lý dữ liệu", ICONS.database]] : [])
       ];
       const activeTab = tabs.find(x => x[0] === state.tab) || tabs[0];
@@ -1070,6 +1108,7 @@
     function renderPage() {
       if (state.tab === "dashboard") return renderDashboard();
       if (state.tab === "dms" || state.tab === "central") return renderDataset();
+      if (state.tab === "tools") return renderTools();
       if (state.tab === "admin" && isAdmin()) return renderAdmin();
       return renderDashboard();
     }
@@ -1290,6 +1329,7 @@
       $("#export-excel")?.addEventListener("click", exportExcel);
       $("#new-row")?.addEventListener("click", () => openRowModal());
       bindDatasetBody();
+      bindToolEvents();
       $("#file-input")?.addEventListener("change", e => e.target.files[0] && importWorkbook(e.target.files[0]));
       const dropzone = $("#dropzone");
       if (dropzone) {
@@ -1301,6 +1341,198 @@
       document.querySelectorAll(".reject-user").forEach(el => el.addEventListener("click", () => updateProfile(el.dataset.id, { approval_status: "rejected" })));
       document.querySelectorAll(".role-select").forEach(el => el.addEventListener("change", () => updateProfile(el.dataset.id, { role: el.value })));
       document.querySelectorAll(".delete-profile").forEach(el => el.addEventListener("click", () => deleteProfile(el.dataset.id, el.dataset.name)));
+    }
+
+    /* =====================================================================
+       Công Cụ Hỗ Trợ — soạn phiếu Tạo mới / Thay thế account (license) và xuất Excel.
+       Chỉ đọc state.central đã tải sẵn, không ghi gì vào Supabase.
+       ===================================================================== */
+    const TOOL_COLS = ["UserName", "Description", "EmployeeCode", "EmployeeName", "DateOfBirth", "DateOfJoining", "Email", "RoleName", "TerritoryHierarchy", "IsActive", "Note"];
+    const TOOL_DEFAULT_ROLE = "Enterprise reports";
+    const TOOL_LIST_LIMIT = 100;
+    const tool = { mode: "replace", picked: [], q: "", showAll: false, repl: {}, list: [] };
+    let toolIdx = { src: null };
+    const blankPerson = (o = {}) => ({ username: "", code: "", codeEdited: false, touched: false, name: "", email: "", desc: "", role: TOOL_DEFAULT_ROLE, terr: "", dob: "", doj: "", ...o });
+    const isInactive = r => ["0", "false", "n", "no", "inactive", "deactive"].includes(String(r.is_active ?? "").trim().toLowerCase());
+    const toolName = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[đĐ]/g, "D").toUpperCase().replace(/\s+/g, " ").trim();
+
+    function toolIndex() {
+      if (toolIdx.src !== state.central) {
+        const u = new Map(), e = new Map();
+        state.central.forEach(r => { u.set(String(r.username).trim().toLowerCase(), r); if (r.email) e.set(String(r.email).trim().toLowerCase(), r); });
+        toolIdx = { src: state.central, u, e };
+      }
+      return toolIdx;
+    }
+    // Danh sách người mới: Thay thế → mỗi account cũ được chọn ứng với 1 người mới; Tạo mới → danh sách tự do
+    function toolPersons() {
+      if (tool.mode === "create") {
+        if (!tool.list.length) tool.list.push(blankPerson());
+        return tool.list.map((p, i) => ({ p, old: null, i }));
+      }
+      const idx = toolIndex();
+      return tool.picked.map((k, i) => {
+        const old = idx.u.get(k.toLowerCase());
+        return { p: tool.repl[k] ||= blankPerson({ role: old?.role_name || TOOL_DEFAULT_ROLE }), old, i };
+      });
+    }
+    function toolValidate(items) {
+      const idx = toolIndex(), seen = new Map(), emails = new Map();
+      let errors = 0, warnings = 0;
+      const res = items.map(({ p }, i) => {
+        const m = [], u = p.username.trim().toLowerCase(), em = p.email.trim().toLowerCase();
+        if (!u) m.push(["e", "Thiếu UserName"]);
+        else {
+          if (seen.has(u)) m.push(["e", `Trùng UserName với người #${seen.get(u) + 1}`]); else seen.set(u, i);
+          const ex = idx.u.get(u);
+          if (ex) m.push(["w", `UserName đã có trong Central (${isInactive(ex) ? "Deactive" : "Active"})`]);
+        }
+        if (!p.name.trim()) m.push(["e", "Thiếu EmployeeName"]);
+        if (!em) m.push(["e", "Thiếu Email"]);
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) m.push(["e", "Email sai định dạng"]);
+        else {
+          if (emails.has(em)) m.push(["e", `Trùng Email với người #${emails.get(em) + 1}`]); else emails.set(em, i);
+          const ex = idx.e.get(em);
+          if (ex) m.push(["w", `Email đang dùng bởi ${ex.username}`]);
+        }
+        if (!p.desc.trim()) m.push(["w", "Chưa có Description"]);
+        if (!p.terr.trim()) m.push(["w", "Chưa có TerritoryHierarchy"]);
+        if (m.some(x => x[0] === "e")) errors++; else if (m.some(x => x[0] === "w")) warnings++;
+        return m;
+      });
+      return { res, errors, warnings };
+    }
+    // Dựng các dòng dữ liệu đúng mẫu: account cũ (Deactive, IsActive=0) rồi tới account mới (Active, IsActive=1)
+    function toolRows(items) {
+      const nz = (v, d = "") => (v === null || v === undefined || String(v).trim() === "") ? d : String(v).trim();
+      const dt = v => v ? `${v} 00:00:00.000` : "";
+      const olds = tool.mode === "replace" ? items.filter(x => x.old).map(({ old: o }) => [o.username, nz(o.description), nz(o.employee_code), nz(o.employee_name), nz(o.date_of_birth, "NULL"), nz(o.date_of_joining, "NULL"), nz(o.email), nz(o.role_name), nz(o.territory_hierarchy), "0", "Deactive"]) : [];
+      const news = items.map(({ p }) => [p.username.trim(), p.desc.trim(), p.code.trim() || p.username.trim(), toolName(p.name), dt(p.dob) || "NULL", dt(p.doj) || "1900-01-01 00:00:00.000", p.email.trim().toLowerCase(), p.role.trim(), p.terr.trim(), "1", "Active"]);
+      return { olds, news };
+    }
+    function toolListRows() {
+      const q = tool.q.trim().toLowerCase();
+      return state.central.filter(r => (tool.showAll || isInactive(r)) && (!q || rowSearchText(r, CENTRAL_FIELDS).includes(q)));
+    }
+    function renderToolList() {
+      const rows = toolListRows(), picked = new Set(tool.picked);
+      if (!rows.length) return `<div class="empty"><strong>${state.loading ? "Đang tải dữ liệu…" : "Không có account phù hợp"}</strong>${tool.showAll ? "Thử đổi từ khóa tìm kiếm." : "Không có account Deactive nào khớp. Tick “Hiện cả account Active” nếu cần."}</div>`;
+      const body = rows.slice(0, TOOL_LIST_LIMIT).map(r => { const on = picked.has(r.username); return `<tr data-pk="${escapeHtml(r.username)}" class="${on ? "sel" : ""}"><td><input type="checkbox" ${on ? "checked" : ""} aria-label="Chọn ${escapeHtml(r.username)}"></td><td><strong>${escapeHtml(r.username)}</strong></td><td>${cellHtml(r.employee_name)}</td><td>${cellHtml(r.description)}</td><td>${cellHtml(r.email)}</td><td>${cellHtml(r.territory_hierarchy)}</td><td><span class="badge ${isInactive(r) ? "badge-danger" : "badge-success"}">${isInactive(r) ? "Deactive" : "Active"}</span></td></tr>`; }).join("");
+      return `<div class="table-wrap tl-scroll"><table class="tl-table"><thead><tr><th></th><th>UserName</th><th>EmployeeName</th><th>Description</th><th>Email</th><th>Territory</th><th>Trạng thái</th></tr></thead><tbody>${body}</tbody></table></div><div class="tl-foot">Hiển thị ${nf(Math.min(rows.length, TOOL_LIST_LIMIT))} / ${nf(rows.length)} account${rows.length > TOOL_LIST_LIMIT ? " — dùng ô tìm kiếm để thu hẹp" : ""}</div>`;
+    }
+    function toolMsg(m, touched, i) {
+      const e = m.filter(x => x[0] === "e"), w = m.filter(x => x[0] === "w");
+      const [cls, txt] = !touched && e.length ? ["", "Chưa nhập"] : e.length ? ["err", e[0][1]] : w.length ? ["warn", w[0][1]] : ["ok", "Hợp lệ"];
+      return `<span class="tl-msg ${cls}" data-msg="${i}" title="${escapeHtml(m.map(x => x[1]).join("\n"))}">${escapeHtml(txt)}</span>`;
+    }
+    function renderToolCards(items, v) {
+      if (!items.length) return `<div class="empty"><strong>Chưa chọn account nào</strong>Tick chọn account cần thay thế ở bước ① để nhập thông tin người mới.</div>`;
+      const F = (i, f, label, { req = false, type = "text", ph = "" } = {}) => `<div class="field"><label>${label}${req ? " *" : ""}</label><input data-i="${i}" data-f="${f}" type="${type}" value="${escapeHtml(items[i].p[f])}" placeholder="${escapeHtml(ph)}" autocomplete="off" /></div>`;
+      return items.map(({ p, old }, i) => `<div class="tl-card"><div class="tl-card-head"><div class="tl-idx">${i + 1}</div>
+        <div class="tl-old">${old ? `<span class="tl-lbl">Thay cho</span> <b>${escapeHtml(old.username)}</b> · ${escapeHtml(old.employee_name || "")} <span class="nil">${escapeHtml(old.description || "")}</span>` : `<b>Account mới #${i + 1}</b>`}</div>
+        ${toolMsg(v.res[i], p.touched, i)}
+        ${old ? `<button type="button" class="btn btn-plain" data-tl="copy" data-i="${i}" title="Copy Description, RoleName, Territory từ account cũ">${ICONS.copy}</button>` : ""}
+        <button type="button" class="btn btn-plain" data-tl="remove" data-i="${i}" title="Bỏ dòng này">${ICONS.close}</button></div>
+        <div class="tl-grid">${F(i, "username", "UserName", { req: true, ph: "vd: 10002183" })}${F(i, "name", "EmployeeName", { req: true, ph: "Nguyễn Văn A" })}${F(i, "email", "Email", { req: true, type: "email", ph: "ten@coca-cola.com.vn" })}${F(i, "code", "EmployeeCode", { ph: "Tự lấy theo UserName" })}${F(i, "desc", "Description", { ph: "Distribution - South (50094541)" })}${F(i, "role", "RoleName")}${F(i, "terr", "TerritoryHierarchy", { ph: "VN14" })}${F(i, "dob", "DateOfBirth", { type: "date" })}${F(i, "doj", "DateOfJoining", { type: "date" })}</div></div>`).join("");
+    }
+    function renderToolPreview(items, v) {
+      if (!items.length) return `<div class="empty"><strong>Chưa có dữ liệu để xem trước</strong>${tool.mode === "replace" ? "Chọn account cần thay thế ở bước ①." : "Bấm “Thêm người” để nhập account mới."}</div>`;
+      const { olds, news } = toolRows(items);
+      const row = (r, c) => `<tr class="${c}">${r.map(x => `<td>${cellHtml(x)}</td>`).join("")}</tr>`;
+      return `<div class="tl-sum">${olds.length ? `<span class="badge badge-blue">${olds.length} account Deactive</span>` : ""}<span class="badge badge-success">${news.length} account Active mới</span>${v.errors ? `<span class="badge badge-danger">${v.errors} dòng lỗi</span>` : ""}${v.warnings ? `<span class="badge badge-warning">${v.warnings} dòng cảnh báo</span>` : ""}</div>
+        <div class="table-wrap"><table class="tl-table tl-prev"><thead><tr>${TOOL_COLS.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${olds.map(r => row(r, "r-old")).join("")}${news.map(r => row(r, "r-new")).join("")}</tbody></table></div>`;
+    }
+    function renderToolBody() {
+      const rep = tool.mode === "replace", items = toolPersons(), v = toolValidate(items);
+      return `<div class="tl-seg"><button type="button" data-tl-mode="replace" class="${rep ? "on" : ""}">${ICONS.swap} Thay thế account</button><button type="button" data-tl-mode="create" class="${rep ? "" : "on"}">${ICONS.plus} Tạo mới account</button></div>
+      ${rep ? `<section class="panel tl-panel"><div class="panel-head"><div><h2>① Chọn account cần thay thế</h2><p>Mặc định chỉ hiện account Deactive (IsActive = 0). Lựa chọn được giữ nguyên khi bạn tìm kiếm.</p></div><span class="badge badge-blue" id="tl-count">${tool.picked.length} đã chọn</span></div>
+        <div class="toolbar"><div class="search"><span class="search-icon">${ICONS.search}</span><input id="tl-search" value="${escapeHtml(tool.q)}" placeholder="Tìm UserName, tên, email, mã vùng…" autocomplete="off" /></div>
+        <div class="toolbar-right"><label class="tl-check"><input type="checkbox" id="tl-all" ${tool.showAll ? "checked" : ""} /> Hiện cả account Active</label><button type="button" class="btn btn-secondary" data-tl="clear">Bỏ chọn hết</button></div></div>
+        <div id="tl-list">${renderToolList()}</div></section>` : ""}
+      <section class="panel tl-panel"><div class="panel-head"><div><h2>${rep ? "② Thông tin người mới" : "① Thông tin account mới"}</h2><p>UserName, EmployeeName, Email là bắt buộc. EmployeeCode tự lấy theo UserName; tên tự chuyển IN HOA không dấu khi xuất. Ngày sinh để trống = NULL, ngày vào làm để trống = 1900-01-01.</p></div>${rep ? "" : `<button type="button" class="btn btn-secondary" data-tl="add">${ICONS.plus} Thêm người</button>`}</div><div class="panel-body" id="tl-cards">${renderToolCards(items, v)}</div></section>
+      <section class="panel tl-panel"><div class="panel-head"><div><h2>${rep ? "③" : "②"} Xem trước &amp; xuất phiếu</h2><p>${rep ? "Dòng xám là account cũ (Deactive), dòng xanh là account mới (Active) — đúng thứ tự thay thế." : "Dòng xanh là account mới (Active)."}</p></div><button type="button" class="btn btn-excel" id="tl-export" data-tl="export" ${!items.length || v.errors ? "disabled" : ""}>${ICONS.xlsx} Xuất phiếu Excel</button></div><div class="panel-body" id="tl-preview">${renderToolPreview(items, v)}</div></section>`;
+    }
+    function renderTools() {
+      return `<div id="tool-page"><div class="header-row"><div><div class="eyebrow">Support tools</div><h2 class="page-title">Công Cụ Hỗ Trợ</h2><p class="page-subtitle">Soạn phiếu tạo mới hoặc thay thế account (license) và xuất Excel đúng mẫu.</p></div></div><div id="tool-root">${renderToolBody()}</div></div>`;
+    }
+    function toolRefresh() {
+      const items = toolPersons(), v = toolValidate(items);
+      items.forEach(({ p }, i) => { const el = document.querySelector(`[data-msg="${i}"]`); if (el) el.outerHTML = toolMsg(v.res[i], p.touched, i); });
+      const pv = $("#tl-preview"); if (pv) pv.innerHTML = renderToolPreview(items, v);
+      const b = $("#tl-export"); if (b) b.disabled = !items.length || v.errors > 0;
+      const c = $("#tl-count"); if (c) c.textContent = `${tool.picked.length} đã chọn`;
+    }
+    function toolDrawPersons() {
+      const el = $("#tl-cards"), items = toolPersons();
+      if (el) el.innerHTML = renderToolCards(items, toolValidate(items));
+      toolRefresh();
+    }
+    async function toolExport() {
+      const items = toolPersons(), v = toolValidate(items);
+      if (!items.length || v.errors) return;
+      if (v.warnings && !(await confirmDialog({ title: "Vẫn xuất phiếu?", message: `Có ${v.warnings} dòng cảnh báo (trùng UserName/Email hoặc thiếu Description/Territory). Bạn có muốn tiếp tục xuất?`, confirmText: "Vẫn xuất", danger: false }))) return;
+      const { olds, news } = toolRows(items);
+      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+      const fileName = `${tool.mode === "replace" ? "Phieu_Thay_The_License" : "Phieu_Tao_Moi_License"}_${stamp}.xlsx`;
+      try {
+        if (window.ExcelJS) {   // ExcelJS hỗ trợ tô màu dòng (header hồng, cũ xám, mới xanh) như mẫu
+          const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Licenses");
+          const fill = argb => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
+          const side = { style: "thin", color: { argb: "FFBFBFBF" } };
+          const put = (vals, argb, bold) => ws.addRow(vals).eachCell({ includeEmpty: true }, c => { c.numFmt = "@"; c.fill = fill(argb); c.font = { name: "Times New Roman", size: 11, bold: !!bold }; c.border = { top: side, left: side, bottom: side, right: side }; });
+          put(TOOL_COLS, "FFF3DCF2", true);
+          olds.forEach(r => put(r, "FFD9D9D9"));
+          news.forEach(r => put(r, "FFB9E4A8"));
+          [14, 36, 14, 28, 13, 24, 34, 20, 20, 9, 10].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+          ws.views = [{ state: "frozen", ySplit: 1 }];
+          const buf = await wb.xlsx.writeBuffer();
+          const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })), download: fileName });
+          document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        } else {                // dự phòng: SheetJS bản thường (không tô màu)
+          const ws = XLSX.utils.aoa_to_sheet([TOOL_COLS, ...olds, ...news]), wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Licenses"); XLSX.writeFile(wb, fileName);
+        }
+        toast(`Đã xuất phiếu "${fileName}".`, "success");
+      } catch (err) { toast(`Xuất phiếu thất bại: ${err.message}`, "error"); }
+    }
+    function bindToolEvents() {
+      const pg = $("#tool-page"); if (!pg) return;
+      let timer;
+      pg.addEventListener("click", e => {
+        const t = e.target, m = t.closest("[data-tl-mode]");
+        if (m) { tool.mode = m.dataset.tlMode; $("#tool-root").innerHTML = renderToolBody(); return; }
+        const tr = t.closest("tr[data-pk]");
+        if (tr) {
+          const cb = tr.querySelector("input"); if (t !== cb) cb.checked = !cb.checked;
+          tr.classList.toggle("sel", cb.checked);
+          tool.picked = tool.picked.filter(k => k !== tr.dataset.pk); if (cb.checked) tool.picked.push(tr.dataset.pk);
+          toolDrawPersons(); return;
+        }
+        const a = t.closest("[data-tl]"); if (!a) return;
+        const act = a.dataset.tl, i = Number(a.dataset.i);
+        if (act === "export") toolExport();
+        else if (act === "add") { tool.list.push(blankPerson()); toolDrawPersons(); }
+        else if (act === "clear") { tool.picked = []; $("#tl-list").innerHTML = renderToolList(); toolDrawPersons(); }
+        else if (act === "remove") {
+          if (tool.mode === "create") tool.list.splice(i, 1);
+          else { const k = tool.picked.splice(i, 1)[0], row = [...pg.querySelectorAll("tr[data-pk]")].find(x => x.dataset.pk === k); if (row) { row.classList.remove("sel"); row.querySelector("input").checked = false; } }
+          toolDrawPersons();
+        } else if (act === "copy") {
+          const { p, old } = toolPersons()[i] || {};
+          if (old) { Object.assign(p, { desc: old.description || "", role: old.role_name || p.role, terr: old.territory_hierarchy || "", touched: true }); toolDrawPersons(); }
+        }
+      });
+      pg.addEventListener("input", e => {
+        const t = e.target;
+        if (t.id === "tl-search") { tool.q = t.value; clearTimeout(timer); timer = setTimeout(() => { $("#tl-list").innerHTML = renderToolList(); }, 150); return; }
+        if (!t.dataset.f) return;
+        const p = toolPersons()[Number(t.dataset.i)]?.p; if (!p) return;
+        p[t.dataset.f] = t.value; p.touched = true;
+        if (t.dataset.f === "username" && !p.codeEdited) { p.code = t.value; const c = pg.querySelector(`[data-i="${t.dataset.i}"][data-f="code"]`); if (c) c.value = t.value; }
+        if (t.dataset.f === "code") p.codeEdited = !!t.value;
+        toolRefresh();
+      });
+      pg.addEventListener("change", e => { if (e.target.id === "tl-all") { tool.showAll = e.target.checked; $("#tl-list").innerHTML = renderToolList(); } });
     }
 
     async function boot() {

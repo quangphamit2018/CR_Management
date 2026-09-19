@@ -337,7 +337,8 @@
     function renderPage() {
       if (state.tab === "dashboard") return renderDashboard();
       if (state.tab === "dms" || state.tab === "central") return renderDataset();
-      return renderAdmin();
+      if (state.tab === "admin" && isAdmin()) return renderAdmin();
+      return renderDashboard();
     }
 
     function renderDashboard() {
@@ -566,6 +567,7 @@
       if (profileChannel) { state.supabase?.removeChannel(profileChannel); profileChannel = null; }
       if (adminChannel) { state.supabase?.removeChannel(adminChannel); adminChannel = null; }
       state.requestSent = false;
+      state.tab = "dashboard";
       await state.supabase?.auth.signOut(); state.session = null; state.profile = null; render();
     }
 

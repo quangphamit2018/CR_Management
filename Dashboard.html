@@ -1305,6 +1305,89 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     .public-sync-btn, .public-sync-btn .sync-ico svg, .kpi-card, .kpi-meter i, .title-toggle button{ transition:none !important; }
     .public-sync-btn:disabled .sync-ico svg{ animation:none; }
   }
+
+  /* ======================================================================
+     Tab Auto Assign
+     ====================================================================== */
+  .aa-head-right{ display:flex; align-items:center; gap:14px; }
+  .aa-state{
+    display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:999px; font-size:12.5px; font-weight:700; border:1px solid transparent;
+  }
+  .aa-state::before{ content:""; width:8px; height:8px; border-radius:50%; background:currentColor; }
+  .aa-state.on{ background:var(--ok-bg); color:var(--ok); border-color:var(--ok-line); }
+  .aa-state.off{ background:#eef1f5; color:#5b6b7b; border-color:#d9e0e8; }
+  .aa-switch{ width:52px; height:28px; }
+  .aa-switch .slider:before{ height:22px; width:22px; left:3px; bottom:3px; }
+  .aa-switch input:checked + .slider{ background-color:#28a745; }
+  .aa-switch input:checked + .slider:before{ transform:translateX(24px); }
+
+  .aa-next{
+    margin-bottom:18px; padding:12px 16px; border-radius:12px; font-size:13px; color:var(--navy-800);
+    background:linear-gradient(90deg,#eaf3fc,#f5f9fd); border:1px solid var(--info-line); border-left:5px solid var(--accent);
+  }
+  .aa-next span{ color:var(--ink-2); font-size:12px; }
+
+  .aa-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-bottom:18px; }
+  .aa-box{
+    padding:16px 18px 18px; background:var(--surface-2); border:1px solid var(--line-2); border-left:4px solid var(--navy-700); border-radius:12px; min-width:0;
+  }
+  .aa-box-title{ font-size:14px; font-weight:700; color:var(--navy-800); margin-bottom:4px; }
+  .aa-two{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .aa-fixed-chip{
+    display:flex; align-items:center; min-height:40px; padding:0 12px; border:1.5px dashed #b7c8d8; border-radius:9px;
+    background:#fff; color:var(--ink-2); font-size:13px; font-weight:600;
+  }
+  .aa-opt{ font-weight:500; color:var(--ink-3); font-size:12px; }
+  .aa-schedule{ margin-bottom:6px; }
+  .aa-sched-row{ display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; margin-bottom:14px; }
+  .aa-grow{ flex:1 1 280px; }
+  .aa-narrow{ width:140px; }
+  .aa-sched-row .us-field{ min-width:0; }
+  #aaIntervalBox .us-field{ flex:0 1 200px; }
+
+  .aa-days{ display:flex; flex-wrap:wrap; gap:8px; }
+  .aa-day input{ position:absolute; opacity:0; pointer-events:none; }
+  .aa-day{ position:relative; }
+  .aa-day span{
+    display:inline-flex; align-items:center; justify-content:center; min-width:46px; height:38px; padding:0 12px; border-radius:999px; cursor:pointer;
+    background:#fff; border:1.5px solid var(--line); font-size:12.5px; font-weight:700; color:var(--navy-800); user-select:none;
+    transition:background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .aa-day span:hover{ border-color:#9db4c8; background:var(--surface-3); }
+  .aa-day input:checked + span{ background:var(--brand-gradient); color:#fff; border-color:var(--navy-800); box-shadow:0 3px 8px rgba(16,41,68,.25); }
+  .aa-day input:focus-visible + span{ outline:3px solid var(--accent-ring); outline-offset:2px; }
+
+  .aa-preview{ padding-top:14px; border-top:1px dashed var(--line); }
+  .aa-preview-title{ font-size:12.5px; font-weight:700; color:var(--navy-800); margin-bottom:10px; }
+  .aa-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .aa-chip{
+    display:inline-flex; align-items:baseline; gap:8px; padding:6px 12px; border-radius:999px; background:#fff; border:1px solid var(--brand-tint-border);
+    font-variant-numeric:tabular-nums; box-shadow:0 1px 2px rgba(16,41,68,.06);
+  }
+  .aa-chip b{ font-size:13.5px; color:var(--navy-800); }
+  .aa-chip small{ font-size:11px; font-weight:600; color:var(--ink-2); }
+  .aa-chip-more{ background:var(--surface-3); font-weight:700; font-size:12px; color:var(--navy-800); }
+  .aa-preview-err{ font-size:12.5px; font-weight:600; color:var(--danger); }
+
+  .aa-actions{ display:flex; flex-wrap:wrap; gap:12px; margin-top:22px; padding-top:20px; border-top:1px solid var(--line-2); }
+  .aa-jql{ margin-bottom:14px; font-size:12.5px; line-height:1.7; color:var(--ink-2); }
+  .aa-warn{ margin-top:8px; padding:8px 12px; border-radius:9px; background:var(--warn-bg); border:1px solid var(--warn-line); color:#5c4500; font-size:12.5px; font-weight:600; }
+  .aa-err-text{ font-size:11.5px; color:var(--danger); }
+  .aa-detail-row td{ background:#f6f9fc !important; padding:14px 18px !important; font-size:12.5px; line-height:1.7; white-space:normal; }
+  .aa-detail-list{ margin:10px 0 0; padding-left:18px; }
+  .aa-detail-list li{ margin-bottom:5px; }
+  #aaLogTable td{ white-space:nowrap; }
+  #aaLogTable .aa-detail-row td{ white-space:normal; }
+
+  @media (max-width:900px){
+    .aa-grid{ grid-template-columns:1fr; }
+  }
+  @media (max-width:768px){
+    .aa-head-right{ width:100%; justify-content:space-between; margin-left:0; }
+    .aa-two{ grid-template-columns:1fr; }
+    .aa-actions .us-btn{ width:100%; }
+    .aa-narrow{ width:100%; }
+  }
 </style>
 </head>
 <body>
@@ -1317,6 +1400,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   <button class="app-tab active" id="tabDashboardBtn" data-tab="dashboard">📊 Dashboard</button>
   <button class="app-tab" id="tabUpdateSummaryBtn" data-tab="updatesummary">🛠 Update Summary</button>
   <button class="app-tab" id="tabDuplicateBtn" data-tab="duplicate">📄 Duplicate Ticket</button>
+  <button class="app-tab" id="tabAutoAssignBtn" data-tab="autoassign">⚡ Auto Assign</button>
 </div>
 
 <div class="modal-overlay" id="loginModal">
@@ -1886,6 +1970,185 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       đọc toàn bộ field ticket gốc trực tiếp từ Jira rồi tạo issue mới. Bảng <code>jira_tickets</code> chỉ dùng để
       hiển thị danh sách chọn ticket gốc, không phải nguồn field để tạo ticket (vì bảng này chỉ lưu các cột đã
       được chuẩn hoá cho Dashboard, không phải toàn bộ field gốc của Jira).</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="canvas" id="viewAutoAssign" style="display:none;">
+  <div class="us-wrap">
+
+    <section class="us-panel" id="aaMainPanel">
+      <header class="us-panel-head">
+        <span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span>
+        <div class="us-head-text">
+          <h3>Auto Assign — Tự động giao ticket</h3>
+          <p>Quét ticket đang chờ xử lý và giao cho một người, chạy sớm hơn mỗi lần đồng bộ dữ liệu vài phút.</p>
+        </div>
+        <div class="aa-head-right us-head-action">
+          <span class="aa-state off" id="aaStateBadge">Chưa tải</span>
+          <label class="switch aa-switch" title="Bật / tắt job tự động">
+            <input type="checkbox" id="aaEnabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </header>
+
+      <div class="us-panel-body">
+        <div class="us-note aa-setup" id="aaSetupBanner" style="display:none;margin-bottom:18px;">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>
+          <div><b>Chưa cài đặt phần server cho Auto Assign.</b> Trang này chỉ là nơi cấu hình — job chạy trên Supabase.
+            Cần chạy file <code>01_auto_assign_schema.sql</code> trong SQL Editor và deploy Edge Function <code>jira-auto-assign</code>
+            (hướng dẫn nằm trong 2 file đi kèm).</div>
+        </div>
+
+        <div class="aa-next" id="aaNextRun" style="display:none;"></div>
+
+        <div class="aa-grid">
+          <!-- Điều kiện quét -->
+          <div class="aa-box">
+            <div class="aa-box-title">Điều kiện quét ticket</div>
+            <p class="us-help">Ticket phải thoả đồng thời cả 3 điều kiện.</p>
+            <div class="us-field" style="margin-bottom:12px;">
+              <label class="us-label" for="aaStatusName">Status</label>
+              <input type="text" class="us-input" id="aaStatusName" value="Waiting for support" autocomplete="off">
+            </div>
+            <div class="us-field" style="margin-bottom:12px;">
+              <span class="us-label">Assignee</span>
+              <div class="aa-fixed-chip">Để trống (chưa có người nhận)</div>
+            </div>
+            <div class="aa-two">
+              <div class="us-field">
+                <label class="us-label" for="aaGroupField">Tên field nhóm</label>
+                <input type="text" class="us-input" id="aaGroupField" value="Ticket Group" autocomplete="off">
+              </div>
+              <div class="us-field">
+                <label class="us-label" for="aaGroupValue">Giá trị</label>
+                <input type="text" class="us-input" id="aaGroupValue" value="MDM" autocomplete="off">
+              </div>
+            </div>
+            <div class="us-field" style="margin-top:12px;">
+              <label class="us-label" for="aaProjectKey">Project key <span class="aa-opt">(không bắt buộc)</span></label>
+              <input type="text" class="us-input" id="aaProjectKey" placeholder="Để trống = tìm trên mọi project" autocomplete="off">
+            </div>
+          </div>
+
+          <!-- Người nhận + giới hạn -->
+          <div class="aa-box">
+            <div class="aa-box-title">Giao cho ai</div>
+            <p class="us-help">Danh sách lấy từ mục "Quản lý danh sách Assignee" ở tab Duplicate Ticket.</p>
+            <div class="us-field" style="margin-bottom:14px;">
+              <label class="us-label" for="aaAssignee">Người nhận ticket</label>
+              <select class="us-select" id="aaAssignee"><option value="">— Chọn người nhận —</option></select>
+            </div>
+            <div class="us-field">
+              <label class="us-label" for="aaMaxPerRun">Tối đa ticket mỗi lần chạy</label>
+              <input type="number" class="us-input" id="aaMaxPerRun" min="1" max="500" step="1" value="50">
+              <p class="us-help" style="margin:4px 0 0;">Chặn giao hàng loạt ngoài ý muốn. Phần vượt giới hạn sẽ xử lý ở lần sau.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lịch -->
+        <div class="aa-box aa-schedule">
+          <div class="aa-box-title">Lịch chạy — trước giờ đồng bộ dữ liệu</div>
+          <p class="us-help">Nhập giờ hệ thống <b>đồng bộ dữ liệu Jira</b>. Job Auto Assign sẽ tự chạy sớm hơn số phút bên dưới,
+            để ticket vừa giao được đồng bộ về Dashboard ngay lượt sync kế tiếp.</p>
+
+          <div class="us-mode-switch" role="group" aria-label="Kiểu lịch sync">
+            <button type="button" class="us-mode-btn active" id="aaModeFixedBtn">Giờ cố định</button>
+            <button type="button" class="us-mode-btn" id="aaModeIntervalBtn">Lặp theo chu kỳ</button>
+          </div>
+
+          <div id="aaFixedBox" class="aa-sched-row">
+            <div class="us-field aa-grow">
+              <label class="us-label" for="aaFixedTimes">Các giờ sync trong ngày</label>
+              <input type="text" class="us-input" id="aaFixedTimes" value="08:00, 12:00, 17:00" placeholder="VD: 08:00, 12:00, 17:00" autocomplete="off">
+              <p class="us-help" style="margin:4px 0 0;">Định dạng HH:mm, cách nhau bằng dấu phẩy.</p>
+            </div>
+          </div>
+
+          <div id="aaIntervalBox" class="aa-sched-row" style="display:none;">
+            <div class="us-field"><label class="us-label" for="aaIntervalMin">Sync mỗi (phút)</label>
+              <input type="number" class="us-input" id="aaIntervalMin" min="1" max="720" step="1" value="30"></div>
+            <div class="us-field"><label class="us-label" for="aaIntervalStart">Bắt đầu từ</label>
+              <input type="time" class="us-input" id="aaIntervalStart" value="07:00"></div>
+            <div class="us-field"><label class="us-label" for="aaIntervalEnd">Đến hết</label>
+              <input type="time" class="us-input" id="aaIntervalEnd" value="18:00"></div>
+          </div>
+
+          <div class="aa-sched-row">
+            <div class="us-field">
+              <label class="us-label" for="aaLeadMin">Chạy trước sync (phút)</label>
+              <input type="number" class="us-input aa-narrow" id="aaLeadMin" min="0" max="120" step="1" value="5">
+            </div>
+            <div class="us-field aa-grow">
+              <span class="us-label">Chạy vào các ngày</span>
+              <div class="aa-days" id="aaDays">
+                <label class="aa-day"><input type="checkbox" data-day="1" checked><span>T2</span></label>
+                <label class="aa-day"><input type="checkbox" data-day="2" checked><span>T3</span></label>
+                <label class="aa-day"><input type="checkbox" data-day="3" checked><span>T4</span></label>
+                <label class="aa-day"><input type="checkbox" data-day="4" checked><span>T5</span></label>
+                <label class="aa-day"><input type="checkbox" data-day="5" checked><span>T6</span></label>
+                <label class="aa-day"><input type="checkbox" data-day="6" checked><span>T7</span></label>
+                <label class="aa-day"><input type="checkbox" data-day="7" checked><span>CN</span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="aa-preview">
+            <div class="aa-preview-title">Các mốc job sẽ chạy <span id="aaTzNote" class="aa-opt">(giờ Asia/Ho_Chi_Minh)</span></div>
+            <div class="aa-chips" id="aaRunPreview"></div>
+          </div>
+        </div>
+
+        <div class="aa-actions">
+          <button class="us-btn us-btn-primary us-btn-lg" id="aaSaveBtn">💾 Lưu cấu hình</button>
+          <button class="us-btn us-btn-secondary us-btn-lg" id="aaDryRunBtn">🔍 Xem trước (không gán)</button>
+          <button class="us-btn us-btn-secondary us-btn-lg" id="aaRunNowBtn">▶ Chạy ngay</button>
+        </div>
+        <div id="aaAlert" class="us-alert" style="display:none;"></div>
+      </div>
+    </section>
+
+    <section class="us-panel" id="aaResultPanel" style="display:none;">
+      <header class="us-panel-head">
+        <span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg></span>
+        <div class="us-head-text"><h3 id="aaResultTitle">Kết quả</h3><p id="aaResultMeta"></p></div>
+      </header>
+      <div class="us-panel-body">
+        <div class="aa-jql" id="aaResultJql"></div>
+        <div class="us-table-wrap us-table-wrap-sm">
+          <table class="us-table" id="aaResultTable">
+            <thead><tr><th>Ticket</th><th>Summary</th><th>Kết quả</th></tr></thead>
+            <tbody id="aaResultBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="us-panel">
+      <header class="us-panel-head">
+        <span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg></span>
+        <div class="us-head-text"><h3>Lịch sử chạy</h3><p>Gồm cả lần chạy tự động (cron) và chạy tay. Lần "Xem trước" không được ghi lại.</p></div>
+        <button class="us-btn us-btn-secondary us-head-action" id="aaRefreshLogBtn">↻ Tải lại</button>
+      </header>
+      <div class="us-panel-body">
+        <div class="us-table-wrap us-table-wrap-sm">
+          <table class="us-table" id="aaLogTable">
+            <thead><tr><th>Thời gian</th><th>Nguồn</th><th>Mốc</th><th>Tìm thấy</th><th>Đã giao</th><th>Lỗi</th><th class="col-actions"></th></tr></thead>
+            <tbody id="aaLogBody"><tr><td colspan="7" class="us-empty">Chưa có lần chạy nào.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div class="us-note">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>
+      <div><b>Cách hoạt động:</b> trang này chỉ lưu cấu hình vào Supabase. Job chạy phía server (pg_cron mỗi phút gọi Edge Function
+        <code>jira-auto-assign</code>) nên vẫn chạy khi đóng trình duyệt. Mỗi lần chạy, hàm tìm ticket trực tiếp trên Jira bằng JQL
+        (không dựa vào bảng <code>jira_tickets</code> vì bảng này chỉ cập nhật sau mỗi lượt sync) rồi gán bằng Jira REST API.
+        "Xem trước" và "Chạy ngay" dùng cấu hình <b>đã lưu</b>. Bảng <code>jira_tickets</code> sẽ nhận assignee mới ở lượt sync kế tiếp.</div>
     </div>
 
   </div>
@@ -3061,6 +3324,7 @@ function closeForceChangeModal(){ forceChangeModal.classList.remove('open'); }
 
 let jiraTokenDirty = false; // [SEC] true khi người dùng thực sự gõ vào ô Token; server chỉ trả token đã che (••••••••xxxx)
 
+let tokenCfgLoadFailed = false;   // true khi không nạp được cấu hình đã lưu -> các ô đang trống chỉ vì chưa tải được
 async function openTokenModal(){
   document.getElementById('connStatus').className = 'conn-status';
   document.getElementById('pwStatus').className = 'conn-status';
@@ -3074,7 +3338,10 @@ async function openTokenModal(){
 
   const sessionToken = getSessionToken();
   if(!sessionToken) return;
-  const r = await rpc('admin_get_config', { session_token: sessionToken });
+  tokenCfgLoadFailed = false;
+  let r;
+  try{ r = await rpc('admin_get_config', { session_token: sessionToken }); }
+  catch(e){ r = { ok:false, status:0, data:null }; }
   if(r.ok && r.data && r.data[0]){
     document.getElementById('cfgBaseUrl').value = sanitizeJiraBaseUrl(r.data[0].jira_base_url || '');
     document.getElementById('cfgEmail').value = r.data[0].jira_email || '';
@@ -3088,6 +3355,13 @@ async function openTokenModal(){
     if(r.data[0].display_days_limit != null){
       document.getElementById('cfgDisplayDaysLimit').value = r.data[0].display_days_limit;
     }
+  } else if(!r.ok){
+    tokenCfgLoadFailed = true;
+    const cs = document.getElementById('connStatus');
+    cs.className = 'conn-status err';
+    cs.textContent = 'Không tải được cấu hình đã lưu' + (r.status ? ' (HTTP ' + r.status + ')' : ' (lỗi mạng)') +
+      '. Dữ liệu trên Supabase KHÔNG bị mất — các ô đang trống chỉ vì chưa tải được. ' +
+      'Hãy đăng xuất, đăng nhập lại rồi mở lại hộp thoại này. Đừng bấm "Lưu Token" khi các ô còn trống.';
   }
 }
 document.getElementById('cfgToken').addEventListener('input', ()=>{ jiraTokenDirty = true; });
@@ -3119,9 +3393,11 @@ function usSwitchTab(tab){
   const btnDash = document.getElementById('tabDashboardBtn');
   const btnUs = document.getElementById('tabUpdateSummaryBtn');
   const btnDup = document.getElementById('tabDuplicateBtn');
+  const aaViewEl = document.getElementById('viewAutoAssign');
+  const btnAa = document.getElementById('tabAutoAssignBtn');
 
-  const views = { dashboard: dashEl, updatesummary: usEl, duplicate: dupEl };
-  const btns  = { dashboard: btnDash, updatesummary: btnUs, duplicate: btnDup };
+  const views = { dashboard: dashEl, updatesummary: usEl, duplicate: dupEl, autoassign: aaViewEl };
+  const btns  = { dashboard: btnDash, updatesummary: btnUs, duplicate: btnDup, autoassign: btnAa };
 
   const target = (tab !== 'dashboard' && isLoggedIn() && views[tab]) ? tab : 'dashboard';
 
@@ -3132,10 +3408,12 @@ function usSwitchTab(tab){
   });
 
   if(target === 'duplicate' && typeof dupOnTabOpen === 'function') dupOnTabOpen();
+  if(target === 'autoassign' && typeof aaOnTabOpen === 'function') aaOnTabOpen();
 }
 document.getElementById('tabDashboardBtn').addEventListener('click', ()=> usSwitchTab('dashboard'));
 document.getElementById('tabUpdateSummaryBtn').addEventListener('click', ()=> usSwitchTab('updatesummary'));
 document.getElementById('tabDuplicateBtn').addEventListener('click', ()=> usSwitchTab('duplicate'));
+document.getElementById('tabAutoAssignBtn').addEventListener('click', ()=> usSwitchTab('autoassign'));
 
 /* ================================================================
    [Duplicate Ticket] — tái dùng nguyên vẹn cơ chế đăng nhập Admin
@@ -3502,6 +3780,12 @@ document.getElementById('saveCfgBtn').onclick = async ()=>{
   const sessionToken = getSessionToken();
   const s = document.getElementById('connStatus');
   if(!sessionToken){ s.className='conn-status err'; s.textContent='Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'; return; }
+  /* [Bảo vệ] Nếu không nạp được cấu hình đã lưu mà các ô lại trống -> chặn lưu để khỏi ghi đè bằng giá trị rỗng */
+  if(tokenCfgLoadFailed && !document.getElementById('cfgBaseUrl').value.trim() && !document.getElementById('cfgEmail').value.trim()){
+    s.className='conn-status err';
+    s.textContent='Chưa tải được cấu hình đã lưu nên các ô đang trống — đã chặn lưu để tránh ghi đè bằng giá trị rỗng. Hãy đăng nhập lại rồi mở lại hộp thoại này.';
+    return;
+  }
 
   const daysLimitRaw = document.getElementById('cfgDisplayDaysLimit').value.trim();
   let daysLimit = null;
@@ -4897,6 +5181,419 @@ async function autoRefreshFromSupabase(){
 }
 
 setInterval(autoRefreshFromSupabase, AUTO_REFRESH_MS);
+
+/* ================================================================
+   [Auto Assign] — cấu hình job tự động giao ticket.
+   Tái dùng nguyên vẹn: rpc(), getSessionToken(), showToast(), SUPABASE_URL, SUPABASE_ANON_KEY.
+   LƯU Ý: job thật sự chạy trên Supabase (pg_cron -> Edge Function `jira-auto-assign`),
+   trang này CHỈ lưu cấu hình, xem trước và chạy tay — không tự chạy job trong trình duyệt.
+   ================================================================ */
+const AA_EDGE_FUNCTION = 'jira-auto-assign';
+const AA_TZ_DEFAULT = 'Asia/Ho_Chi_Minh';
+let aaLoadedOnce = false;
+let aaMode = 'fixed';          // 'fixed' | 'interval'
+let aaDirty = false;           // có thay đổi chưa lưu
+let aaApplying = false;        // đang đổ dữ liệu vào form (không tính là người dùng sửa)
+let aaBusy = false;
+let aaSavedCfg = null;         // cấu hình đã lưu trên server
+let aaLogRows = [];
+
+function aaEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function aaPad(n){ return String(n).padStart(2, '0'); }
+function aaMinToHHMM(m){ m = ((m % 1440) + 1440) % 1440; return aaPad(Math.floor(m / 60)) + ':' + aaPad(m % 60); }
+function aaParseHHMM(s){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || '').trim());
+  if(!m) return null;
+  const h = +m[1], mi = +m[2];
+  return (h > 23 || mi > 59) ? null : h * 60 + mi;
+}
+const aaEl = (id) => document.getElementById(id);
+
+function aaSetAlert(msg, type){
+  const el = aaEl('aaAlert');
+  el.textContent = msg;
+  el.className = 'us-alert us-alert-' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'info');
+  el.style.display = 'block';
+}
+function aaClearAlert(){ const el = aaEl('aaAlert'); el.style.display = 'none'; el.textContent = ''; }
+function aaMarkDirty(){ if(!aaApplying) aaDirty = true; }
+function aaErrMsg(r){
+  const d = r && r.data;
+  return (d && (d.message || d.error || d.hint)) ? (d.message || d.error || d.hint) : ('HTTP ' + (r ? r.status : '?'));
+}
+function aaIsMissingServer(r){ return r && (r.status === 404 || (r.data && r.data.code === 'PGRST202')); }
+function aaShowSetup(show){ aaEl('aaSetupBanner').style.display = show ? 'flex' : 'none'; }
+
+/* ---------- Lịch: gom các mốc giờ SYNC từ form ---------- */
+function aaSetMode(mode){
+  aaMode = mode === 'interval' ? 'interval' : 'fixed';
+  aaEl('aaModeFixedBtn').classList.toggle('active', aaMode === 'fixed');
+  aaEl('aaModeIntervalBtn').classList.toggle('active', aaMode === 'interval');
+  aaEl('aaFixedBox').style.display = aaMode === 'fixed' ? '' : 'none';
+  aaEl('aaIntervalBox').style.display = aaMode === 'interval' ? '' : 'none';
+}
+
+function aaCollectSyncTimes(){
+  if(aaMode === 'fixed'){
+    const tokens = aaEl('aaFixedTimes').value.split(/[,;\s]+/).filter(Boolean);
+    const set = new Set(), bad = [];
+    tokens.forEach(t => { const m = aaParseHHMM(t); if(m === null) bad.push(t); else set.add(m); });
+    if(bad.length) return { times: [], error: 'Giờ không hợp lệ: ' + bad.join(', ') + ' (dùng dạng HH:mm, ví dụ 08:00).' };
+    return { times: [...set].sort((a, b) => a - b).map(aaMinToHHMM), error: '' };
+  }
+  const n = parseInt(aaEl('aaIntervalMin').value, 10);
+  const start = aaParseHHMM(aaEl('aaIntervalStart').value);
+  const end = aaParseHHMM(aaEl('aaIntervalEnd').value);
+  if(!Number.isFinite(n) || n < 1 || n > 720) return { times: [], error: 'Chu kỳ sync phải từ 1 đến 720 phút.' };
+  if(start === null || end === null) return { times: [], error: 'Hãy nhập giờ bắt đầu và giờ kết thúc.' };
+  if(end < start) return { times: [], error: 'Giờ kết thúc phải sau hoặc bằng giờ bắt đầu.' };
+  if(Math.floor((end - start) / n) + 1 > 288) return { times: [], error: 'Quá nhiều mốc (tối đa 288). Hãy tăng chu kỳ hoặc thu hẹp khung giờ.' };
+  const times = [];
+  for(let m = start; m <= end; m += n) times.push(aaMinToHHMM(m));
+  return { times, error: '' };
+}
+
+function aaSelectedDays(){
+  return [...document.querySelectorAll('#aaDays input[type=checkbox]:checked')].map(i => parseInt(i.dataset.day, 10)).sort((a, b) => a - b);
+}
+
+function aaRenderPreview(){
+  const box = aaEl('aaRunPreview');
+  const lead = parseInt(aaEl('aaLeadMin').value, 10);
+  const { times, error } = aaCollectSyncTimes();
+  if(error){ box.innerHTML = '<span class="aa-preview-err">' + aaEsc(error) + '</span>'; return; }
+  if(!Number.isFinite(lead) || lead < 0 || lead > 120){ box.innerHTML = '<span class="aa-preview-err">Số phút chạy trước phải từ 0 đến 120.</span>'; return; }
+  if(!times.length){ box.innerHTML = '<span class="aa-opt">Chưa có mốc giờ nào.</span>'; return; }
+  const MAX = 24;
+  let html = times.slice(0, MAX).map(t => {
+    const m = aaParseHHMM(t) - lead;
+    return '<span class="aa-chip"><b>' + aaMinToHHMM(m) + '</b><small>sync ' + t + (m < 0 ? ' · hôm trước' : '') + '</small></span>';
+  }).join('');
+  if(times.length > MAX) html += '<span class="aa-chip aa-chip-more">+' + (times.length - MAX) + ' mốc nữa</span>';
+  box.innerHTML = html;
+}
+
+/* ---------- Mốc chạy kế tiếp (tính theo múi giờ của cấu hình, giống logic phía server) ---------- */
+function aaLocalAsUtcMs(d, tz){
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(d);
+  const g = t => Number(parts.find(p => p.type === t).value);
+  return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'));
+}
+function aaNextRun(cfg){
+  const times = cfg.sync_times || [], days = cfg.days_of_week || [], lead = cfg.lead_minutes || 0;
+  if(!times.length || !days.length) return null;
+  let nowL;
+  try{ nowL = aaLocalAsUtcMs(new Date(), cfg.timezone || AA_TZ_DEFAULT); }catch(e){ return null; }
+  const dayStart = Math.floor(nowL / 86400000) * 86400000;
+  let best = null, bestSync = null;
+  for(let off = -1; off <= 8; off++){
+    for(const t of times){
+      const mins = aaParseHHMM(t); if(mins === null) continue;
+      const slot = dayStart + off * 86400000 + (mins - lead) * 60000;
+      if(slot <= nowL) continue;
+      const dow = new Date(slot).getUTCDay() || 7;
+      if(days.indexOf(dow) === -1) continue;
+      if(best === null || slot < best){ best = slot; bestSync = t; }
+    }
+  }
+  if(best === null) return null;
+  const d = new Date(best);
+  const todayMs = dayStart, tomorrowMs = dayStart + 86400000;
+  const dayOfBest = Math.floor(best / 86400000) * 86400000;
+  const label = dayOfBest === todayMs ? 'hôm nay' : dayOfBest === tomorrowMs ? 'ngày mai' :
+    aaPad(d.getUTCDate()) + '/' + aaPad(d.getUTCMonth() + 1);
+  return { text: aaPad(d.getUTCHours()) + ':' + aaPad(d.getUTCMinutes()) + ' ' + label, sync: bestSync };
+}
+
+function aaRenderState(cfg){
+  const badge = aaEl('aaStateBadge'), next = aaEl('aaNextRun');
+  const on = !!(cfg && cfg.enabled);
+  badge.className = 'aa-state ' + (on ? 'on' : 'off');
+  badge.textContent = on ? 'Job đang bật' : 'Job đang tắt';
+  if(on){
+    const n = aaNextRun(cfg);
+    next.style.display = '';
+    next.innerHTML = n
+      ? 'Lần chạy kế tiếp: <b>' + aaEsc(n.text) + '</b> <span>(trước lượt sync ' + aaEsc(n.sync) + ' — múi giờ ' + aaEsc(cfg.timezone || AA_TZ_DEFAULT) + ')</span>'
+      : 'Job đang bật nhưng chưa có mốc chạy nào phù hợp (kiểm tra mốc giờ và ngày chạy).';
+  } else {
+    next.style.display = 'none';
+  }
+}
+
+/* ---------- Nạp dữ liệu ---------- */
+async function aaLoadAssignees(){
+  const sel = aaEl('aaAssignee');
+  try{
+    const r = await rpc('dup_list_assignees', {});
+    if(!(r.ok && Array.isArray(r.data))) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">— Chọn người nhận —</option>';
+    r.data.forEach(row => {
+      const o = document.createElement('option');
+      o.value = row.jira_account_id; o.textContent = row.display_name; o.dataset.name = row.display_name;
+      sel.appendChild(o);
+    });
+    if(keep) sel.value = keep;
+  }catch(e){ /* danh sách assignee không tải được: giữ nguyên select hiện tại */ }
+}
+
+function aaApplyConfig(c){
+  aaApplying = true;
+  try{
+    aaEl('aaEnabled').checked = !!c.enabled;
+    aaEl('aaStatusName').value = c.status_name || 'Waiting for support';
+    aaEl('aaGroupField').value = c.group_field_name || 'Ticket Group';
+    aaEl('aaGroupValue').value = c.group_value || 'MDM';
+    aaEl('aaProjectKey').value = c.project_key || '';
+    aaEl('aaMaxPerRun').value = c.max_per_run != null ? c.max_per_run : 50;
+    aaEl('aaLeadMin').value = c.lead_minutes != null ? c.lead_minutes : 5;
+    aaEl('aaTzNote').textContent = '(giờ ' + (c.timezone || AA_TZ_DEFAULT) + ')';
+    const days = c.days_of_week || [1, 2, 3, 4, 5, 6, 7];
+    document.querySelectorAll('#aaDays input[type=checkbox]').forEach(i => { i.checked = days.indexOf(parseInt(i.dataset.day, 10)) !== -1; });
+
+    const ui = c.schedule_ui || {};
+    aaSetMode(ui.mode === 'interval' ? 'interval' : 'fixed');
+    if(ui.fixedText) aaEl('aaFixedTimes').value = ui.fixedText;
+    else if(c.sync_times && c.sync_times.length) aaEl('aaFixedTimes').value = c.sync_times.join(', ');
+    if(ui.intervalMin) aaEl('aaIntervalMin').value = ui.intervalMin;
+    if(ui.intervalStart) aaEl('aaIntervalStart').value = ui.intervalStart;
+    if(ui.intervalEnd) aaEl('aaIntervalEnd').value = ui.intervalEnd;
+
+    const sel = aaEl('aaAssignee');
+    if(c.assignee_account_id){
+      if(![...sel.options].some(o => o.value === c.assignee_account_id)){
+        const o = document.createElement('option');
+        o.value = c.assignee_account_id; o.dataset.name = c.assignee_name || c.assignee_account_id;
+        o.textContent = (c.assignee_name || c.assignee_account_id) + ' (không còn trong danh sách)';
+        sel.appendChild(o);
+      }
+      sel.value = c.assignee_account_id;
+    } else sel.value = '';
+  } finally { aaApplying = false; }
+  aaDirty = false;
+  aaRenderPreview();
+  aaRenderState(c);
+}
+
+async function aaLoadConfig(){
+  const token = getSessionToken();
+  if(!token){ aaSetAlert('Phiên đăng nhập Admin đã hết hạn, vui lòng đăng nhập lại.', 'err'); return false; }
+  const r = await rpc('auto_assign_get_config', { session_token: token });
+  if(aaIsMissingServer(r)){ aaShowSetup(true); aaEl('aaStateBadge').className = 'aa-state off'; aaEl('aaStateBadge').textContent = 'Chưa cài server'; return false; }
+  if(r.status === 401 || r.status === 403){ aaSetAlert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 'err'); return false; }
+  if(!r.ok || !Array.isArray(r.data) || !r.data[0]){ aaSetAlert('Không tải được cấu hình Auto Assign: ' + aaErrMsg(r), 'err'); return false; }
+  aaShowSetup(false);
+  aaSavedCfg = r.data[0];
+  aaApplyConfig(aaSavedCfg);
+  return true;
+}
+
+async function aaOnTabOpen(){
+  try{
+    if(!aaLoadedOnce){
+      aaClearAlert();
+      await aaLoadAssignees();
+      const ok = await aaLoadConfig();
+      if(ok){ aaLoadedOnce = true; await aaLoadLog(); }
+    } else {
+      aaRenderState(aaSavedCfg || {});   // cập nhật lại "lần chạy kế tiếp" theo giờ hiện tại
+      await aaLoadLog();
+    }
+  }catch(e){
+    aaSetAlert('Không kết nối được Supabase: ' + e.message + '. Kiểm tra mạng rồi mở lại tab này.', 'err');
+  }
+}
+
+/* ---------- Lưu cấu hình ---------- */
+async function aaSave(){
+  const token = getSessionToken();
+  if(!token){ aaSetAlert('Phiên đăng nhập Admin đã hết hạn, vui lòng đăng nhập lại.', 'err'); return; }
+
+  const sched = aaCollectSyncTimes();
+  if(sched.error){ aaSetAlert(sched.error, 'err'); return; }
+  const lead = parseInt(aaEl('aaLeadMin').value, 10);
+  const maxRun = parseInt(aaEl('aaMaxPerRun').value, 10);
+  if(!Number.isFinite(lead) || lead < 0 || lead > 120){ aaSetAlert('Số phút chạy trước phải từ 0 đến 120.', 'err'); return; }
+  if(!Number.isFinite(maxRun) || maxRun < 1 || maxRun > 500){ aaSetAlert('Số ticket tối đa mỗi lần chạy phải từ 1 đến 500.', 'err'); return; }
+  const days = aaSelectedDays();
+  const enabled = aaEl('aaEnabled').checked;
+  if(enabled && !days.length){ aaSetAlert('Hãy chọn ít nhất 1 ngày trong tuần.', 'err'); return; }
+  const status = aaEl('aaStatusName').value.trim(), gField = aaEl('aaGroupField').value.trim(), gValue = aaEl('aaGroupValue').value.trim();
+  if(!status || !gField || !gValue){ aaSetAlert('Status, tên field nhóm và giá trị không được để trống.', 'err'); return; }
+  const sel = aaEl('aaAssignee');
+  const accountId = sel.value;
+  const opt = sel.selectedOptions[0];
+  const assigneeName = accountId && opt ? (opt.dataset.name || opt.textContent) : '';
+  if(enabled && !accountId){ aaSetAlert('Muốn bật job cần chọn người nhận ticket.', 'err'); return; }
+  if(enabled && !sched.times.length){ aaSetAlert('Muốn bật job cần có ít nhất 1 mốc giờ sync.', 'err'); return; }
+
+  aaBusyOn(true);
+  aaSetAlert('Đang lưu cấu hình...', 'info');
+  try{
+    const r = await rpc('auto_assign_save_config', {
+      session_token: token,
+      p_enabled: enabled,
+      p_assignee_name: assigneeName || null,
+      p_assignee_account_id: accountId || null,
+      p_status_name: status,
+      p_group_field_name: gField,
+      p_group_value: gValue,
+      p_project_key: aaEl('aaProjectKey').value.trim() || null,
+      p_lead_minutes: lead,
+      p_sync_times: sched.times,
+      p_days_of_week: days,
+      p_max_per_run: maxRun,
+      p_schedule_ui: {
+        mode: aaMode,
+        fixedText: aaEl('aaFixedTimes').value.trim(),
+        intervalMin: aaEl('aaIntervalMin').value,
+        intervalStart: aaEl('aaIntervalStart').value,
+        intervalEnd: aaEl('aaIntervalEnd').value
+      }
+    });
+    if(aaIsMissingServer(r)){ aaShowSetup(true); aaSetAlert('Chưa cài đặt phần server cho Auto Assign (thiếu hàm auto_assign_save_config).', 'err'); return; }
+    if(r.status === 401 || r.status === 403){ aaSetAlert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 'err'); return; }
+    if(!r.ok || r.data !== true){ aaSetAlert('Lưu thất bại: ' + aaErrMsg(r), 'err'); return; }
+    await aaLoadConfig();   // đọc lại từ server để chắc chắn form khớp dữ liệu đã lưu
+    aaSetAlert(enabled ? 'Đã lưu. Job Auto Assign đang BẬT.' : 'Đã lưu. Job Auto Assign đang TẮT.', 'ok');
+    showToast('Đã lưu cấu hình Auto Assign', 'success');
+  }catch(e){
+    aaSetAlert('Lỗi kết nối Supabase: ' + e.message, 'err');
+  }finally{ aaBusyOn(false); }
+}
+
+function aaBusyOn(on){
+  aaBusy = on;
+  ['aaSaveBtn', 'aaDryRunBtn', 'aaRunNowBtn'].forEach(id => { aaEl(id).disabled = on; });
+}
+
+/* ---------- Xem trước / Chạy ngay (gọi Edge Function, dùng cấu hình ĐÃ LƯU) ---------- */
+async function aaCallEdge(mode){
+  const token = getSessionToken();
+  if(!token){ aaSetAlert('Phiên đăng nhập Admin đã hết hạn, vui lòng đăng nhập lại.', 'err'); return; }
+  if(aaDirty){
+    aaSetAlert('Bạn có thay đổi chưa lưu. Hãy bấm "Lưu cấu hình" trước — "Xem trước" và "Chạy ngay" dùng cấu hình đã lưu trên server.', 'err');
+    return;
+  }
+  const cfg = aaSavedCfg || {};
+  if(mode === 'run'){
+    if(!cfg.assignee_account_id){ aaSetAlert('Chưa chọn người nhận ticket. Hãy chọn, lưu rồi chạy lại.', 'err'); return; }
+    if(!confirm('Chạy ngay: giao TẤT CẢ ticket thoả điều kiện (tối đa ' + (cfg.max_per_run || 50) + ') cho "' + (cfg.assignee_name || '') + '"?\n\nThao tác ghi trực tiếp lên Jira.\nNên bấm "Xem trước" để kiểm tra danh sách trước.')) return;
+  }
+  aaBusyOn(true);
+  aaSetAlert(mode === 'run' ? 'Đang giao ticket trên Jira...' : 'Đang tìm ticket thoả điều kiện trên Jira...', 'info');
+  try{
+    const resp = await fetch(SUPABASE_URL + '/functions/v1/' + AA_EDGE_FUNCTION, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: mode === 'run' ? 'run' : 'dry_run', session_token: token })
+    });
+    const data = await resp.json().catch(() => null);
+    if(resp.status === 404 && !data){ aaSetAlert('Edge Function "' + AA_EDGE_FUNCTION + '" chưa được deploy trên Supabase.', 'err'); aaShowSetup(true); return; }
+    if(resp.status === 401){ aaSetAlert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 'err'); return; }
+    if(!resp.ok || !data || !data.ok){
+      aaSetAlert('Thất bại: ' + ((data && (data.error || data.detail)) || ('HTTP ' + resp.status)), 'err');
+      console.error('[Auto Assign] Lỗi:', data);
+      if(mode === 'run') await aaLoadLog();
+      return;
+    }
+    aaRenderResult(data, mode);
+    if(mode === 'run'){
+      const msg = 'Đã giao ' + data.assigned + '/' + data.found + ' ticket' + (data.failed ? ' — ' + data.failed + ' lỗi' : '') + '.';
+      aaSetAlert(msg, data.failed ? 'err' : 'ok');
+      showToast(msg, data.failed ? 'error' : 'success');
+      await aaLoadLog();
+    } else {
+      aaSetAlert(data.found ? 'Tìm thấy ' + data.found + ' ticket thoả điều kiện (chưa giao, đây chỉ là xem trước).' : 'Không có ticket nào thoả điều kiện lúc này.', 'info');
+    }
+  }catch(e){
+    aaSetAlert('Lỗi kết nối Edge Function: ' + e.message, 'err');
+  }finally{ aaBusyOn(false); }
+}
+
+function aaRenderResult(data, mode){
+  aaEl('aaResultPanel').style.display = '';
+  aaEl('aaResultTitle').textContent = mode === 'run' ? 'Kết quả chạy ngay' : 'Kết quả xem trước';
+  aaEl('aaResultMeta').textContent = mode === 'run'
+    ? 'Tìm thấy ' + data.found + ' · đã giao ' + data.assigned + ' · lỗi ' + data.failed + (data.assignee ? ' · người nhận: ' + data.assignee : '')
+    : 'Sẽ giao ' + data.found + ' ticket' + (data.assignee ? ' cho ' + data.assignee : '') + ' nếu chạy thật.';
+  aaEl('aaResultJql').innerHTML = '<b>JQL:</b> <code class="us-code">' + aaEsc(data.jql) + '</code>' +
+    (data.truncated ? '<div class="aa-warn">Còn ticket vượt giới hạn mỗi lần chạy — phần còn lại sẽ xử lý ở lần sau.</div>' : '');
+  const body = aaEl('aaResultBody');
+  if(!data.items || !data.items.length){ body.innerHTML = '<tr><td colspan="3" class="us-empty">Không có ticket nào thoả điều kiện.</td></tr>'; return; }
+  body.innerHTML = data.items.map(it => {
+    let badge;
+    if(it.ok === null || it.ok === undefined) badge = '<span class="us-pill" style="background:#e6f0fd;color:#1456a0;">Sẽ giao</span>';
+    else if(it.ok) badge = '<span class="us-pill ok">Đã giao</span>';
+    else badge = '<span class="us-pill err" title="' + aaEsc(it.error || '') + '">Lỗi</span>' + (it.error ? ' <span class="aa-err-text">' + aaEsc(it.error) + '</span>' : '');
+    return '<tr><td><code class="us-code">' + aaEsc(it.key) + '</code></td><td>' + aaEsc(it.summary) + '</td><td>' + badge + '</td></tr>';
+  }).join('');
+  aaEl('aaResultPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ---------- Lịch sử ---------- */
+async function aaLoadLog(){
+  const token = getSessionToken(); if(!token) return;
+  const body = aaEl('aaLogBody');
+  try{
+    const r = await rpc('auto_assign_list_log', { session_token: token, p_limit: 30 });
+    if(aaIsMissingServer(r)) return;
+    if(!r.ok || !Array.isArray(r.data)){ body.innerHTML = '<tr><td colspan="7" class="us-empty">Không tải được lịch sử.</td></tr>'; return; }
+    aaLogRows = r.data;
+    if(!r.data.length){ body.innerHTML = '<tr><td colspan="7" class="us-empty">Chưa có lần chạy nào.</td></tr>'; return; }
+    body.innerHTML = r.data.map((row, i) => {
+      const time = new Date(row.created_at).toLocaleString('vi-VN');
+      const src = row.trigger === 'cron' ? '<span class="us-pill" style="background:#e6f0fd;color:#1456a0;">Tự động</span>' : '<span class="us-pill" style="background:#eef1f5;color:#33475b;">Thủ công</span>';
+      const slot = row.slot_key ? aaEsc(String(row.slot_key).split('!')[0].replace('T', ' ')) : '—';
+      const failCell = row.failed > 0 ? '<span class="us-pill err">' + row.failed + '</span>' : (row.ok ? '0' : '<span class="us-pill err" title="' + aaEsc(row.error_detail || '') + '">Lỗi chung</span>');
+      const okCell = row.assigned > 0 ? '<b>' + row.assigned + '</b>' : '0';
+      return '<tr><td>' + aaEsc(time) + '</td><td>' + src + '</td><td>' + slot + '</td><td>' + row.found + '</td><td>' + okCell + '</td><td>' + failCell +
+        '</td><td class="col-actions"><button class="us-btn us-btn-secondary us-btn-sm aa-toggle" data-i="' + i + '">Chi tiết</button></td></tr>';
+    }).join('');
+  }catch(e){
+    body.innerHTML = '<tr><td colspan="7" class="us-empty">Lỗi kết nối khi tải lịch sử.</td></tr>';
+  }
+}
+
+function aaToggleDetail(btn){
+  const tr = btn.closest('tr');
+  const next = tr.nextElementSibling;
+  if(next && next.classList.contains('aa-detail-row')){ next.remove(); btn.textContent = 'Chi tiết'; return; }
+  const row = aaLogRows[parseInt(btn.dataset.i, 10)]; if(!row) return;
+  const items = Array.isArray(row.items) ? row.items : [];
+  const list = items.length
+    ? '<ul class="aa-detail-list">' + items.map(it =>
+        '<li><code class="us-code">' + aaEsc(it.key) + '</code> ' + aaEsc(it.summary) + ' ' +
+        (it.ok ? '<span class="us-pill ok">Đã giao</span>' : '<span class="us-pill err">Lỗi</span> <span class="aa-err-text">' + aaEsc(it.error || '') + '</span>') + '</li>').join('') + '</ul>'
+    : '<div class="aa-opt">Không có ticket nào trong lần chạy này.</div>';
+  const d = document.createElement('tr');
+  d.className = 'aa-detail-row';
+  d.innerHTML = '<td colspan="7">' +
+    (row.assignee_name ? '<div><b>Người nhận:</b> ' + aaEsc(row.assignee_name) + '</div>' : '') +
+    (row.jql ? '<div><b>JQL:</b> <code class="us-code">' + aaEsc(row.jql) + '</code></div>' : '') +
+    (row.error_detail ? '<div class="aa-warn">' + aaEsc(row.error_detail) + '</div>' : '') + list + '</td>';
+  tr.after(d);
+  btn.textContent = 'Ẩn';
+}
+
+/* ---------- Gắn sự kiện ---------- */
+aaEl('aaModeFixedBtn').addEventListener('click', () => { aaSetMode('fixed'); aaMarkDirty(); aaRenderPreview(); });
+aaEl('aaModeIntervalBtn').addEventListener('click', () => { aaSetMode('interval'); aaMarkDirty(); aaRenderPreview(); });
+['aaFixedTimes', 'aaIntervalMin', 'aaIntervalStart', 'aaIntervalEnd', 'aaLeadMin'].forEach(id => {
+  aaEl(id).addEventListener('input', () => { aaMarkDirty(); aaRenderPreview(); });
+});
+['aaStatusName', 'aaGroupField', 'aaGroupValue', 'aaProjectKey', 'aaMaxPerRun'].forEach(id => aaEl(id).addEventListener('input', aaMarkDirty));
+aaEl('aaAssignee').addEventListener('change', aaMarkDirty);
+aaEl('aaEnabled').addEventListener('change', aaMarkDirty);
+aaEl('aaDays').addEventListener('change', aaMarkDirty);
+aaEl('aaSaveBtn').addEventListener('click', aaSave);
+aaEl('aaDryRunBtn').addEventListener('click', () => aaCallEdge('dry_run'));
+aaEl('aaRunNowBtn').addEventListener('click', () => aaCallEdge('run'));
+aaEl('aaRefreshLogBtn').addEventListener('click', aaLoadLog);
+aaEl('aaLogBody').addEventListener('click', (e) => { const b = e.target.closest('.aa-toggle'); if(b) aaToggleDetail(b); });
+aaRenderPreview();
+
 </script>
 <script>
 /* UI-only: hiện/ẩn mật khẩu & hỗ trợ bàn phím cho nút đóng modal + kết quả tìm user */

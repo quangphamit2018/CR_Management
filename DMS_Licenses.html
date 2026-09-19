@@ -830,6 +830,7 @@
     .tl-prev th { background: #f3dcf2; }
     .tl-prev tr.r-old td { background: #e6e6e6; }
     .tl-prev tr.r-new td { background: #d8f0cf; }
+    .tl-check select { border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 10px; font-size: 12px; background: #fff; color: var(--ink); outline: none; }
     #tl-export:disabled { opacity: .5; cursor: not-allowed; }
     @media (max-width: 900px) { .tl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 600px) { .tl-grid { grid-template-columns: 1fr; } }
@@ -1350,7 +1351,7 @@
     const TOOL_COLS = ["UserName", "Description", "EmployeeCode", "EmployeeName", "DateOfBirth", "DateOfJoining", "Email", "RoleName", "TerritoryHierarchy", "IsActive", "Note"];
     const TOOL_DEFAULT_ROLE = "Enterprise reports";
     const TOOL_LIST_LIMIT = 100;
-    const tool = { mode: "replace", picked: [], q: "", showAll: false, repl: {}, list: [] };
+    const tool = { mode: "replace", picked: [], q: "", status: "", repl: {}, list: [] };
     let toolIdx = { src: null };
     const blankPerson = (o = {}) => ({ username: "", code: "", codeEdited: false, touched: false, name: "", email: "", desc: "", role: TOOL_DEFAULT_ROLE, terr: "", dob: "", doj: "", ...o });
     const isInactive = r => ["0", "false", "n", "no", "inactive", "deactive"].includes(String(r.is_active ?? "").trim().toLowerCase());
@@ -1414,13 +1415,15 @@
       const news = items.map(({ p }) => [p.username.trim(), p.desc.trim(), p.code.trim() || p.username.trim(), toolName(p.name), dt(p.dob) || "NULL", dt(p.doj) || "1900-01-01 00:00:00.000", p.email.trim().toLowerCase(), p.role.trim(), p.terr.trim(), "1", "Active"]);
       return { olds, news };
     }
+    // Bộ lọc trạng thái: mặc định Thay thế → Deactive, Remove → Active; người dùng có thể chọn Tất cả
+    const toolStatus = () => tool.status || (tool.mode === "remove" ? "active" : "inactive");
     function toolListRows() {
-      const q = tool.q.trim().toLowerCase();
-      return state.central.filter(r => (tool.showAll || (tool.mode === "remove" ? !isInactive(r) : isInactive(r))) && (!q || rowSearchText(r, CENTRAL_FIELDS).includes(q)));
+      const q = tool.q.trim().toLowerCase(), st = toolStatus();
+      return state.central.filter(r => (st === "all" || (st === "inactive") === isInactive(r)) && (!q || rowSearchText(r, CENTRAL_FIELDS).includes(q)));
     }
     function renderToolList() {
       const rows = toolListRows(), picked = new Set(tool.picked);
-      if (!rows.length) return `<div class="empty"><strong>${state.loading ? "Đang tải dữ liệu…" : "Không có account phù hợp"}</strong>${tool.showAll ? "Thử đổi từ khóa tìm kiếm." : `Không có account ${tool.mode === "remove" ? "Active" : "Deactive"} nào khớp. Tick “Hiện cả account ${tool.mode === "remove" ? "Deactive" : "Active"}” nếu cần.`}</div>`;
+      if (!rows.length) return `<div class="empty"><strong>${state.loading ? "Đang tải dữ liệu…" : "Không có account phù hợp"}</strong>Không có account nào khớp. Thử đổi bộ lọc Trạng thái hoặc từ khóa tìm kiếm.</div>`;
       const body = rows.slice(0, TOOL_LIST_LIMIT).map(r => { const on = picked.has(r.username); return `<tr data-pk="${escapeHtml(r.username)}" class="${on ? "sel" : ""}"><td><input type="checkbox" ${on ? "checked" : ""} aria-label="Chọn ${escapeHtml(r.username)}"></td><td><strong>${escapeHtml(r.username)}</strong></td><td>${cellHtml(r.employee_name)}</td><td>${cellHtml(r.description)}</td><td>${cellHtml(r.email)}</td><td>${cellHtml(r.territory_hierarchy)}</td><td><span class="badge ${isInactive(r) ? "badge-danger" : "badge-success"}">${isInactive(r) ? "Deactive" : "Active"}</span></td></tr>`; }).join("");
       return `<div class="table-wrap tl-scroll"><table class="tl-table"><thead><tr><th></th><th>UserName</th><th>EmployeeName</th><th>Description</th><th>Email</th><th>Territory</th><th>Trạng thái</th></tr></thead><tbody>${body}</tbody></table></div><div class="tl-foot">Hiển thị ${nf(Math.min(rows.length, TOOL_LIST_LIMIT))} / ${nf(rows.length)} account${rows.length > TOOL_LIST_LIMIT ? " — dùng ô tìm kiếm để thu hẹp" : ""}</div>`;
     }
@@ -1447,11 +1450,11 @@
         <div class="table-wrap"><table class="tl-table tl-prev"><thead><tr>${TOOL_COLS.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${olds.map(r => row(r, "r-old")).join("")}${news.map(r => row(r, "r-new")).join("")}</tbody></table></div>`;
     }
     function renderToolBody() {
-      const rep = tool.mode === "replace", rem = tool.mode === "remove", items = toolPersons(), v = toolValidate(items), cnt = toolCount(items);
+      const rep = tool.mode === "replace", rem = tool.mode === "remove", items = toolPersons(), v = toolValidate(items), cnt = toolCount(items), nAll = state.central.length, nOff = state.central.filter(isInactive).length;
       return `<div class="tl-seg"><button type="button" data-tl-mode="replace" class="${rep ? "on" : ""}">${ICONS.swap} Thay thế account</button><button type="button" data-tl-mode="create" class="${tool.mode === "create" ? "on" : ""}">${ICONS.plus} Tạo mới account</button><button type="button" data-tl-mode="remove" class="${rem ? "on" : ""}">${ICONS.trash} Remove account</button></div>
-      ${rep || rem ? `<section class="panel tl-panel"><div class="panel-head"><div><h2>① Chọn account cần ${rem ? "remove" : "thay thế"}</h2><p>${rem ? "Mặc định chỉ hiện account Active." : "Mặc định chỉ hiện account Deactive (IsActive = 0)."} Lựa chọn được giữ nguyên khi bạn tìm kiếm.</p></div><span class="badge badge-blue" id="tl-count">${tool.picked.length} đã chọn</span></div>
+      ${rep || rem ? `<section class="panel tl-panel"><div class="panel-head"><div><h2>① Chọn account cần ${rem ? "remove" : "thay thế"}</h2><p>${rem ? "Mặc định chỉ hiện account Active." : "Mặc định chỉ hiện account Deactive (IsActive = 0)."} Chọn “Tất cả” ở bộ lọc Trạng thái để xem mọi account. Lựa chọn được giữ nguyên khi bạn tìm kiếm.</p></div><span class="badge badge-blue" id="tl-count">${tool.picked.length} đã chọn</span></div>
         <div class="toolbar"><div class="search"><span class="search-icon">${ICONS.search}</span><input id="tl-search" value="${escapeHtml(tool.q)}" placeholder="Tìm UserName, tên, email, mã vùng…" autocomplete="off" /></div>
-        <div class="toolbar-right"><label class="tl-check"><input type="checkbox" id="tl-all" ${tool.showAll ? "checked" : ""} /> Hiện cả account ${rem ? "Deactive" : "Active"}</label><button type="button" class="btn btn-secondary" data-tl="clear">Bỏ chọn hết</button></div></div>
+        <div class="toolbar-right"><label class="tl-check">Trạng thái <select id="tl-status" aria-label="Lọc theo trạng thái">${[["all", "Tất cả", nAll], ["active", "Active", nAll - nOff], ["inactive", "Deactive", nOff]].map(([k, l, n]) => `<option value="${k}"${toolStatus() === k ? " selected" : ""}>${l} (${nf(n)})</option>`).join("")}</select></label><button type="button" class="btn btn-secondary" data-tl="clear">Bỏ chọn hết</button></div></div>
         <div id="tl-list">${renderToolList()}</div></section>` : ""}
       ${rem ? "" : `<section class="panel tl-panel"><div class="panel-head"><div><h2>${rep ? "② Thông tin người mới" : "① Thông tin account mới"}</h2><p>UserName, EmployeeName, Email là bắt buộc. EmployeeCode tự lấy theo UserName; tên tự chuyển IN HOA không dấu khi xuất. Ngày sinh để trống = NULL, ngày vào làm để trống = 1900-01-01.</p></div>${rep ? "" : `<button type="button" class="btn btn-secondary" data-tl="add">${ICONS.plus} Thêm người</button>`}</div><div class="panel-body" id="tl-cards">${renderToolCards(items, v)}</div></section>`}
       <section class="panel tl-panel"><div class="panel-head"><div><h2>${rep ? "③" : "②"} Xem trước &amp; xuất phiếu</h2><p>${rep ? "Dòng xám là account cũ (Deactive), dòng xanh là account mới (Active) — đúng thứ tự thay thế." : rem ? "Dòng xám là account bị remove (IsActive = 0, Note = Remove)." : "Dòng xanh là account mới (Active)."}</p></div><button type="button" class="btn btn-excel" id="tl-export" data-tl="export" ${!cnt || v.errors ? "disabled" : ""}>${ICONS.xlsx} Xuất phiếu Excel</button></div><div class="panel-body" id="tl-preview">${renderToolPreview(items, v)}</div></section>`;
@@ -1505,7 +1508,7 @@
       let timer;
       pg.addEventListener("click", e => {
         const t = e.target, m = t.closest("[data-tl-mode]");
-        if (m) { tool.mode = m.dataset.tlMode; $("#tool-root").innerHTML = renderToolBody(); return; }
+        if (m) { tool.mode = m.dataset.tlMode; tool.status = ""; $("#tool-root").innerHTML = renderToolBody(); return; }
         const tr = t.closest("tr[data-pk]");
         if (tr) {
           const cb = tr.querySelector("input"); if (t !== cb) cb.checked = !cb.checked;
@@ -1537,7 +1540,7 @@
         if (t.dataset.f === "code") p.codeEdited = !!t.value;
         toolRefresh();
       });
-      pg.addEventListener("change", e => { if (e.target.id === "tl-all") { tool.showAll = e.target.checked; $("#tl-list").innerHTML = renderToolList(); } });
+      pg.addEventListener("change", e => { if (e.target.id === "tl-status") { tool.status = e.target.value; $("#tl-list").innerHTML = renderToolList(); } });
     }
 
     async function boot() {

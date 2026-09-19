@@ -432,8 +432,35 @@
       if (!state.session) { state.profile = null; return; }
       const { data, error } = await state.supabase.from("profiles").select("*").eq("id", state.session.user.id).maybeSingle();
       if (error) { toast(`Không đọc được hồ sơ: ${error.message}`, "error"); state.profile = null; return; }
-      state.profile = data;
-      if (data?.approval_status === "approved") await loadData();
+      if (data) {
+        state.profile = data;
+      } else {
+        // Lần đăng nhập Google đầu tiên: chưa có dòng profiles tương ứng.
+        // Tự tạo hồ sơ ở trạng thái chờ duyệt để hiển thị đúng màn hình renderPending() thay vì kẹt ở loading.
+        const email = state.session.user.email || "";
+        const displayName = state.session.user.user_metadata?.full_name || state.session.user.user_metadata?.name || email;
+        const { data: created, error: insertError } = await state.supabase
+          .from("profiles")
+          .insert({ id: state.session.user.id, email, display_name: displayName, approval_status: "pending" })
+          .select()
+          .maybeSingle();
+        if (insertError) {
+          // Có thể một trigger phía Supabase đã tạo hồ sơ ngay trước đó (race condition) — đọc lại 1 lần.
+          const retry = await state.supabase.from("profiles").select("*").eq("id", state.session.user.id).maybeSingle();
+          if (retry.data) {
+            state.profile = retry.data;
+          } else {
+            // Không tự tạo được hồ sơ (có thể do RLS chặn insert) — vẫn hiển thị màn hình chờ duyệt
+            // tạm thời trên giao diện, nhưng cần kiểm tra RLS/trigger để hồ sơ thực sự được lưu và
+            // xuất hiện trong danh sách phê duyệt của Super-admin.
+            toast(`Không tạo được hồ sơ mới: ${insertError.message}`, "error");
+            state.profile = { id: state.session.user.id, email, display_name: displayName, approval_status: "pending" };
+          }
+        } else {
+          state.profile = created;
+        }
+      }
+      if (state.profile?.approval_status === "approved") await loadData();
     }
 
     async function loadData() {

@@ -209,6 +209,18 @@
     .btn-plain { background: transparent; color: var(--muted); border: 0; padding: 6px; border-radius: 9px; }
     .btn-plain:hover { background: var(--brand-soft); color: var(--brand); }
     .btn:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+    .btn-icon { display: inline-flex; width: 16px; height: 16px; flex: 0 0 auto; }
+    .btn-icon svg { width: 16px; height: 16px; }
+    .btn-icon.spin svg { animation: spin .85s linear infinite; }
+    .btn-excel {
+      color: #0b6b42; background: linear-gradient(180deg, #fff, #eafaf1); border-color: #b6e5cf;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, .6) inset;
+    }
+    .btn-excel:hover {
+      background: linear-gradient(135deg, #17a765, #0b6b42); color: #fff; border-color: transparent;
+      transform: translateY(-1px); box-shadow: 0 10px 22px rgba(11, 107, 66, .30);
+    }
+    .btn-excel:active { transform: translateY(0); }
 
     /* ---------- Cards ---------- */
     .grid-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 22px; }
@@ -310,12 +322,28 @@
 
     /* ---------- Toolbar / inputs ---------- */
     .toolbar { padding: 14px 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #fff, #fffafa); }
-    .search { width: min(320px, 100%); position: relative; }
-    .search input { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--line-strong); border-radius: 11px; outline: none; color: var(--ink); background: #fff; font-size: 12px; transition: .18s; }
+    .search { width: min(340px, 100%); position: relative; }
+    .search input {
+      width: 100%; height: 38px; padding: 0 34px 0 36px; border: 1.5px solid var(--line-strong); border-radius: 11px; outline: none;
+      color: var(--ink); background: #fff; font-size: 12.5px; font-weight: 500; transition: .2s ease;
+      box-shadow: inset 0 1px 2px rgba(90, 13, 18, .03);
+    }
+    .search input::placeholder { color: #b98f8d; font-weight: 400; }
+    .search:hover input { border-color: #dba7a4; }
     .search input:focus, .field input:focus, .field select:focus, .field textarea:focus, .role-select:focus {
       border-color: #dd5a55; box-shadow: 0 0 0 4px rgba(229, 57, 53, .13);
     }
-    .search svg { position: absolute; left: 12px; top: 10px; color: #c98c89; width: 16px; }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #c98c89; width: 16px; height: 16px; pointer-events: none; transition: color .2s; }
+    .search input:focus ~ .search-icon { color: var(--brand); }
+    .search svg { display: block; }
+    .search-clear {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 50%;
+      display: none; align-items: center; justify-content: center; border: 0; background: #f6e2e1; color: #a5696a; padding: 0; transition: .15s;
+    }
+    .search-clear svg { width: 12px; height: 12px; }
+    .search-clear:hover { background: var(--brand); color: #fff; }
+    .search.has-value .search-clear { display: inline-flex; }
+    .search.has-value input { padding-right: 34px; }
     .role-select { border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 8px; font-size: 11px; background: #fff; color: var(--ink-2); outline: none; }
     .role-select:disabled { background: #faf3f2; color: #a08b8d; cursor: not-allowed; }
     .empty { text-align: center; padding: 44px 20px; color: var(--muted); background: radial-gradient(260px 140px at 50% 0%, rgba(229, 57, 53, .06), transparent 70%); }
@@ -364,11 +392,38 @@
     .field textarea { min-height: 82px; resize: vertical; }
 
     /* ---------- Toast ---------- */
-    .toast-wrap { position: fixed; right: 22px; bottom: 22px; z-index: 100; display: grid; gap: 9px; width: min(370px, calc(100vw - 44px)); }
-    .toast { background: linear-gradient(135deg, #3f2124, #1f0f11); color: #fff; border-radius: 13px; padding: 13px 15px; font-size: 12px; box-shadow: var(--shadow); border-left: 4px solid var(--gold); animation: pop .2s ease both; }
-    .toast.error { background: linear-gradient(135deg, #b3181d, #6b0d10); border-left-color: #ffb4ac; }
-    .toast.success { background: linear-gradient(135deg, #10935f, #075d3b); border-left-color: #a7f3d0; }
-    @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .toast-wrap { position: fixed; right: 22px; bottom: 22px; z-index: 100; display: grid; gap: 10px; width: min(380px, calc(100vw - 44px)); }
+    .toast {
+      position: relative; overflow: hidden; display: flex; align-items: flex-start; gap: 10px;
+      background: linear-gradient(135deg, #3f2124, #1f0f11); color: #fff; border-radius: 14px; padding: 13px 14px 15px 13px; font-size: 12.5px;
+      line-height: 1.45; box-shadow: 0 12px 30px rgba(20, 4, 6, .32), 0 2px 6px rgba(20, 4, 6, .18);
+      border: 1px solid rgba(255, 255, 255, .08); animation: toast-in .28s var(--ease, cubic-bezier(.22, 1, .36, 1)) both;
+    }
+    .toast.leaving { animation: toast-out .2s ease both; }
+    .toast.error { background: linear-gradient(135deg, #b3181d, #6b0d10); }
+    .toast.success { background: linear-gradient(135deg, #10935f, #075d3b); }
+    .toast-icon {
+      flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+      background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+    }
+    .toast-icon svg { width: 14px; height: 14px; }
+    .toast.success .toast-icon { color: #a7f3d0; }
+    .toast.error .toast-icon { color: #ffb4ac; }
+    .toast:not(.success):not(.error) .toast-icon { color: var(--gold); }
+    .toast-msg { flex: 1; padding-top: 4px; word-break: break-word; }
+    .toast-close {
+      flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; border: 0; background: transparent; color: rgba(255, 255, 255, .6);
+      display: grid; place-items: center; padding: 0; transition: .15s;
+    }
+    .toast-close svg { width: 11px; height: 11px; }
+    .toast-close:hover { background: rgba(255, 255, 255, .18); color: #fff; }
+    .toast-bar { position: absolute; left: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .55); width: 100%; transform-origin: left; animation: toast-shrink 4.2s linear forwards; }
+    .toast.success .toast-bar { background: #a7f3d0; }
+    .toast.error .toast-bar { background: #ffb4ac; }
+    .toast:not(.success):not(.error) .toast-bar { background: var(--gold); }
+    @keyframes toast-in { from { opacity: 0; transform: translateX(26px) scale(.98); } to { opacity: 1; transform: none; } }
+    @keyframes toast-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(20px) scale(.97); } }
+    @keyframes toast-shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
     .loading { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); font-size: 13px; }
     .spinner { width: 16px; height: 16px; border: 2px solid #f0cfcc; border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; }
@@ -714,6 +769,10 @@
       file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>',
       clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>',
       refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11a8 8 0 0 0-14.8-4L3 10M3 5v5h5M4 13a8 8 0 0 0 14.8 4L21 14m0 5v-5h-5"/></svg>',
+      xlsx: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/><path d="m8.6 13.2 3.1 4.3M11.7 13.2l-3.1 4.3"/></svg>',
+      toastSuccess: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+      toastError: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v5M12 15.6v.1"/></svg>',
+      toastInfo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2.5 7-5.8 7-10a7 7 0 0 0-14 0c0 4.2 3 7.5 7 10Z"/><circle cx="12" cy="11" r="1.6"/></svg>',
       pgPrev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>',
       pgNext: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
     };
@@ -761,9 +820,14 @@
     const canEdit = () => ["super-admin", "senior-member"].includes(state.profile?.role);
 
     function toast(message, type = "") {
+      const iconMap = { success: ICONS.toastSuccess, error: ICONS.toastError };
       const node = document.createElement("div");
-      node.className = `toast ${type}`; node.textContent = message; $("#toast-root").appendChild(node);
-      setTimeout(() => node.remove(), 4200);
+      node.className = `toast ${type}`.trim();
+      node.innerHTML = `<span class="toast-icon">${iconMap[type] || ICONS.toastInfo}</span><span class="toast-msg">${escapeHtml(message)}</span><button type="button" class="toast-close" aria-label="Đóng thông báo">${ICONS.close}</button><span class="toast-bar"></span>`;
+      $("#toast-root").appendChild(node);
+      const remove = () => { node.classList.add("leaving"); setTimeout(() => node.remove(), 200); };
+      const timer = setTimeout(remove, 4200);
+      node.querySelector(".toast-close").addEventListener("click", () => { clearTimeout(timer); remove(); });
     }
 
     function loadingText() {
@@ -959,6 +1023,32 @@
       return state.search.trim() ? `${nf(v.total)} kết quả / ${nf(v.rows.length)} dòng` : `${nf(v.rows.length)} dòng`;
     }
 
+    // Xuất dữ liệu đang được lọc (theo ô tìm kiếm) của tab hiện tại ra file Excel (.xlsx)
+    function exportExcel() {
+      if (typeof XLSX === "undefined") { toast("Không tải được thư viện xuất Excel.", "error"); return; }
+      const v = getDatasetView();
+      if (!v.filtered.length) { toast("Không có dữ liệu để xuất.", "error"); return; }
+      const btn = $("#export-excel");
+      const restore = btn ? btn.innerHTML : null;
+      if (btn) { btn.disabled = true; btn.innerHTML = `<span class="btn-icon spin">${ICONS.refresh}</span> Đang xuất…`; }
+      try {
+        const header = v.fields.map(([, label]) => label);
+        const rowsAoa = v.filtered.map(row => v.fields.map(([key]) => row[key] ?? ""));
+        const ws = XLSX.utils.aoa_to_sheet([header, ...rowsAoa]);
+        ws["!cols"] = header.map(h => ({ wch: Math.min(Math.max(String(h).length + 4, 14), 34) }));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, v.isDms ? "DMS Userlist" : "Central User list");
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+        const fileName = `${v.isDms ? "DMS_Userlist" : "Central_Userlist"}_${stamp}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        toast(`Đã xuất ${nf(v.filtered.length)} dòng ra "${fileName}".`, "success");
+      } catch (err) {
+        toast(`Xuất Excel thất bại: ${err.message}`, "error");
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = restore; }
+      }
+    }
+
     function pageItems(current, totalPages) {
       const set = new Set([1, totalPages, current - 1, current, current + 1]);
       if (current <= 3) [2, 3, 4].forEach(p => set.add(p));
@@ -1008,7 +1098,15 @@
     function renderDataset() {
       const v = getDatasetView();
       return `<div class="header-row"><div><div class="eyebrow">${v.isDms ? "DMS directory" : "Central directory"}</div><h2 class="page-title">${v.isDms ? "DMS Userlist" : "Central User list"}</h2><p class="page-subtitle">${v.isDms ? "Danh sách người dùng DMS theo tenant, vùng và trạng thái." : "Danh sách nhân sự Central và thông tin hoạt động."}</p></div><div class="actions">${canEdit() ? `<button class="btn btn-light" id="new-row">${ICONS.plus} Thêm bản ghi</button>` : ""}</div></div>
-        <section class="panel"><div class="toolbar"><div class="search">${ICONS.search}<input id="table-search" value="${escapeHtml(state.search)}" placeholder="Tìm theo tên, email, tenant…" autocomplete="off" /></div><div class="toolbar-right"><span class="loading${state.loading ? "" : " hidden"}" data-loading><i class="spinner"></i><span data-loading-text>${loadingText()}</span></span><span class="badge badge-blue" id="row-badge">${rowBadgeText(v)}</span><button class="btn btn-secondary" id="refresh-data"${state.loading ? " disabled" : ""}>${ICONS.refresh} Làm mới</button></div></div>
+        <section class="panel"><div class="toolbar">
+          <div class="search${state.search ? " has-value" : ""}"><span class="search-icon">${ICONS.search}</span><input id="table-search" value="${escapeHtml(state.search)}" placeholder="Tìm theo tên, email, tenant…" autocomplete="off" /><button type="button" class="search-clear" id="search-clear" aria-label="Xóa tìm kiếm" tabindex="-1">${ICONS.close}</button></div>
+          <div class="toolbar-right">
+            <span class="loading${state.loading ? "" : " hidden"}" data-loading><i class="spinner"></i><span data-loading-text>${loadingText()}</span></span>
+            <span class="badge badge-blue" id="row-badge">${rowBadgeText(v)}</span>
+            <button class="btn btn-excel" id="export-excel" title="Xuất dữ liệu đang hiển thị ra file Excel">${ICONS.xlsx} Xuất Excel</button>
+            <button class="btn btn-secondary" id="refresh-data"${state.loading ? " disabled" : ""}><span class="btn-icon${state.loading ? " spin" : ""}">${ICONS.refresh}</span> Làm mới</button>
+          </div>
+        </div>
         <div id="dataset-body">${renderDatasetBody(v)}</div></section>`;
     }
 
@@ -1072,10 +1170,20 @@
       $("#logout")?.addEventListener("click", logout);
       $("#refresh-data")?.addEventListener("click", loadData);
       let searchTimer = null;
-      $("#table-search")?.addEventListener("input", e => {
+      const searchInput = $("#table-search"), searchWrap = searchInput?.closest(".search");
+      searchInput?.addEventListener("input", e => {
         state.search = e.target.value; state.page = 1;
+        searchWrap?.classList.toggle("has-value", !!e.target.value);
         clearTimeout(searchTimer); searchTimer = setTimeout(updateDatasetBody, 150);
       });
+      $("#search-clear")?.addEventListener("click", () => {
+        state.search = ""; state.page = 1;
+        if (searchInput) searchInput.value = "";
+        searchWrap?.classList.remove("has-value");
+        searchInput?.focus();
+        updateDatasetBody();
+      });
+      $("#export-excel")?.addEventListener("click", exportExcel);
       $("#new-row")?.addEventListener("click", () => openRowModal());
       bindDatasetBody();
       $("#file-input")?.addEventListener("change", e => e.target.files[0] && importWorkbook(e.target.files[0]));

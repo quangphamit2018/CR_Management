@@ -210,6 +210,9 @@
       url: "https://rnsjiqbbeywgbnqsojce.supabase.co",
       anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJuc2ppcWJiZXl3Z2JucXNvamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0OTExNjAsImV4cCI6MjA5MzA2NzE2MH0.1BrlS__GNAMFbBmudl6gUJwJ9j_zoDdAj9rtfhBkhdk"
     };
+    // Tiền tố riêng cho ứng dụng này, gắn vào mọi tên kênh Realtime để tránh trùng/xung đột
+    // với các app khác nếu cùng dùng chung project Supabase ở trên.
+    const APP_CHANNEL_PREFIX = "masterdata-portal-dms-licenses";
 
     const ICONS = {
       grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
@@ -471,7 +474,7 @@
       if (profileChannel) { state.supabase.removeChannel(profileChannel); profileChannel = null; }
       if (!userId) return;
       profileChannel = state.supabase
-        .channel(`profile-${userId}`)
+        .channel(`${APP_CHANNEL_PREFIX}:profile-${userId}`)
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` }, async (payload) => {
           state.profile = payload.new;
           if (state.profile.approval_status === "approved") { toast("Tài khoản của bạn đã được phê duyệt!", "success"); await loadData(); }
@@ -485,7 +488,7 @@
     function subscribeAdminNotifications() {
       if (adminChannel) { state.supabase.removeChannel(adminChannel); adminChannel = null; }
       adminChannel = state.supabase
-        .channel("admin-notify")
+        .channel(`${APP_CHANNEL_PREFIX}:admin-notify`)
         .on("broadcast", { event: "new-request" }, async (payload) => {
           const p = payload.payload || {};
           toast(`${p.display_name || p.email || "Một tài khoản"} vừa gửi yêu cầu phê duyệt.`);
@@ -497,7 +500,7 @@
 
     async function sendRequestToAdmin() {
       if (!state.supabase || !state.session || state.requestSent) return;
-      const channel = state.supabase.channel("admin-notify");
+      const channel = state.supabase.channel(`${APP_CHANNEL_PREFIX}:admin-notify`);
       channel.subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           await channel.send({

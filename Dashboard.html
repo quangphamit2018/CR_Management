@@ -504,6 +504,409 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   .us-icon-btn-danger:hover{ background:#fdecea; }
   .us-alias-new-input, .us-region-new-input{ padding:7px 9px; border:1px solid #ddd; border-radius:6px; font-size:12px; }
   .us-priority-empty{ font-size:12px; color:#999; padding:6px 2px; }
+
+  /* ======================================================================
+     REDESIGN v2 — Tab bar, Admin FAB, Token modal, Update Summary, Duplicate
+     (đặt cuối <style> để ghi đè các rule cũ, không đụng logic JS)
+     ====================================================================== */
+  :root{
+    --navy-900:#08182a; --navy-800:#102944; --navy-700:#1b4a73;
+    --ink:#1c2733; --ink-2:#5b6b7b; --ink-3:#8494a5;
+    --line:#d3dfea; --line-2:#e6edf4;
+    --surface:#ffffff; --surface-2:#f5f9fc; --surface-3:#eaf1f7;
+    --accent:#118DFF; --accent-ring:rgba(17,141,255,.22);
+    --ok:#1e7e34; --ok-bg:#e8f6ec; --ok-line:#b9e2c4;
+    --warn:#8a6100; --warn-bg:#fff4d6; --warn-line:#f0dc9b;
+    --danger:#b02a24; --danger-bg:#fdecea; --danger-line:#f3b8b3;
+    --info:#1456a0; --info-bg:#e6f0fd; --info-line:#bcd5f3;
+    --shadow-card:0 1px 2px rgba(16,41,68,.06), 0 10px 28px rgba(16,41,68,.08);
+    --shadow-btn:0 1px 0 rgba(255,255,255,.18) inset, 0 6px 14px rgba(16,41,68,.28);
+  }
+
+  /* ---------- 1) Tab bar + Admin FAB: luôn căn theo đúng bề rộng canvas ----------
+     Nguyên nhân lệch khi zoom nhỏ: canvas có max-width 1944px và tự căn giữa,
+     còn tab bar (left) và nút Admin (fixed right:16px) bám mép cửa sổ. */
+  .app-tabs{
+    max-width:1944px; margin:0 auto; padding:0 12px; gap:6px; align-items:flex-end;
+  }
+  .app-tab{
+    position:relative; display:inline-flex; align-items:center; gap:8px;
+    padding:11px 22px 12px; border:1px solid var(--line); border-bottom:none;
+    border-radius:12px 12px 0 0; background:#dfe8f1; color:var(--navy-800);
+    font-size:13.5px; font-weight:600; letter-spacing:.1px; cursor:pointer;
+    transition:background .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+  .app-tab:hover:not(.active){ background:#fff; box-shadow:0 -2px 8px rgba(16,41,68,.10); }
+  .app-tab.active{
+    background:var(--brand-gradient); color:#fff; border-color:transparent;
+    box-shadow:0 -4px 14px rgba(16,41,68,.22);
+  }
+  .app-tab.active::after{
+    content:""; position:absolute; left:14px; right:14px; bottom:0; height:3px;
+    background:var(--accent); border-radius:3px 3px 0 0;
+  }
+  .app-tab:focus-visible{ outline:3px solid var(--accent-ring); outline-offset:2px; }
+  .app-tabs.show ~ .canvas{ border-top-left-radius:0; }
+
+  .admin-fab{
+    right:max(16px, calc((100% - 1944px) / 2 + 16px));
+    transition:box-shadow .15s ease, border-color .15s ease;
+  }
+  .admin-fab:hover{ box-shadow:0 4px 14px rgba(16,41,68,.22); }
+  .admin-fab:focus-visible{ outline:3px solid var(--accent-ring); outline-offset:2px; }
+
+  /* ---------- 2) Nút bấm dùng chung ---------- */
+  .us-btn, .modal-actions button, .btn-primary, .btn-secondary, .btn-ghost-danger{
+    font-family:inherit;
+  }
+  .us-btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    min-height:38px; padding:0 18px; margin:0; border-radius:9px;
+    border:1.5px solid transparent; font-size:13px; font-weight:600; line-height:1;
+    cursor:pointer; user-select:none; white-space:nowrap;
+    transition:background .15s ease, box-shadow .15s ease, transform .12s ease, border-color .15s ease;
+  }
+  .us-btn:focus-visible, .modal-actions button:focus-visible{ outline:3px solid var(--accent-ring); outline-offset:2px; }
+  .us-btn:active:not(:disabled){ transform:translateY(1px); }
+  .us-btn-primary{
+    background:var(--brand-gradient); color:#fff; border-color:var(--navy-800); box-shadow:var(--shadow-btn);
+  }
+  .us-btn-primary:hover:not(:disabled){ background:linear-gradient(180deg,#245d8f 0%,#143659 55%,#0a2036 100%); transform:translateY(-1px); box-shadow:0 1px 0 rgba(255,255,255,.2) inset, 0 9px 18px rgba(16,41,68,.32); }
+  .us-btn-secondary{
+    background:#fff; color:var(--navy-800); border-color:var(--navy-700); box-shadow:0 1px 2px rgba(16,41,68,.08);
+  }
+  .us-btn-secondary:hover:not(:disabled){ background:var(--surface-3); box-shadow:0 4px 10px rgba(16,41,68,.14); transform:translateY(-1px); }
+  .us-btn-danger{ background:var(--danger); color:#fff; border-color:#8f221d; }
+  .us-btn-danger-ghost{ background:#fff; color:var(--danger); border-color:var(--danger-line); }
+  .us-btn-danger-ghost:hover:not(:disabled){ background:var(--danger-bg); border-color:var(--danger); }
+  .us-btn-sm{ min-height:30px; padding:0 12px; font-size:12px; border-radius:7px; }
+  .us-btn-lg{ min-height:46px; padding:0 24px; font-size:14px; border-radius:10px; }
+  .us-btn-block{ width:100%; }
+  .us-btn:disabled{ opacity:.45; cursor:not-allowed; box-shadow:none; transform:none; }
+
+  /* ---------- 3) Thẻ (card) dùng chung cho Update Summary & Duplicate ---------- */
+  .us-wrap{ padding:22px 18px 8px; }
+  .us-panel{
+    position:relative; background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:0; margin-bottom:22px; box-shadow:var(--shadow-card); overflow:hidden;
+  }
+  .us-panel::before{
+    content:""; position:absolute; left:0; right:0; top:0; height:4px;
+    background:linear-gradient(90deg,var(--navy-800),var(--navy-700) 55%,var(--accent));
+  }
+  .us-panel-head{
+    display:flex; align-items:center; gap:14px; padding:20px 22px 16px;
+    background:linear-gradient(180deg,#f7fafd 0%,#eef4f9 100%); border-bottom:1px solid var(--line-2);
+  }
+  .us-ico{
+    flex:0 0 auto; width:42px; height:42px; border-radius:11px; display:grid; place-items:center;
+    background:var(--brand-gradient); color:#fff; box-shadow:0 4px 10px rgba(16,41,68,.30);
+  }
+  .us-ico svg, .modal-ico svg, .cfg-ico svg{ width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .us-head-text{ min-width:0; flex:1 1 auto; }
+  .us-panel .us-head-text h3{ margin:0; font-size:16px; font-weight:700; color:var(--navy-800); line-height:1.3; }
+  .us-head-text p{ margin:3px 0 0; font-size:12.5px; color:var(--ink-2); line-height:1.5; }
+  .us-head-action{ margin-left:auto; flex:0 0 auto; }
+  .us-panel-body{ padding:20px 22px 22px; }
+  .us-help{ margin:0 0 12px; font-size:12.5px; color:var(--ink-2); line-height:1.55; }
+
+  .us-note{
+    display:flex; gap:12px; align-items:flex-start; padding:14px 18px; margin-bottom:22px;
+    background:var(--warn-bg); border:1px solid var(--warn-line); border-left:5px solid #e0a800;
+    border-radius:12px; font-size:12.5px; line-height:1.65; color:#5c4500;
+  }
+  .us-note svg{ flex:0 0 auto; width:20px; height:20px; margin-top:1px; fill:none; stroke:#b07d00; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .us-note code, .us-code{ font-family:ui-monospace,Consolas,"Cascadia Mono",monospace; font-size:11.5px; background:rgba(16,41,68,.07); border-radius:5px; padding:1px 6px; color:var(--navy-800); }
+  .us-code{ display:inline-block; padding:3px 8px; word-break:break-all; }
+
+  /* ---------- 4) Form control ---------- */
+  .us-field{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .us-field-grow{ flex:1 1 240px; }
+  .us-label{ display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:var(--navy-800); }
+  .us-step{
+    display:inline-grid; place-items:center; width:20px; height:20px; border-radius:50%;
+    background:var(--navy-800); color:#fff; font-size:11px; font-weight:700; flex:0 0 auto;
+  }
+  .us-input, .us-select, .modal-body input[type=text], .modal-body input[type=password], .modal-body input[type=url], .modal-body input[type=number], .modal-body input[type=date]{
+    width:100%; min-height:40px; padding:0 12px; border:1.5px solid #c3d1de; border-radius:9px;
+    background:#fff; color:var(--ink); font:inherit; font-size:13px; box-sizing:border-box;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .us-input::placeholder, .modal-body input::placeholder{ color:#96a5b4; }
+  .us-select{
+    appearance:none; -webkit-appearance:none; padding-right:36px; cursor:pointer;
+    background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23102944' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 13px center;
+  }
+  .us-input:hover, .us-select:hover, .modal-body input:hover{ border-color:#9db4c8; }
+  .us-input:focus, .us-select:focus, .modal-body input:focus, .us-listbox:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-ring);
+  }
+  .us-listbox{
+    width:100%; height:216px; padding:6px; border:1.5px solid #c3d1de; border-radius:10px; background:#fff;
+    font:inherit; font-size:12.5px; color:var(--ink); box-sizing:border-box; overflow-y:auto;
+  }
+  .us-listbox option{ padding:7px 10px; border-radius:6px; margin-bottom:2px; }
+  .us-listbox option:checked{ background:var(--navy-800) linear-gradient(0deg,var(--navy-800),var(--navy-800)); color:#fff; }
+  .us-listbox option:disabled, .us-listbox option:disabled:checked{ color:var(--ink-3); background:transparent; font-style:italic; }
+  .us-check{ display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--navy-800); cursor:pointer; }
+  .us-check input, .us-row-check{ width:16px; height:16px; accent-color:var(--navy-800); cursor:pointer; }
+  .us-inline{ display:flex; gap:10px; align-items:stretch; }
+  .us-inline-wrap{ flex-wrap:wrap; }
+  .us-inline .us-input{ flex:1 1 200px; min-width:0; }
+
+  /* ---------- 5) Update Summary ---------- */
+  .us-toolbar{ display:flex; flex-wrap:wrap; align-items:center; gap:12px 14px; }
+  .us-toolbar-group{ display:flex; flex-wrap:wrap; gap:10px; }
+  .us-engine-status{ font-size:12.5px; color:var(--ink-2); font-weight:600; }
+  .us-filter-bar{
+    display:flex; flex-wrap:wrap; gap:14px 16px; align-items:flex-end; margin-top:18px; padding:16px 18px;
+    background:var(--surface-2); border:1px solid var(--line-2); border-radius:12px;
+  }
+  .us-filter-bar .us-field{ flex:0 1 240px; }
+  .us-filter-bar .us-field-grow{ flex:1 1 260px; }
+  .us-filter-actions{ display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-left:auto; }
+  .us-guard{ flex:1 0 100%; font-size:12.5px; font-weight:600; padding-top:2px; }
+  .us-guard::before{ content:"●"; margin-right:8px; font-size:9px; vertical-align:middle; }
+
+  .us-summary-chips{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:18px 0 0; }
+  .us-summary-chips:empty{ display:none; }
+  .us-chip{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:12px 16px;
+    border-radius:11px; background:#fff; border:1px solid var(--line); border-left:5px solid #8494a5;
+    font-size:12px; font-weight:700; color:var(--ink-2); box-shadow:0 1px 3px rgba(16,41,68,.06);
+  }
+  .us-chip b{ font-size:22px; font-weight:700; color:var(--ink); letter-spacing:-.2px; }
+  .us-chip.auto{ border-left-color:#28a745; background:var(--ok-bg); color:var(--ok); }
+  .us-chip.updated{ border-left-color:#1e6fd0; background:var(--info-bg); color:var(--info); }
+  .us-chip.review{ border-left-color:#e0a800; background:var(--warn-bg); color:var(--warn); }
+  .us-chip.unmatched{ border-left-color:#d64550; background:var(--danger-bg); color:var(--danger); }
+  .us-chip.auto b, .us-chip.updated b, .us-chip.review b, .us-chip.unmatched b{ color:inherit; }
+
+  /* Bảng dữ liệu */
+  .us-table-wrap{ max-height:560px; overflow:auto; border:1px solid var(--line); border-radius:12px; background:#fff; scrollbar-width:thin; scrollbar-color:#9db4c8 transparent; }
+  .us-table-wrap-sm{ max-height:340px; }
+  table.us-table{ border-collapse:separate; border-spacing:0; width:100%; font-size:12.5px; }
+  table.us-table th{
+    position:sticky; top:0; z-index:1; background:var(--surface-3); color:var(--navy-800);
+    padding:11px 12px; font-size:12px; font-weight:700; text-align:left; white-space:nowrap;
+    border-bottom:2px solid var(--navy-700);
+  }
+  table.us-table td{ padding:10px 12px; border-bottom:1px solid var(--line-2); vertical-align:middle; color:var(--ink); }
+  table.us-table tbody tr:nth-child(even) td{ background:#fafcfe; }
+  table.us-table tbody tr:hover td{ background:#eaf3fb; }
+  table.us-table tbody tr:last-child td{ border-bottom:none; }
+  table.us-table .col-actions{ text-align:right; width:1%; white-space:nowrap; }
+  #usPreviewTable td:nth-child(5), #usPreviewTable td:nth-child(8){ min-width:220px; }
+
+  .us-status{
+    display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; padding:4px 10px;
+    border-radius:999px; border:1px solid transparent; white-space:nowrap;
+  }
+  .us-status::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .us-status.AUTO, .us-status.AUTOMATCH{ background:var(--ok-bg); color:var(--ok); border-color:var(--ok-line); }
+  .us-status.REVIEW{ background:var(--warn-bg); color:var(--warn); border-color:var(--warn-line); }
+  .us-status.UNMATCHED{ background:var(--danger-bg); color:var(--danger); border-color:var(--danger-line); }
+  .us-status.UPDATED{ background:var(--info-bg); color:var(--info); border-color:var(--info-line); }
+  .us-new{ color:var(--navy-800); font-weight:700; }
+  .us-empty{ padding:38px 20px; text-align:center; color:var(--ink-3); font-size:13px; }
+  .us-log-item{ font-size:12.5px; padding:10px 14px; margin-bottom:8px; border:1px solid var(--line-2); border-left:4px solid var(--navy-700); border-radius:9px; background:var(--surface-2); line-height:1.6; }
+  #usLogList{ max-height:320px; overflow:auto; margin-top:14px; }
+
+  /* Tiến độ cập nhật */
+  .us-progress-panel{ border-color:var(--info-line); }
+  .us-progress-panel .us-panel-head{ background:linear-gradient(180deg,#f2f8ff,#e6f0fb); }
+  .us-progress-title{ display:flex; align-items:center; font-weight:700; color:var(--navy-800); font-size:14px; }
+  .us-progress-track{ height:14px; background:#dfe8f1; margin:4px 0 14px; box-shadow:inset 0 1px 3px rgba(16,41,68,.18); }
+  .us-progress-bar{ background:linear-gradient(90deg,var(--navy-800),var(--accent)); }
+  .us-progress-meta{ gap:10px 22px; font-size:12.5px; }
+  .us-progress-log{ font-size:11.5px; }
+
+  /* ---------- 6) Rule / Alias Dictionary: chiều cao cố định + cuộn dọc ---------- */
+  .us-mode-switch{ display:inline-flex; gap:0; padding:4px; margin:0 0 14px; background:var(--surface-3); border:1px solid var(--line); border-radius:11px; }
+  .us-mode-btn{
+    border:none; background:transparent; color:var(--navy-800); font:inherit; font-size:13px; font-weight:600;
+    padding:8px 18px; border-radius:8px; cursor:pointer; transition:background .15s ease, box-shadow .15s ease;
+  }
+  .us-mode-btn:hover:not(.active){ background:#fff; }
+  .us-mode-btn.active{ background:var(--brand-gradient); color:#fff; box-shadow:0 3px 8px rgba(16,41,68,.28); }
+  .us-mode-btn:focus-visible{ outline:3px solid var(--accent-ring); outline-offset:2px; }
+
+  .us-rules-scroll{
+    height:460px; max-height:70vh; overflow-y:auto; overflow-x:hidden; padding:16px 14px 6px 16px; box-sizing:border-box;
+    background:#fbfdff; border:1px solid var(--line); border-radius:12px;
+    box-shadow:inset 0 8px 8px -8px rgba(16,41,68,.16), inset 0 -8px 8px -8px rgba(16,41,68,.16);
+    scrollbar-width:thin; scrollbar-color:#8fa9be #eef3f8; overscroll-behavior:contain;
+  }
+  .us-rules-scroll::-webkit-scrollbar{ width:10px; }
+  .us-rules-scroll::-webkit-scrollbar-track{ background:#eef3f8; border-radius:10px; }
+  .us-rules-scroll::-webkit-scrollbar-thumb{ background:#8fa9be; border-radius:10px; border:2px solid #eef3f8; }
+  .us-rules-scroll::-webkit-scrollbar-thumb:hover{ background:#5f819d; }
+  #usRulesJsonMode{ height:100%; padding-bottom:10px; box-sizing:border-box; }
+  textarea.us-json{
+    display:block; width:100%; height:100%; min-height:0; resize:none; padding:14px; box-sizing:border-box;
+    font-family:ui-monospace,Consolas,"Cascadia Mono",monospace; font-size:12.5px; line-height:1.6; color:#1b2b3b;
+    background:#fff; border:1.5px solid #c3d1de; border-radius:10px;
+  }
+  textarea.us-json:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-ring); }
+  .us-rules-footer{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:16px; padding-top:16px; border-top:1px dashed var(--line); }
+  .us-rules-footer label.us-btn{ margin:0; }
+  #usRulesStatus{ font-size:12.5px; font-weight:600; }
+
+  .us-rule-block{ border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:14px; background:#fff; box-shadow:0 1px 3px rgba(16,41,68,.05); }
+  .us-rule-block-head{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; margin-bottom:12px; }
+  .us-rule-block-head b{ font-size:14px; color:var(--navy-800); }
+  .us-rule-hint{ font-size:12px; color:var(--ink-2); }
+  .us-tag-list{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; min-height:26px; }
+  .us-tag{ background:var(--surface-3); border:1px solid var(--brand-tint-border); color:var(--navy-800); border-radius:999px; padding:4px 5px 4px 12px; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:6px; }
+  .us-tag-del{ width:20px; height:20px; display:grid; place-items:center; border:none; background:transparent; cursor:pointer; color:var(--ink-3); font-size:14px; line-height:1; padding:0; border-radius:50%; }
+  .us-tag-del:hover{ color:#fff; background:var(--danger); }
+  .us-rule-item{ border:1px solid var(--line); border-left:4px solid var(--navy-700); border-radius:10px; padding:12px 14px; background:var(--surface-2); margin-bottom:12px; }
+  .us-rule-item-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .us-rank{ flex:0 0 auto; width:26px; height:26px; display:grid; place-items:center; border-radius:8px; background:var(--navy-800); color:#fff; font-size:12px; font-weight:700; }
+  .us-rule-action-input{ flex:1; min-width:0; min-height:36px; padding:0 11px; font:inherit; font-weight:700; font-size:13px; border:1.5px solid #c3d1de; border-radius:8px; background:#fff; }
+  .us-rule-action-input:focus, .us-alias-new-input:focus, .us-region-new-input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-ring); }
+  .us-rule-item-actions{ display:flex; gap:6px; }
+  .us-icon-btn{ width:34px; height:34px; display:grid; place-items:center; padding:0; border:1.5px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; font-size:12px; color:var(--navy-800); transition:background .15s ease, border-color .15s ease; }
+  .us-icon-btn:hover{ background:var(--surface-3); border-color:var(--navy-700); }
+  .us-icon-btn-danger{ color:var(--danger); border-color:var(--danger-line); }
+  .us-icon-btn-danger:hover{ background:var(--danger-bg); border-color:var(--danger); }
+  .us-alias-new-input, .us-region-new-input{ min-height:36px; padding:0 11px; font:inherit; font-size:12.5px; border:1.5px solid #c3d1de; border-radius:8px; background:#fff; flex:1 1 180px; min-width:0; }
+  .us-priority-empty{ font-size:12.5px; color:var(--ink-3); padding:6px 2px; }
+  .us-rule-block .us-row{ margin-bottom:0; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+  /* ---------- 7) Duplicate Ticket ---------- */
+  .dup-grid{ display:grid; grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr); gap:22px; align-items:start; }
+  .dup-col{ display:flex; flex-direction:column; gap:16px; min-width:0; }
+  .dup-target{ padding:18px; background:var(--surface-2); border:1px solid var(--line-2); border-radius:12px; }
+  .dup-manage{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+  .dup-box{ padding:16px 18px; background:var(--surface-2); border:1px solid var(--line-2); border-left:4px solid var(--navy-700); border-radius:12px; min-width:0; }
+  .dup-box-title{ font-size:13.5px; font-weight:700; color:var(--navy-800); margin-bottom:4px; }
+  .dup-results{ margin-top:8px; display:flex; flex-direction:column; gap:8px; }
+  .dup-user-result{
+    display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 14px; font-size:12.5px;
+    background:#fff; border:1.5px solid var(--line); border-radius:10px; cursor:pointer; transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .dup-user-result:hover{ border-color:var(--accent); background:#f3f9ff; box-shadow:0 4px 12px rgba(17,141,255,.15); }
+  .dup-user-result .inactive{ color:var(--danger); font-weight:600; }
+  .dup-user-result code{ color:var(--ink-3); font-size:11px; word-break:break-all; text-align:right; }
+  .us-person{ display:inline-flex; align-items:center; gap:10px; }
+  .us-avatar{ width:32px; height:32px; border-radius:50%; display:grid; place-items:center; background:var(--brand-gradient); color:#fff; font-size:11.5px; font-weight:700; flex:0 0 auto; }
+  .us-person-name{ font-weight:600; }
+  .us-pill{ display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+  .us-pill.ok{ background:#dcfce7; color:#15803d; }
+  .us-pill.err{ background:#fee2e2; color:#b91c1c; }
+  .dup-manage-table{ margin-top:18px; }
+
+  /* Hộp thông báo (thay cho style inline cũ) */
+  .us-alert{
+    display:none; margin-top:14px; padding:11px 14px 11px 40px; position:relative; border-radius:10px;
+    font-size:13px; font-weight:600; line-height:1.55; white-space:pre-wrap; border:1px solid var(--info-line);
+    background:var(--info-bg); color:var(--info);
+  }
+  .us-alert::before{ position:absolute; left:14px; top:10px; font-size:15px; font-weight:700; content:"ℹ"; }
+  .us-alert-ok{ background:var(--ok-bg); color:var(--ok); border-color:var(--ok-line); }
+  .us-alert-ok::before{ content:"✓"; }
+  .us-alert-err{ background:var(--danger-bg); color:var(--danger); border-color:var(--danger-line); }
+  .us-alert-err::before{ content:"✕"; }
+
+  /* ---------- 8) Modal (Token / Login / Đổi mật khẩu) ---------- */
+  .modal-overlay{ background:rgba(8,24,42,.58); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); padding:16px; }
+  .modal-box{
+    display:flex; flex-direction:column; width:440px; border-radius:16px; overflow:hidden; max-height:92vh;
+    box-shadow:0 24px 70px rgba(8,24,42,.45); border:1px solid rgba(255,255,255,.4);
+  }
+  .modal-box.modal-lg{ width:620px; max-width:100%; }
+  .modal-head{
+    flex:0 0 auto; border-radius:0; padding:16px 20px; font-size:15px;
+    background:var(--brand-gradient); box-shadow:0 2px 10px rgba(8,24,42,.3); position:relative; z-index:1;
+  }
+  .modal-title-wrap{ display:flex; align-items:center; gap:14px; min-width:0; }
+  .modal-ico{ flex:0 0 auto; width:40px; height:40px; border-radius:11px; display:grid; place-items:center; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); }
+  .modal-title{ font-size:16px; font-weight:700; line-height:1.3; }
+  .modal-sub{ font-size:12px; font-weight:400; opacity:.78; margin-top:2px; }
+  .modal-head .x{ flex:0 0 auto; width:34px; height:34px; display:grid; place-items:center; border-radius:9px; font-size:16px; opacity:.85; transition:background .15s ease, opacity .15s ease; }
+  .modal-head .x:hover{ opacity:1; background:rgba(255,255,255,.18); }
+  .modal-head .x:focus-visible{ outline:3px solid rgba(255,255,255,.55); outline-offset:1px; }
+  .modal-body{ padding:20px; overflow-y:auto; background:var(--surface-2); scrollbar-width:thin; scrollbar-color:#9db4c8 transparent; }
+  .modal-body label{ margin:0 0 6px; font-size:12.5px; font-weight:700; color:var(--navy-800); }
+  .modal-body > label{ margin-top:12px; }
+  .modal-note{ font-size:12px; line-height:1.6; margin-top:12px; border-radius:10px; }
+  .modal-actions{ gap:10px; margin-top:16px; }
+  .modal-actions button{
+    min-height:42px; padding:0 14px; border-radius:10px; font-size:13px; font-weight:600; border:1.5px solid var(--navy-800);
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
+    transition:background .15s ease, box-shadow .15s ease, transform .12s ease;
+  }
+  .btn-primary{ background:var(--brand-gradient); color:#fff; box-shadow:var(--shadow-btn); }
+  .btn-primary:hover:not(:disabled){ background:linear-gradient(180deg,#245d8f 0%,#143659 55%,#0a2036 100%); transform:translateY(-1px); }
+  .btn-secondary{ background:#fff; color:var(--navy-800); border-color:var(--navy-700); box-shadow:0 1px 2px rgba(16,41,68,.08); }
+  .btn-secondary:hover:not(:disabled){ background:var(--surface-3); box-shadow:0 4px 10px rgba(16,41,68,.14); transform:translateY(-1px); }
+  .btn-ghost-danger{ background:#fff; color:var(--danger); border-color:var(--danger-line) !important; }
+  .btn-ghost-danger:hover:not(:disabled){ background:var(--danger-bg); border-color:var(--danger) !important; }
+  .modal-actions button:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+  .btn-lg{ min-height:50px !important; font-size:14px !important; }
+  .conn-status{ border-radius:10px; font-weight:600; }
+
+  .cfg-card{
+    position:relative; background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 18px 20px;
+    margin-bottom:16px; box-shadow:var(--shadow-card); overflow:hidden;
+  }
+  .cfg-card::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:linear-gradient(180deg,var(--navy-700),var(--accent)); }
+  .cfg-card-sync{ background:linear-gradient(180deg,#f4f9ff,#e9f2fc); border-color:var(--info-line); }
+  .cfg-card-danger::before{ background:linear-gradient(180deg,#d64550,#8f221d); }
+  .cfg-card-head{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .cfg-ico{ flex:0 0 auto; width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:var(--surface-3); color:var(--navy-800); border:1px solid var(--brand-tint-border); }
+  .cfg-card-danger .cfg-ico{ background:var(--danger-bg); color:var(--danger); border-color:var(--danger-line); }
+  .cfg-card-head h4{ margin:0; font-size:14.5px; font-weight:700; color:var(--navy-800); }
+  .cfg-card-head p{ margin:2px 0 0; font-size:12px; color:var(--ink-2); }
+  .cfg-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; }
+  .cfg-grid .full{ grid-column:1 / -1; }
+  .modal-body .field{ min-width:0; }
+  .modal-body .field > label{ display:block; margin:0 0 6px; }
+  .field-hint{ margin:6px 0 0; font-size:11.5px; line-height:1.55; color:var(--ink-2); }
+  .input-wrap{ position:relative; }
+  .input-wrap input{ padding-right:44px !important; }
+  .pw-toggle{
+    position:absolute; right:5px; top:50%; transform:translateY(-50%); width:32px; height:32px; display:grid; place-items:center;
+    border:none; background:transparent; border-radius:7px; color:var(--ink-2); cursor:pointer;
+  }
+  .pw-toggle:hover{ background:var(--surface-3); color:var(--navy-800); }
+  .pw-toggle svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .cfg-details{ margin-top:14px; border:1px solid var(--info-line); border-radius:10px; background:rgba(255,255,255,.7); }
+  .cfg-details summary{ cursor:pointer; padding:11px 14px; font-size:12.5px; font-weight:700; color:var(--info); list-style:none; display:flex; align-items:center; gap:8px; }
+  .cfg-details summary::-webkit-details-marker{ display:none; }
+  .cfg-details summary::before{ content:"▸"; transition:transform .15s ease; }
+  .cfg-details[open] summary::before{ transform:rotate(90deg); }
+  .cfg-details p{ margin:0; padding:0 14px 14px; font-size:12px; line-height:1.65; color:var(--ink-2); }
+  .cfg-details code{ font-family:ui-monospace,Consolas,monospace; background:rgba(16,41,68,.08); padding:1px 6px; border-radius:5px; color:var(--navy-800); }
+
+  /* ---------- 9) Responsive ---------- */
+  @media (max-width:900px){
+    .dup-grid, .dup-manage{ grid-template-columns:1fr; }
+    .us-filter-actions{ margin-left:0; width:100%; }
+  }
+  @media (max-width:768px){
+    .app-tabs{ overflow-x:auto; flex-wrap:nowrap; padding-top:34px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .app-tabs::-webkit-scrollbar{ display:none; }
+    .app-tab{ flex:0 0 auto; padding:10px 16px 11px; font-size:12.5px; }
+    .admin-fab{ right:8px; }
+    .us-wrap{ padding:14px 8px 4px; }
+    .us-panel-head{ padding:16px 16px 14px; flex-wrap:wrap; }
+    .us-panel-body{ padding:16px; }
+    .us-toolbar-group, .us-toolbar .us-btn{ width:100%; }
+    .us-toolbar-group .us-btn{ flex:1 1 100%; }
+    .us-filter-bar .us-field{ flex:1 1 100%; }
+    .us-filter-actions .us-btn{ width:100%; }
+    .us-rules-scroll{ height:60vh; padding:12px 10px 4px 12px; }
+    .us-rules-footer .us-btn{ flex:1 1 100%; }
+    .cfg-grid{ grid-template-columns:1fr; }
+    .modal-box, .modal-box.modal-lg{ width:100%; max-height:94vh; }
+    .modal-body{ padding:14px; }
+    .modal-actions{ flex-direction:column; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .us-btn, .modal-actions button, .app-tab, .us-mode-btn, .dup-user-result{ transition:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -512,7 +915,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
 <div class="admin-fab" id="adminFab">🔒 Admin</div>
 
-<div class="app-tabs" id="appTabs">
+<div class="app-tabs" id="appTabs" role="tablist">
   <button class="app-tab active" id="tabDashboardBtn" data-tab="dashboard">📊 Dashboard</button>
   <button class="app-tab" id="tabUpdateSummaryBtn" data-tab="updatesummary">🛠 Update Summary</button>
   <button class="app-tab" id="tabDuplicateBtn" data-tab="duplicate">📄 Duplicate Ticket</button>
@@ -550,49 +953,103 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </div>
 
 <div class="modal-overlay" id="tokenModal">
-  <div class="modal-box">
-    <div class="modal-head"><span>Cấu hình Token / Kết nối dữ liệu</span><span class="x" id="tokenClose">✕</span></div>
+  <div class="modal-box modal-lg" role="dialog" aria-modal="true" aria-labelledby="tokenModalTitle">
+    <div class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span>
+        <div>
+          <div class="modal-title" id="tokenModalTitle">Cấu hình Token / Kết nối dữ liệu</div>
+          <div class="modal-sub">Jira Cloud &rarr; Supabase &rarr; Dashboard</div>
+        </div>
+      </div>
+      <span class="x" id="tokenClose" role="button" tabindex="0" aria-label="Đóng">✕</span>
+    </div>
     <div class="modal-body">
-      <label>Jira Base URL</label>
-      <input type="url" id="cfgBaseUrl" placeholder="https://ccdoitac.atlassian.net  (CHỈ domain, không kèm /rest/api/...)">
-      <label>Email tài khoản Jira</label>
-      <input type="text" id="cfgEmail" placeholder="ten.ban@coca-cola.com.vn">
-      <label>API Token</label>
-      <input type="password" id="cfgToken" placeholder="Dán API Token tại đây">
-      <label>Ngày hết hạn Token</label>
-      <input type="date" id="cfgTokenExpiry">
-      <label>Giới hạn dữ liệu hiển thị (số ngày gần nhất)</label>
-      <input type="number" id="cfgDisplayDaysLimit" min="1" step="1" placeholder="Để trống = không giới hạn, tải toàn bộ ticket">
-      <div class="modal-note" style="margin-top:-8px;">
-        Chỉ tải về những ticket có ngày tạo trong N ngày gần nhất — giúp dashboard load nhanh hơn khi số lượng ticket lớn.
-        Để trống nếu muốn xem toàn bộ lịch sử như hiện tại.
-      </div>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="testConnBtn">Kiểm tra kết nối Jira</button>
-        <button class="btn-primary" id="saveCfgBtn">Lưu Token lên Supabase</button>
-      </div>
-      <div class="conn-status" id="connStatus"></div>
-      <div class="modal-actions" style="margin-top:14px;">
-        <button class="btn-primary" id="syncJiraBtn" style="flex:1;">🔄 Đồng bộ dữ liệu Jira ngay (real-time)</button>
-      </div>
-      <div class="conn-status" id="syncStatus"></div>
-      <div class="modal-note">
-        Nút trên gọi 1 Supabase Edge Function (proxy) để lấy dữ liệu Jira mới nhất — cần bạn đã deploy function
-        <code>jira-sync</code> theo hướng dẫn riêng. Việc đồng bộ toàn bộ ticket có thể mất khoảng 30–90 giây tuỳ số lượng.
-        Token được lưu trong bảng, chỉ đọc/ghi được khi cung cấp đúng mật khẩu Admin (qua hàm RPC bảo mật) — không
-        expose trực tiếp qua REST API. Nút "Kiểm tra kết nối Jira" gọi thẳng Jira API từ trình duyệt để xác thực Token
-        còn hạn hay không; do chính sách CORS của Atlassian Cloud, request này có thể bị chặn (lỗi "Failed to fetch")
-        dù Token đúng — không ảnh hưởng đến nút "Đồng bộ dữ liệu Jira" ở trên vì nút đó gọi qua Edge Function (server-side),
-        không bị CORS chặn.
-      </div>
-      <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-      <label>Đổi mật khẩu Admin</label>
-      <input type="password" id="newPw1" placeholder="Mật khẩu mới (tối thiểu 6 ký tự)">
-      <div class="modal-actions">
-        <button class="btn-secondary" id="changePwBtn">Đổi mật khẩu</button>
-        <button class="btn-secondary" id="logoutBtn">Đăng xuất</button>
-      </div>
-      <div class="conn-status" id="pwStatus"></div>
+
+      <section class="cfg-card">
+        <div class="cfg-card-head">
+          <span class="cfg-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></svg></span>
+          <div><h4>Kết nối Jira</h4><p>Thông tin tài khoản dùng để đọc dữ liệu ticket.</p></div>
+        </div>
+        <div class="cfg-grid">
+          <div class="field full">
+            <label for="cfgBaseUrl">Jira Base URL</label>
+            <input type="url" id="cfgBaseUrl" placeholder="https://ccdoitac.atlassian.net" autocomplete="off">
+            <p class="field-hint">Chỉ nhập domain, không kèm <code>/rest/api/...</code></p>
+          </div>
+          <div class="field">
+            <label for="cfgEmail">Email tài khoản Jira</label>
+            <input type="text" id="cfgEmail" placeholder="ten.ban@coca-cola.com.vn" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="cfgToken">API Token</label>
+            <div class="input-wrap">
+              <input type="password" id="cfgToken" placeholder="Dán API Token tại đây" autocomplete="off">
+              <button type="button" class="pw-toggle" data-target="cfgToken" aria-label="Hiện / ẩn API Token" title="Hiện / ẩn API Token"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="cfgTokenExpiry">Ngày hết hạn Token</label>
+            <input type="date" id="cfgTokenExpiry">
+          </div>
+          <div class="field">
+            <label for="cfgDisplayDaysLimit">Giới hạn dữ liệu hiển thị (số ngày gần nhất)</label>
+            <input type="number" id="cfgDisplayDaysLimit" min="1" step="1" placeholder="Để trống = tải toàn bộ ticket">
+          </div>
+          <p class="field-hint full" style="grid-column:1 / -1;margin:-4px 0 0;">
+            Chỉ tải về những ticket có ngày tạo trong N ngày gần nhất — giúp dashboard load nhanh hơn khi số lượng ticket lớn.
+            Để trống nếu muốn xem toàn bộ lịch sử như hiện tại.
+          </p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" id="testConnBtn">Kiểm tra kết nối Jira</button>
+          <button class="btn-primary" id="saveCfgBtn">Lưu Token lên Supabase</button>
+        </div>
+        <div class="conn-status" id="connStatus"></div>
+      </section>
+
+      <section class="cfg-card cfg-card-sync">
+        <div class="cfg-card-head">
+          <span class="cfg-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/></svg></span>
+          <div><h4>Đồng bộ dữ liệu</h4><p>Lấy dữ liệu Jira mới nhất về Dashboard.</p></div>
+        </div>
+        <div class="modal-actions" style="margin-top:0;">
+          <button class="btn-primary btn-lg" id="syncJiraBtn" style="flex:1;">🔄 Đồng bộ dữ liệu Jira ngay (real-time)</button>
+        </div>
+        <div class="conn-status" id="syncStatus"></div>
+        <details class="cfg-details">
+          <summary>Cơ chế đồng bộ, lưu trữ Token và lưu ý CORS</summary>
+          <p>
+            Nút trên gọi 1 Supabase Edge Function (proxy) để lấy dữ liệu Jira mới nhất — cần bạn đã deploy function
+            <code>jira-sync</code> theo hướng dẫn riêng. Việc đồng bộ toàn bộ ticket có thể mất khoảng 30–90 giây tuỳ số lượng.
+            Token được lưu trong bảng, chỉ đọc/ghi được khi cung cấp đúng mật khẩu Admin (qua hàm RPC bảo mật) — không
+            expose trực tiếp qua REST API. Nút "Kiểm tra kết nối Jira" gọi thẳng Jira API từ trình duyệt để xác thực Token
+            còn hạn hay không; do chính sách CORS của Atlassian Cloud, request này có thể bị chặn (lỗi "Failed to fetch")
+            dù Token đúng — không ảnh hưởng đến nút "Đồng bộ dữ liệu Jira" ở trên vì nút đó gọi qua Edge Function (server-side),
+            không bị CORS chặn.
+          </p>
+        </details>
+      </section>
+
+      <section class="cfg-card cfg-card-danger" style="margin-bottom:0;">
+        <div class="cfg-card-head">
+          <span class="cfg-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span>
+          <div><h4>Bảo mật tài khoản Admin</h4><p>Đổi mật khẩu hoặc kết thúc phiên đăng nhập.</p></div>
+        </div>
+        <div class="field">
+          <label for="newPw1">Đổi mật khẩu Admin</label>
+          <div class="input-wrap">
+            <input type="password" id="newPw1" placeholder="Mật khẩu mới (tối thiểu 6 ký tự)" autocomplete="new-password">
+            <button type="button" class="pw-toggle" data-target="newPw1" aria-label="Hiện / ẩn mật khẩu" title="Hiện / ẩn mật khẩu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" id="changePwBtn">Đổi mật khẩu</button>
+          <button class="btn-ghost-danger" id="logoutBtn">Đăng xuất</button>
+        </div>
+        <div class="conn-status" id="pwStatus"></div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -764,153 +1221,183 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <div class="canvas" id="viewUpdateSummary" style="display:none;">
   <div class="us-wrap">
 
-    <div class="us-panel">
-      <h3>🛠 Update Summary — Chuẩn hoá hàng loạt</h3>
-      <div class="us-row">
-        <button class="us-btn us-btn-primary" id="usRunEngineBtn">▶ Chạy đối chiếu (Preview)</button>
-        <button class="us-btn us-btn-secondary" id="usToggleRulesBtn">⚙ Rule / Alias Dictionary</button>
-        <button class="us-btn us-btn-secondary" id="usExportPreviewBtn">⬇ Xuất Preview (Excel)</button>
-        <button class="us-btn us-btn-secondary" id="usShowLogBtn">📜 Update Log</button>
-        <span id="usEngineStatus" style="font-size:12px;color:#888;"></span>
-      </div>
-      <div id="usSummaryChips" class="us-summary-chips"></div>
-      <div class="us-row" id="usFilterRow" style="display:none;">
-        <label>Assignee:</label>
-        <select id="usAssigneeFilter" title="Chọn một Assignee cụ thể trước khi cập nhật Jira">
-          <option value="__ALL__">Tất cả Assignee (chỉ xem)</option>
-        </select>
-        <span id="usAssigneeGuard" style="font-size:12px;color:#b02a24;">Cần chọn một Assignee cụ thể để bật cập nhật.</span>
-        <label>Lọc theo Status:</label>
-        <select id="usStatusFilter">
-          <option value="ALL">Tất cả</option>
-          <option value="AUTO MATCH">AUTO MATCH</option>
-          <option value="UPDATED">UPDATED — không cần cập nhật</option>
-          <option value="REVIEW">REVIEW</option>
-          <option value="UNMATCHED">UNMATCHED</option>
-        </select>
-        <input type="search" id="usSearchBox" placeholder="Tìm theo Ticket Key / Summary..." style="flex:1;min-width:180px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;">
-        <label style="margin-left:8px;"><input type="checkbox" id="usSelectAllAuto"> Chọn tất cả AUTO MATCH đang lọc</label>
-        <button class="us-btn us-btn-primary" id="usBulkUpdateBtn" disabled>✅ Cập nhật các dòng đã chọn</button>
-      </div>
-    </div>
-
-    <div class="us-panel us-progress-panel" id="usProgressPanel" style="display:none;" aria-live="polite">
-      <div class="us-progress-head">
-        <span class="us-progress-title"><span class="us-progress-pulse"></span>Tiến độ cập nhật Jira</span>
-        <span id="usProgressStatus" class="us-progress-status">Chưa bắt đầu</span>
-      </div>
-      <div class="us-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div id="usProgressBar" class="us-progress-bar"></div>
-      </div>
-      <div class="us-progress-meta">
-        <span>Đã xử lý: <b id="usProgressCount">0 / 0</b></span>
-        <span>Hoàn thành: <b id="usProgressPercent">0%</b></span>
-        <span>Thành công: <b id="usProgressSuccess">0</b></span>
-        <span>Lỗi/Conflict: <b id="usProgressFailed">0</b></span>
-        <span>Batch: <b id="usProgressBatch">0 / 0</b></span>
-      </div>
-      <div id="usProgressLog" class="us-progress-log"></div>
-    </div>
-
-    <div class="us-panel" id="usRulesPanel" style="display:none;">
-      <h3>⚙ Rule / Alias Dictionary (chỉnh sửa được — KHÔNG sửa code lõi)</h3>
-      <div class="us-row" style="font-size:12px;color:#888;">
-        Chỉnh ở chế độ <b>Giao diện</b> hoặc <b>JSON</b> — hai bên luôn tự đồng bộ với nhau theo thời gian thực.
-        Thứ tự trong "Ưu tiên Action/Alias": đứng trước = ưu tiên khớp trước. Chỉ áp dụng cho phiên làm việc hiện tại —
-        dùng "Xuất JSON" để lưu lại, "Nhập JSON" để nạp lại lần sau.
-      </div>
-
-      <div class="us-mode-switch">
-        <button type="button" class="us-mode-btn active" id="usModeUiBtn">🧩 Giao diện (UI)</button>
-        <button type="button" class="us-mode-btn" id="usModeJsonBtn">{ } JSON</button>
-      </div>
-
-      <!-- ===== Chế độ Giao diện ===== -->
-      <div id="usRulesUiMode">
-        <div class="us-rule-block">
-          <div class="us-rule-block-head">
-            <b>🌍 Vùng (Region)</b>
-            <span class="us-rule-hint">Mã vùng dùng để nhận diện trong Summary (VD: NE, HN, CP...)</span>
+    <section class="us-panel">
+      <header class="us-panel-head"><span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span><div class="us-head-text"><h3>Update Summary — Chuẩn hoá hàng loạt</h3><p>Đối chiếu Summary của ticket với bộ rule, xem trước kết quả rồi mới ghi lên Jira.</p></div></header>
+      <div class="us-panel-body">
+        <div class="us-toolbar">
+          <button class="us-btn us-btn-primary us-btn-lg" id="usRunEngineBtn">▶ Chạy đối chiếu (Preview)</button>
+          <div class="us-toolbar-group">
+            <button class="us-btn us-btn-secondary" id="usToggleRulesBtn">⚙ Rule / Alias Dictionary</button>
+            <button class="us-btn us-btn-secondary" id="usExportPreviewBtn">⬇ Xuất Preview (Excel)</button>
+            <button class="us-btn us-btn-secondary" id="usShowLogBtn">📜 Update Log</button>
           </div>
-          <div class="us-tag-list" id="usRegionsList"></div>
-          <div class="us-row" style="margin-bottom:0;">
-            <input type="text" class="us-region-new-input" id="usRegionNewInput" placeholder="Thêm mã vùng mới..." style="max-width:200px;">
-            <button type="button" class="us-btn us-btn-secondary" id="usRegionAddBtn">+ Thêm vùng</button>
+          <span id="usEngineStatus" class="us-engine-status"></span>
+        </div>
+
+        <div id="usSummaryChips" class="us-summary-chips"></div>
+
+        <div class="us-filter-bar" id="usFilterRow" style="display:none;">
+          <div class="us-field">
+            <label class="us-label" for="usAssigneeFilter">Assignee</label>
+            <select class="us-select" id="usAssigneeFilter" title="Chọn một Assignee cụ thể trước khi cập nhật Jira">
+              <option value="__ALL__">Tất cả Assignee (chỉ xem)</option>
+            </select>
+          </div>
+          <div class="us-field">
+            <label class="us-label" for="usStatusFilter">Lọc theo Status</label>
+            <select class="us-select" id="usStatusFilter">
+              <option value="ALL">Tất cả</option>
+              <option value="AUTO MATCH">AUTO MATCH</option>
+              <option value="UPDATED">UPDATED — không cần cập nhật</option>
+              <option value="REVIEW">REVIEW</option>
+              <option value="UNMATCHED">UNMATCHED</option>
+            </select>
+          </div>
+          <div class="us-field us-field-grow">
+            <label class="us-label" for="usSearchBox">Tìm kiếm</label>
+            <input type="search" class="us-input" id="usSearchBox" placeholder="Tìm theo Ticket Key / Summary...">
+          </div>
+          <div class="us-filter-actions">
+            <label class="us-check"><input type="checkbox" id="usSelectAllAuto"> Chọn tất cả AUTO MATCH đang lọc</label>
+            <button class="us-btn us-btn-primary" id="usBulkUpdateBtn" disabled>✅ Cập nhật các dòng đã chọn</button>
+          </div>
+          <span id="usAssigneeGuard" class="us-guard" style="color:#b02a24;">Cần chọn một Assignee cụ thể để bật cập nhật.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="us-panel us-progress-panel" id="usProgressPanel" style="display:none;" aria-live="polite">
+      <header class="us-panel-head">
+        <span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span>
+        <div class="us-head-text"><h3 class="us-progress-title"><span class="us-progress-pulse"></span>Tiến độ cập nhật Jira</h3></div>
+        <span id="usProgressStatus" class="us-progress-status us-head-action">Chưa bắt đầu</span>
+      </header>
+      <div class="us-panel-body">
+        <div class="us-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="usProgressBar" class="us-progress-bar"></div>
+        </div>
+        <div class="us-progress-meta">
+          <span>Đã xử lý: <b id="usProgressCount">0 / 0</b></span>
+          <span>Hoàn thành: <b id="usProgressPercent">0%</b></span>
+          <span>Thành công: <b id="usProgressSuccess">0</b></span>
+          <span>Lỗi/Conflict: <b id="usProgressFailed">0</b></span>
+          <span>Batch: <b id="usProgressBatch">0 / 0</b></span>
+        </div>
+        <div id="usProgressLog" class="us-progress-log"></div>
+      </div>
+    </section>
+
+    <section class="us-panel us-rules-panel" id="usRulesPanel" style="display:none;">
+      <header class="us-panel-head"><span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M9 8h6M9 12h6"/></svg></span><div class="us-head-text"><h3>Rule / Alias Dictionary (chỉnh sửa được — KHÔNG sửa code lõi)</h3></div></header>
+      <div class="us-panel-body">
+        <p class="us-help">
+          Chỉnh ở chế độ <b>Giao diện</b> hoặc <b>JSON</b> — hai bên luôn tự đồng bộ với nhau theo thời gian thực.
+          Thứ tự trong "Ưu tiên Action/Alias": đứng trước = ưu tiên khớp trước. Chỉ áp dụng cho phiên làm việc hiện tại —
+          dùng "Xuất JSON" để lưu lại, "Nhập JSON" để nạp lại lần sau.
+        </p>
+
+        <div class="us-mode-switch">
+          <button type="button" class="us-mode-btn active" id="usModeUiBtn">🧩 Giao diện (UI)</button>
+          <button type="button" class="us-mode-btn" id="usModeJsonBtn">{ } JSON</button>
+        </div>
+
+        <!-- Vùng cố định chiều cao, cuộn dọc -->
+        <div class="us-rules-scroll" id="usRulesScroll" tabindex="0" aria-label="Danh sách rule (cuộn dọc)">
+
+          <!-- ===== Chế độ Giao diện ===== -->
+          <div id="usRulesUiMode">
+            <div class="us-rule-block">
+              <div class="us-rule-block-head">
+                <b>Vùng (Region)</b>
+                <span class="us-rule-hint">Mã vùng dùng để nhận diện trong Summary (VD: NE, HN, CP...)</span>
+              </div>
+              <div class="us-tag-list" id="usRegionsList"></div>
+              <div class="us-row">
+                <input type="text" class="us-region-new-input" id="usRegionNewInput" placeholder="Thêm mã vùng mới..." style="max-width:220px;">
+                <button type="button" class="us-btn us-btn-secondary" id="usRegionAddBtn">+ Thêm vùng</button>
+              </div>
+            </div>
+
+            <div class="us-rule-block">
+              <div class="us-rule-block-head">
+                <b>Thứ tự ưu tiên Action / Alias</b>
+                <span class="us-rule-hint">Đứng trước = ưu tiên khớp trước. Dùng ▲▼ để đổi thứ tự ưu tiên.</span>
+              </div>
+              <div id="usPriorityList"></div>
+              <div class="us-row">
+                <button type="button" class="us-btn us-btn-secondary" id="usAddRuleBtn">+ Thêm Action mới</button>
+              </div>
+            </div>
+
+            <div class="us-rule-block">
+              <label class="us-check" style="align-items:flex-start;line-height:1.5;">
+                <input type="checkbox" id="usSpaceBeforeUnderscoreChk" style="margin-top:2px;">
+                <span>Thêm khoảng trắng trước dấu "_" khi sinh Summary mới (VD: "Call Cycle _10.09.2026" thay vì "Call Cycle_10.09.2026")</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- ===== Chế độ JSON ===== -->
+          <div id="usRulesJsonMode" style="display:none;">
+            <textarea class="us-json" id="usRulesJson" spellcheck="false"></textarea>
           </div>
         </div>
 
-        <div class="us-rule-block">
-          <div class="us-rule-block-head">
-            <b>🏷 Thứ tự ưu tiên Action / Alias</b>
-            <span class="us-rule-hint">Đứng trước = ưu tiên khớp trước. Dùng ▲▼ để đổi thứ tự ưu tiên.</span>
-          </div>
-          <div id="usPriorityList"></div>
-          <div class="us-row" style="margin-bottom:0;">
-            <button type="button" class="us-btn us-btn-secondary" id="usAddRuleBtn">+ Thêm Action mới</button>
-          </div>
-        </div>
-
-        <div class="us-rule-block">
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" id="usSpaceBeforeUnderscoreChk">
-            Thêm khoảng trắng trước dấu "_" khi sinh Summary mới (VD: "Call Cycle _10.09.2026" thay vì "Call Cycle_10.09.2026")
-          </label>
+        <div class="us-rules-footer">
+          <button class="us-btn us-btn-primary" id="usApplyRulesBtn">✅ Áp dụng</button>
+          <button class="us-btn us-btn-secondary" id="usResetRulesBtn">↺ Khôi phục mặc định</button>
+          <button class="us-btn us-btn-secondary" id="usExportRulesBtn">⬇ Xuất JSON</button>
+          <label class="us-btn us-btn-secondary" style="margin:0;">⬆ Nhập JSON<input type="file" id="usImportRulesInput" accept=".json" style="display:none;"></label>
+          <span id="usRulesStatus" style="color:#888;"></span>
         </div>
       </div>
+    </section>
 
-      <!-- ===== Chế độ JSON ===== -->
-      <div id="usRulesJsonMode" style="display:none;">
-        <textarea class="us-json" id="usRulesJson"></textarea>
+    <section class="us-panel" id="usLogPanel" style="display:none;">
+      <header class="us-panel-head"><span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg></span><div class="us-head-text"><h3>Update Log</h3><p>Phiên hiện tại — dùng để đối chiếu / rollback thủ công.</p></div></header>
+      <div class="us-panel-body">
+        <div class="us-toolbar">
+          <button class="us-btn us-btn-secondary" id="usExportLogBtn">⬇ Xuất Log (Excel)</button>
+          <span class="us-engine-status">Log hiển thị nhanh trong trình duyệt; bản audit chính thức được ghi sau khi Jira cập nhật thành công.</span>
+        </div>
+        <div id="usLogList"></div>
       </div>
+    </section>
 
-      <div class="us-row" style="margin-top:2px;">
-        <button class="us-btn us-btn-primary" id="usApplyRulesBtn">✅ Áp dụng</button>
-        <button class="us-btn us-btn-secondary" id="usResetRulesBtn">↺ Khôi phục mặc định</button>
-        <button class="us-btn us-btn-secondary" id="usExportRulesBtn">⬇ Xuất JSON</button>
-        <label class="us-btn us-btn-secondary" style="margin:0;">⬆ Nhập JSON<input type="file" id="usImportRulesInput" accept=".json" style="display:none;"></label>
-        <span id="usRulesStatus" style="font-size:12px;color:#888;"></span>
+    <section class="us-panel">
+      <header class="us-panel-head"><span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg></span><div class="us-head-text"><h3>Kết quả đối chiếu</h3><p>Chỉ các dòng AUTO MATCH mới có ô chọn để cập nhật.</p></div></header>
+      <div class="us-panel-body">
+        <div class="us-table-wrap">
+          <table class="us-table" id="usPreviewTable">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Record ID</th>
+                <th>Assignee</th>
+                <th>Created Date</th>
+                <th>Original Summary</th>
+                <th>Region</th>
+                <th>Action</th>
+                <th>New Summary</th>
+                <th>Status</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody id="usPreviewBody">
+              <tr><td colspan="10" class="us-empty">Bấm "▶ Chạy đối chiếu (Preview)" để bắt đầu — hệ thống sẽ chạy trên toàn bộ dữ liệu ticket đang tải trong Dashboard.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="us-panel" id="usLogPanel" style="display:none;">
-      <h3>📜 Update Log (phiên hiện tại — dùng để đối chiếu / rollback thủ công)</h3>
-      <div class="us-row">
-        <button class="us-btn us-btn-secondary" id="usExportLogBtn">⬇ Xuất Log (Excel)</button>
-        <span style="font-size:12px;color:#888;">Log hiển thị nhanh trong trình duyệt; bản audit chính thức được ghi sau khi Jira cập nhật thành công.</span>
-      </div>
-      <div id="usLogList"></div>
-    </div>
-
-    <div class="us-panel">
-      <div class="us-table-wrap">
-        <table class="us-table" id="usPreviewTable">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Record ID</th>
-              <th>Assignee</th>
-              <th>Created Date</th>
-              <th>Original Summary</th>
-              <th>Region</th>
-              <th>Action</th>
-              <th>New Summary</th>
-              <th>Status</th>
-              <th>Reason</th>
-            </tr>
-          </thead>
-          <tbody id="usPreviewBody">
-            <tr><td colspan="10" class="us-empty">Bấm "▶ Chạy đối chiếu (Preview)" để bắt đầu — hệ thống sẽ chạy trên toàn bộ dữ liệu ticket đang tải trong Dashboard.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="us-panel" style="font-size:12px;color:#888;">
-      <b>⚠ Lưu ý an toàn (đọc trước khi bấm "Cập nhật"):</b> Nút "Cập nhật" không ghi Summary vào bảng
+    <div class="us-note">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>
+      <div><b>Lưu ý an toàn (đọc trước khi bấm "Cập nhật"):</b> Nút "Cập nhật" không ghi Summary vào bảng
       <code>jira_tickets</code>. Nó gọi Edge Function <code>jira-update-summary</code>; Edge Function lấy Jira
       credentials ở phía server, kiểm tra Summary hiện tại trên Jira rồi cập nhật trực tiếp issue bằng Jira REST API.
       Chỉ các issue cập nhật thành công mới được ghi audit vào <code>summary_update_log</code>. Bảng
-      <code>jira_tickets</code> vẫn là bản đọc/đồng bộ của Dashboard, không phải đích ghi của thao tác này.
+      <code>jira_tickets</code> vẫn là bản đọc/đồng bộ của Dashboard, không phải đích ghi của thao tác này.</div>
     </div>
 
   </div>
@@ -919,86 +1406,86 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <div class="canvas" id="viewDuplicateTicket" style="display:none;">
   <div class="us-wrap">
 
-    <div class="us-panel">
-      <h3>📄 Duplicate Ticket — Sao chép ticket Jira sang Assignee khác</h3>
-      <p style="font-size:13px;color:#666;margin:4px 0 16px;">
-        Chọn 1 ticket có sẵn (đã đồng bộ trong Dashboard), chọn Assignee mới, hệ thống sẽ tạo
-        1 ticket mới trên Jira với toàn bộ thông tin giống ticket gốc, chỉ khác Assignee.
-      </p>
+    <section class="us-panel">
+      <header class="us-panel-head"><span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></span><div class="us-head-text"><h3>Duplicate Ticket — Sao chép ticket Jira sang Assignee khác</h3><p>Chọn 1 ticket có sẵn (đã đồng bộ trong Dashboard), chọn Assignee mới, hệ thống sẽ tạo 1 ticket mới trên Jira với toàn bộ thông tin giống ticket gốc, chỉ khác Assignee.</p></div></header>
+      <div class="us-panel-body">
+        <div class="dup-grid">
+          <div class="dup-col">
+            <div class="us-field">
+              <label class="us-label" for="dupSourceSearch"><span class="us-step">1</span>Ticket gốc</label>
+              <input type="text" class="us-input" id="dupSourceSearch" placeholder="Gõ để tìm theo Key hoặc Summary...">
+            </div>
+            <select id="dupSourceSelect" class="us-listbox" size="6" aria-label="Danh sách ticket gốc"></select>
+          </div>
+          <div class="dup-col dup-target">
+            <div class="us-field">
+              <label class="us-label" for="dupAssigneeSelect"><span class="us-step">2</span>Assignee cho ticket mới</label>
+              <select id="dupAssigneeSelect" class="us-select"></select>
+            </div>
+            <button class="us-btn us-btn-primary us-btn-lg us-btn-block" id="dupCreateBtn">🚀 Tạo ticket mới</button>
+          </div>
+        </div>
+        <div id="dupStatus" class="us-alert" style="display:none;"></div>
+      </div>
+    </section>
 
-      <div class="us-row" style="align-items:flex-end;gap:16px;flex-wrap:wrap;">
-        <div style="min-width:320px;flex:1;">
-          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Ticket gốc</label>
-          <input type="text" id="dupSourceSearch" placeholder="Gõ để tìm theo Key hoặc Summary..."
-            style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:6px;">
-          <select id="dupSourceSelect" size="6" style="width:100%;font-size:12px;padding:4px;"></select>
+    <section class="us-panel">
+      <header class="us-panel-head"><span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.3.6 3.5 2.6 3.5 6"/></svg></span><div class="us-head-text"><h3>Quản lý danh sách Assignee</h3><p>Danh sách người có thể chọn làm Assignee khi tạo ticket mới.</p></div></header>
+      <div class="us-panel-body">
+        <div class="dup-manage">
+          <div class="dup-box">
+            <div class="dup-box-title">Tìm người dùng trên Jira</div>
+            <p class="us-help">Không biết accountId? Gõ tên vào ô tìm kiếm bên dưới, bấm "🔍 Tìm trên Jira", rồi click vào kết quả đúng để tự điền accountId.</p>
+            <div class="us-inline">
+              <input type="text" class="us-input" id="dupUserSearchInput" placeholder="Gõ tên/email cần tìm trên Jira, vd: Quang Pham">
+              <button class="us-btn us-btn-secondary" id="dupUserSearchBtn">🔍 Tìm trên Jira</button>
+            </div>
+            <div id="dupUserSearchStatus" class="us-alert" style="display:none;"></div>
+            <div id="dupUserSearchResults" class="dup-results"></div>
+          </div>
+          <div class="dup-box">
+            <div class="dup-box-title">Hoặc điền tay</div>
+            <p class="us-help">Nhập <b>tên hiển thị</b> + <b>Jira accountId</b>.</p>
+            <div class="us-inline us-inline-wrap">
+              <input type="text" class="us-input" id="dupNewAssigneeName" placeholder="Tên hiển thị, vd: Quang Pham">
+              <input type="text" class="us-input" id="dupNewAssigneeAccountId" placeholder="Jira accountId">
+              <button class="us-btn us-btn-primary" id="dupAddAssigneeBtn">+ Thêm/Cập nhật</button>
+            </div>
+          </div>
         </div>
-        <div style="min-width:220px;">
-          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;">Assignee cho ticket mới</label>
-          <select id="dupAssigneeSelect" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></select>
-        </div>
-        <div>
-          <button class="us-btn us-btn-primary" id="dupCreateBtn">🚀 Tạo ticket mới</button>
+        <div id="dupAssigneeStatus" class="us-alert" style="display:none;"></div>
+        <div class="us-table-wrap us-table-wrap-sm dup-manage-table">
+          <table class="us-table" id="dupAssigneeTable">
+            <thead><tr><th>Tên hiển thị</th><th>Jira accountId</th><th class="col-actions"></th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
+    </section>
 
-      <div id="dupStatus" style="margin-top:14px;font-size:13px;padding:10px 12px;border-radius:6px;display:none;white-space:pre-wrap;"></div>
-    </div>
-
-    <div class="us-panel">
-      <h3 style="font-size:14px;">⚙ Quản lý danh sách Assignee</h3>
-      <p style="font-size:12px;color:#888;margin:4px 0 10px;">
-        Danh sách người có thể chọn làm Assignee khi tạo ticket mới.
-      </p>
-      <p style="font-size:12px;color:#888;margin:4px 0 10px;">
-        Không biết accountId? Gõ tên vào ô tìm kiếm bên dưới, bấm "🔍 Tìm trên Jira", rồi click vào
-        kết quả đúng để tự điền accountId.
-      </p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <input type="text" id="dupUserSearchInput" placeholder="Gõ tên/email cần tìm trên Jira, vd: Quang Pham"
-          style="flex:1;min-width:260px;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
-        <button class="us-btn us-btn-secondary" id="dupUserSearchBtn">🔍 Tìm trên Jira</button>
+    <section class="us-panel">
+      <header class="us-panel-head">
+        <span class="us-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg></span>
+        <div class="us-head-text"><h3>Lịch sử Duplicate gần đây</h3></div>
+        <button class="us-btn us-btn-secondary us-head-action" id="dupRefreshLogBtn">↻ Tải lại</button>
+      </header>
+      <div class="us-panel-body">
+        <div class="us-table-wrap us-table-wrap-sm">
+          <table class="us-table" id="dupLogTable">
+            <thead><tr><th>Thời gian</th><th>Ticket gốc</th><th>Ticket mới</th><th>Assignee</th><th>Kết quả</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
-      <div id="dupUserSearchStatus" style="margin-top:6px;font-size:12px;display:none;padding:8px 10px;border-radius:6px;"></div>
-      <div id="dupUserSearchResults" style="margin-top:6px;"></div>
+    </section>
 
-      <p style="font-size:12px;color:#888;margin:14px 0 10px;">
-        Hoặc điền tay: <b>tên hiển thị</b> + <b>Jira accountId</b>.
-      </p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <input type="text" id="dupNewAssigneeName" placeholder="Tên hiển thị, vd: Quang Pham"
-          style="flex:1;min-width:200px;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
-        <input type="text" id="dupNewAssigneeAccountId" placeholder="Jira accountId"
-          style="flex:1;min-width:220px;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
-        <button class="us-btn us-btn-secondary" id="dupAddAssigneeBtn">+ Thêm/Cập nhật</button>
-      </div>
-      <div id="dupAssigneeStatus" style="margin-top:8px;font-size:12px;display:none;padding:8px 10px;border-radius:6px;"></div>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:12px;" id="dupAssigneeTable">
-        <thead><tr style="text-align:left;color:#888;">
-          <th style="padding:6px;">Tên hiển thị</th><th style="padding:6px;">Jira accountId</th><th></th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <div class="us-panel">
-      <h3 style="font-size:14px;">📜 Lịch sử Duplicate gần đây</h3>
-      <button class="us-btn us-btn-secondary" id="dupRefreshLogBtn">↻ Tải lại</button>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;" id="dupLogTable">
-        <thead><tr style="text-align:left;color:#888;">
-          <th style="padding:6px;">Thời gian</th><th style="padding:6px;">Ticket gốc</th>
-          <th style="padding:6px;">Ticket mới</th><th style="padding:6px;">Assignee</th><th style="padding:6px;">Kết quả</th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <div class="us-panel" style="font-size:12px;color:#888;">
-      <b>⚠ Lưu ý:</b> Nút "Tạo ticket mới" gọi Edge Function <code>jira-duplicate-ticket</code>; Edge Function
+    <div class="us-note">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>
+      <div><b>Lưu ý:</b> Nút "Tạo ticket mới" gọi Edge Function <code>jira-duplicate-ticket</code>; Edge Function
       lấy Jira credentials ở phía server (từ <code>admin_settings</code>, giống <code>jira-update-summary</code>),
       đọc toàn bộ field ticket gốc trực tiếp từ Jira rồi tạo issue mới. Bảng <code>jira_tickets</code> chỉ dùng để
       hiển thị danh sách chọn ticket gốc, không phải nguồn field để tạo ticket (vì bảng này chỉ lưu các cột đã
-      được chuẩn hoá cho Dashboard, không phải toàn bộ field gốc của Jira).
+      được chuẩn hoá cho Dashboard, không phải toàn bộ field gốc của Jira).</div>
     </div>
 
   </div>
@@ -2181,10 +2668,8 @@ let dupLoadedOnce = false;
 function dupSetStatus(elId, msg, type){
   const el = document.getElementById(elId);
   el.textContent = msg;
+  el.className = 'us-alert us-alert-' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'info');
   el.style.display = 'block';
-  el.style.background = type==='ok' ? '#eaf7ee' : type==='err' ? '#fdecea' : '#eef4fb';
-  el.style.color      = type==='ok' ? '#1e7e34' : type==='err' ? '#c0392b' : '#2f6fb0';
-  el.style.border     = '1px solid ' + (type==='ok' ? '#bfe3c9' : type==='err' ? '#f3c2bd' : '#c7dcf0');
 }
 function dupClearStatus(elId){
   const el = document.getElementById(elId);
@@ -2203,6 +2688,12 @@ async function dupOnTabOpen(){
 }
 
 /* ---- Danh sách assignee (public, không cần session — giống public_get_*) ---- */
+function dupInitials(name){
+  const p = String(name||'').trim().split(/\s+/).filter(Boolean);
+  if(!p.length) return '?';
+  return ((p.length>1 ? p[p.length-2][0] : '') + p[p.length-1][0]).toUpperCase();
+}
+
 async function dupLoadAssignees(){
   const r = await rpc('dup_list_assignees', {});
   const select = document.getElementById('dupAssigneeSelect');
@@ -2220,9 +2711,9 @@ async function dupLoadAssignees(){
     select.appendChild(opt);
 
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="padding:6px;">${dupEsc(row.display_name)}</td>
-      <td style="padding:6px;"><code>${dupEsc(row.jira_account_id)}</code></td>
-      <td style="padding:6px;"><button class="us-btn us-btn-secondary" style="padding:3px 8px;font-size:11px;"
+    tr.innerHTML = `<td><span class="us-person"><span class="us-avatar">${dupEsc(dupInitials(row.display_name))}</span><span class="us-person-name">${dupEsc(row.display_name)}</span></span></td>
+      <td><code class="us-code">${dupEsc(row.jira_account_id)}</code></td>
+      <td class="col-actions"><button class="us-btn us-btn-danger-ghost us-btn-sm"
         onclick="dupDeactivateAssignee('${dupEsc(row.display_name).replace(/'/g,"\\'")}')">Ẩn</button></td>`;
     tbody.appendChild(tr);
   });
@@ -2277,12 +2768,11 @@ async function dupSearchJiraUser(){
     }
     dupClearStatus('dupUserSearchStatus');
     resultsEl.innerHTML = data.results.map(u => `
-      <div class="dup-user-result" style="padding:8px 10px;border:1px solid #eee;border-radius:6px;margin-top:6px;cursor:pointer;font-size:12px;display:flex;justify-content:space-between;align-items:center;"
+      <div class="dup-user-result" role="button" tabindex="0"
         data-name="${dupEsc(u.displayName)}" data-account-id="${dupEsc(u.accountId)}"
-        onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background=''"
         onclick="dupPickSearchedUser(this)">
-        <span><b>${dupEsc(u.displayName)}</b>${u.emailAddress ? ' — ' + dupEsc(u.emailAddress) : ''}${u.active === false ? ' <span style="color:#c0392b;">(inactive)</span>' : ''}</span>
-        <code style="color:#888;">${dupEsc(u.accountId)}</code>
+        <span><b>${dupEsc(u.displayName)}</b>${u.emailAddress ? ' — ' + dupEsc(u.emailAddress) : ''}${u.active === false ? ' <span class="inactive">(inactive)</span>' : ''}</span>
+        <code>${dupEsc(u.accountId)}</code>
       </div>
     `).join('');
   }catch(e){
@@ -2415,7 +2905,7 @@ document.getElementById('dupCreateBtn').addEventListener('click', async ()=>{
       await dupLoadLog();
       return;
     }
-    dupSetStatus('dupStatus', `✅ Đã tạo ticket mới: ${data.new_key} — Assignee: ${data.assignee}`, 'ok');
+    dupSetStatus('dupStatus', `Đã tạo ticket mới: ${data.new_key} — Assignee: ${data.assignee}`, 'ok');
     showToast(`Đã tạo ${data.new_key}`, 'success');
     await dupLoadLog();
   }catch(e){
@@ -2431,28 +2921,28 @@ document.getElementById('dupRefreshLogBtn').addEventListener('click', dupLoadLog
 async function dupLoadLog(){
   const sessionToken = getSessionToken();
   const tbody = document.querySelector('#dupLogTable tbody');
-  if(!sessionToken){ tbody.innerHTML = '<tr><td colspan="5" style="padding:6px;">Cần đăng nhập.</td></tr>'; return; }
+  if(!sessionToken){ tbody.innerHTML = '<tr><td colspan="5" class="us-empty">Cần đăng nhập.</td></tr>'; return; }
 
   const r = await rpc('dup_list_log', { session_token: sessionToken, p_limit: 50 });
   if(!r.ok || !Array.isArray(r.data)){
-    tbody.innerHTML = '<tr><td colspan="5" style="padding:6px;">Không tải được log.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="us-empty">Không tải được log.</td></tr>';
     return;
   }
   if(!r.data.length){
-    tbody.innerHTML = '<tr><td colspan="5" style="padding:6px;color:#999;">Chưa có lịch sử.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="us-empty">Chưa có lịch sử.</td></tr>';
     return;
   }
   tbody.innerHTML = r.data.map(row=>{
     const time = new Date(row.created_at).toLocaleString('vi-VN');
     const pill = row.ok
-      ? '<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;">Thành công</span>'
-      : `<span title="${dupEsc(row.error_detail||'')}" style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;">Lỗi</span>`;
+      ? '<span class="us-pill ok">Thành công</span>'
+      : `<span class="us-pill err" title="${dupEsc(row.error_detail||'')}">Lỗi</span>`;
     return `<tr>
-      <td style="padding:6px;">${time}</td>
-      <td style="padding:6px;">${dupEsc(row.source_key)}</td>
-      <td style="padding:6px;">${row.new_key ? dupEsc(row.new_key) : '—'}</td>
-      <td style="padding:6px;">${dupEsc(row.assignee_name || '')}</td>
-      <td style="padding:6px;">${pill}</td>
+      <td>${time}</td>
+      <td><code class="us-code">${dupEsc(row.source_key)}</code></td>
+      <td>${row.new_key ? `<code class="us-code">${dupEsc(row.new_key)}</code>` : '—'}</td>
+      <td>${dupEsc(row.assignee_name || '')}</td>
+      <td>${pill}</td>
     </tr>`;
   }).join('');
 }
@@ -3258,11 +3748,11 @@ function usRenderChips(){
   usPreviewData.forEach(r => { counts[r.status] = (counts[r.status]||0) + 1; });
   const el = document.getElementById('usSummaryChips');
   el.innerHTML = `
-    <span class="us-chip auto">✅ AUTO MATCH: ${counts['AUTO MATCH'].toLocaleString('vi-VN')}</span>
-    <span class="us-chip" style="background:#e4efff;color:#1456a0;">↻ UPDATED: ${counts['UPDATED'].toLocaleString('vi-VN')}</span>
-    <span class="us-chip review">⚠ REVIEW: ${counts['REVIEW'].toLocaleString('vi-VN')}</span>
-    <span class="us-chip unmatched">✖ UNMATCHED: ${counts['UNMATCHED'].toLocaleString('vi-VN')}</span>
-    <span class="us-chip">Tổng: ${usPreviewData.length.toLocaleString('vi-VN')}</span>
+    <span class="us-chip auto"><span>AUTO MATCH</span><b>${counts['AUTO MATCH'].toLocaleString('vi-VN')}</b></span>
+    <span class="us-chip updated"><span>UPDATED</span><b>${counts['UPDATED'].toLocaleString('vi-VN')}</b></span>
+    <span class="us-chip review"><span>REVIEW</span><b>${counts['REVIEW'].toLocaleString('vi-VN')}</b></span>
+    <span class="us-chip unmatched"><span>UNMATCHED</span><b>${counts['UNMATCHED'].toLocaleString('vi-VN')}</b></span>
+    <span class="us-chip"><span>Tổng</span><b>${usPreviewData.length.toLocaleString('vi-VN')}</b></span>
   `;
 }
 
@@ -3662,7 +4152,7 @@ function usRenderPriorityUi(){
     item.className = 'us-rule-item';
     item.innerHTML = `
       <div class="us-rule-item-head">
-        <span style="font-size:11px;color:#999;flex-shrink:0;">#${idx+1}</span>
+        <span class="us-rank" title="Thứ tự ưu tiên">${idx+1}</span>
         <input type="text" class="us-rule-action-input" value="${usEscapeHtml(rule.action || '')}" placeholder="Tên Action...">
         <div class="us-rule-item-actions">
           <button type="button" class="us-icon-btn" data-act="up" title="Tăng ưu tiên (đưa lên)">▲</button>
@@ -3915,6 +4405,22 @@ async function autoRefreshFromSupabase(){
 }
 
 setInterval(autoRefreshFromSupabase, AUTO_REFRESH_MS);
+</script>
+<script>
+/* UI-only: hiện/ẩn mật khẩu & hỗ trợ bàn phím cho nút đóng modal + kết quả tìm user */
+document.querySelectorAll('.pw-toggle').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const inp = document.getElementById(btn.dataset.target);
+    if(inp) inp.type = inp.type === 'password' ? 'text' : 'password';
+  });
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Enter' && e.key !== ' ') return;
+  const t = e.target;
+  if(t && (t.id === 'tokenClose' || (t.classList && t.classList.contains('dup-user-result')))){
+    e.preventDefault(); t.click();
+  }
+});
 </script>
 </body>
 </html>

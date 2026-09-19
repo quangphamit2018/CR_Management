@@ -354,7 +354,7 @@
       position: absolute; inset: 0;
       background-image: linear-gradient(rgba(255, 255, 255, .055) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .055) 1px, transparent 1px);
       background-size: 46px 46px;
-      -webkit-mask-image: radial-gradient(ellipse at 35% 40%, #000 0%, transparent 70%); mask-image: radial-gradient(ellipse at 35% 40%, #000 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at 50% 45%, #000 0%, transparent 72%); mask-image: radial-gradient(ellipse at 50% 45%, #000 0%, transparent 72%);
     }
     @keyframes drift-a { to { transform: translate3d(16vmax, 12vmax, 0) scale(1.14); } }
     @keyframes drift-b { to { transform: translate3d(-14vmax, -10vmax, 0) scale(1.1); } }
@@ -374,13 +374,19 @@
     @keyframes draw { to { stroke-dashoffset: 0; } }
 
     /* ---------- Đăng nhập: chia đôi ---------- */
-    .auth-split { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(440px, .88fr); }
-    .auth-showcase { position: relative; display: flex; flex-direction: column; gap: 28px; padding: 44px 56px 44px 64px; color: #fff; }
-    .auth-brand { display: flex; align-items: center; gap: 12px; }
+    .auth-split {
+      /* Cụm nội dung nằm giữa màn hình: cột trái (giới thiệu) + thẻ đăng nhập nổi bên phải */
+      min-height: 100vh; display: grid; align-items: center; justify-content: center;
+      grid-template-columns: minmax(0, 500px) minmax(0, clamp(400px, 38vw, 440px));
+      column-gap: clamp(48px, 6vw, 96px);
+      width: min(1120px, calc(100% - 2 * clamp(24px, 5vw, 72px))); margin: 0 auto; padding: 48px 0;
+    }
+    .auth-showcase { position: relative; display: flex; flex-direction: column; gap: 28px; color: #fff; }
+    .auth-brand { display: none; align-items: center; gap: 12px; }
     .auth-brand strong { font-size: 16px; letter-spacing: -.02em; }
     .auth-brand small { display: block; color: rgba(255, 225, 222, .74); font-size: 11px; margin-top: 3px; }
-    .auth-stage { margin: auto 0; display: grid; gap: 40px; }
-    .showcase-copy { max-width: 560px; }
+    .auth-stage { display: grid; gap: 40px; }
+    .showcase-copy { max-width: 100%; }
     .showcase-copy h2 { margin: 0; font-size: clamp(28px, 2.9vw, 42px); line-height: 1.14; letter-spacing: -.04em; font-weight: 750; text-wrap: balance; }
     .showcase-copy p { margin: 16px 0 0; font-size: 15px; line-height: 1.7; color: rgba(255, 232, 229, .84); max-width: 440px; }
 
@@ -431,12 +437,18 @@
     .is-entering .pv-chip.c2 { animation: chip-in .7s var(--ease) 1.7s backwards, float 7.5s ease-in-out 2.4s infinite; }
 
     .auth-form-side {
-      position: relative; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding: 48px 56px;
+      position: relative; overflow: hidden; padding: 28px 34px 34px;
       background: radial-gradient(420px 320px at 100% 0%, rgba(229, 57, 53, .10), transparent 70%), linear-gradient(180deg, #fff 0%, #fff8f7 100%);
-      border-radius: 38px 0 0 38px; box-shadow: -34px 0 90px rgba(20, 2, 5, .34);
+      border-radius: 28px; border: 1px solid rgba(255, 255, 255, .75);
+      box-shadow: 0 44px 96px rgba(20, 2, 5, .46), 0 0 0 6px rgba(255, 255, 255, .08);
     }
+    .card-brand { display: flex; align-items: center; gap: 12px; padding-bottom: 20px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+    .card-brand strong { display: block; font-size: 15px; letter-spacing: -.02em; color: var(--ink); }
+    .card-brand small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .card-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 99px; font-size: 11px; font-weight: 650; color: var(--brand); background: var(--g-soft); border: 1px solid var(--brand-soft-2); white-space: nowrap; }
+    .card-badge svg { width: 12px; height: 12px; }
     .is-entering .auth-form-side { animation: panel-in .95s var(--ease) backwards; }
-    .auth-form { width: min(400px, 100%); margin: 0 auto; }
+    .auth-form { width: 100%; margin: 0; }
     .auth-form h1 {
       margin: 0; font-size: 31px; line-height: 1.15; letter-spacing: -.04em; font-weight: 750; width: fit-content; max-width: 100%;
       background: var(--g-text); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
@@ -560,15 +572,24 @@
     #logout-pending svg { transition: transform .3s var(--ease); }
     #logout-pending:hover svg { transform: translateX(3px); }
 
+    /* Màn hình vừa (laptop nhỏ / tablet ngang): bỏ phần minh hoạ, giữ thẻ đăng nhập thoáng */
+    @media (min-width: 961px) and (max-width: 1180px) {
+      .auth-split { grid-template-columns: minmax(0, 400px) minmax(0, 420px); }
+      .preview-wrap, .card-badge { display: none; }
+      .auth-form h1 { font-size: 27px; }
+      .card-brand strong { white-space: nowrap; }
+    }
+
     /* ---------- Auth: responsive ---------- */
     @media (max-width: 960px) {
-      .auth-split { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .auth-split { width: 100%; padding: 0; margin: 0; grid-template-columns: 1fr; grid-template-rows: auto 1fr; column-gap: 0; align-items: stretch; }
       .auth-showcase { padding: 30px 26px 56px; gap: 22px; }
-      .auth-stage { margin: 0; }
+      .auth-brand { display: flex; }
+      .card-brand { display: none; }
       .showcase-copy h2 { font-size: 26px; }
       .auth-form h1 { font-size: 26px; }
       .showcase-copy p, .preview-wrap { display: none; }
-      .auth-form-side { border-radius: 30px 30px 0 0; margin-top: -30px; padding: 36px 26px 40px; justify-content: flex-start; box-shadow: 0 -22px 60px rgba(20, 2, 5, .32); }
+      .auth-form-side { border: 0; border-radius: 30px 30px 0 0; margin-top: -30px; padding: 36px 26px 40px; box-shadow: 0 -22px 60px rgba(20, 2, 5, .32); }
       .is-entering .auth-form-side { animation-name: panel-in-up; }
     }
     @media (max-width: 480px) {
@@ -708,6 +729,7 @@
           </div>
         </section>
         <section class="auth-form-side"><div class="auth-form">
+          <div class="card-brand rv" style="--d:380"><div class="brand-mark">${ICONS.database}</div><div><strong>Masterdata Portal</strong><small>CCVN data workspace</small></div><span class="card-badge">${ICONS.lock}Truy cập bảo mật</span></div>
           <h1 class="rv" style="--d:450">Đăng nhập để tiếp tục</h1>
           <p class="rv" style="--d:540">Dùng tài khoản Gmail đã được Super-admin phê duyệt để truy cập, tra cứu và quản lý masterdata.</p>
           <button class="google-btn rv" style="--d:640" id="google-login" type="button"><span class="g-chip"><svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.72-.06-1.42-.18-2.09H12v3.95h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.22c1.89-1.74 2.99-4.3 2.99-7.39Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.89 6.62-2.38l-3.22-2.51c-.89.6-2.03.96-3.4.96-2.61 0-4.82-1.76-5.61-4.13H3.06v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.94A6.05 6.05 0 0 1 6.08 12c0-.67.11-1.32.31-1.94V7.47H3.06A10 10 0 0 0 2 12c0 1.63.39 3.17 1.06 4.53l3.33-2.59Z"/><path fill="#EA4335" d="M12 5.93c1.47 0 2.79.51 3.83 1.51l2.87-2.87C16.97 2.89 14.7 2 12 2a10 10 0 0 0-8.94 5.47l3.33 2.59C7.18 7.69 9.39 5.93 12 5.93Z"/></svg><i class="g-spin"></i></span><span class="g-label">Tiếp tục với Google</span></button>

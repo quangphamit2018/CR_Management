@@ -907,6 +907,258 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   @media (prefers-reduced-motion:reduce){
     .us-btn, .modal-actions button, .app-tab, .us-mode-btn, .dup-user-result{ transition:none !important; }
   }
+
+  /* ======================================================================
+     REDESIGN v3 — Slicer cards · KPI Total · Biểu đồ ngang · Bảng dữ liệu
+     (chỉ ghi đè giao diện; không đổi id / logic)
+     ====================================================================== */
+
+  /* ---------- 1) Thẻ slicer: Created Time / Application / Agent / Status / Breached ---------- */
+  .slicer-row{ gap:16px; margin:18px 0; align-items:stretch; }
+  .slicer-row .panel{
+    display:flex; flex-direction:column; background:linear-gradient(180deg,#ffffff 0%,#f8fbfe 100%);
+    border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-card);
+    transition:box-shadow .18s ease, border-color .18s ease;
+  }
+  .slicer-row .panel:hover, .slicer-row .panel:focus-within{
+    border-color:#9db4c8; box-shadow:0 2px 4px rgba(16,41,68,.08), 0 14px 32px rgba(16,41,68,.14);
+  }
+  .slicer-row .panel-title{
+    justify-content:flex-start; gap:10px; padding:11px 14px; font-size:13.5px; font-weight:700; letter-spacing:.2px;
+    border-radius:13px 13px 0 0; text-align:left; border-bottom:3px solid var(--accent);
+  }
+  .pt-ico{
+    flex:0 0 auto; width:26px; height:26px; border-radius:8px; display:grid; place-items:center;
+    background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28);
+  }
+  .pt-ico svg{ width:15px; height:15px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .slicer-row .panel-body{ flex:1 1 auto; padding:16px 16px 18px; }
+
+  /* Created Time */
+  .date-inputs{ display:grid; grid-template-columns:1fr auto 1fr; align-items:end; gap:10px; margin-bottom:14px; }
+  .date-field{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .date-field > span{ font-size:11.5px; font-weight:700; color:var(--ink-2); }
+  .date-sep{ width:14px; height:2px; margin-bottom:19px; background:#9db4c8; border-radius:2px; }
+  .date-inputs input[type=date]{
+    width:100%; min-height:40px; padding:0 10px; border:1.5px solid #c3d1de; border-radius:10px; background:#fff;
+    font:inherit; font-size:13px; font-weight:600; color:var(--navy-800); box-sizing:border-box;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .date-inputs input[type=date]:hover{ border-color:#9db4c8; }
+  .date-inputs input[type=date]:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-ring); }
+  .date-inputs input[type=date]::-webkit-calendar-picker-indicator{ cursor:pointer; opacity:.65; }
+  .date-inputs input[type=date]::-webkit-calendar-picker-indicator:hover{ opacity:1; }
+
+  .range-slider{ height:30px; margin-top:6px; }
+  .range-track{ top:13px; height:4px; background:#dbe5ee; border-radius:4px; }
+  .range-fill{ top:13px; height:4px; background:linear-gradient(90deg,var(--navy-700),var(--accent)); border-radius:4px; }
+  .range-slider input[type=range]{ top:13px; height:4px; }
+  .range-slider input[type=range]::-webkit-slider-runnable-track{ height:4px; background:transparent; }
+  .range-slider input[type=range]::-webkit-slider-thumb{
+    box-sizing:border-box; width:20px; height:20px; margin-top:-8px; border-radius:50%; background:#fff;
+    border:3px solid var(--navy-800); box-shadow:0 2px 6px rgba(16,41,68,.35); transition:transform .12s ease;
+  }
+  .range-slider input[type=range]:hover::-webkit-slider-thumb{ transform:scale(1.12); }
+  .range-slider input[type=range]::-moz-range-track{ height:4px; background:transparent; }
+  .range-slider input[type=range]::-moz-range-thumb{
+    box-sizing:border-box; width:20px; height:20px; border-radius:50%; background:#fff;
+    border:3px solid var(--navy-800); box-shadow:0 2px 6px rgba(16,41,68,.35);
+  }
+
+  /* Dropdown slicer (Application / Agent / Status) */
+  .dd-btn{
+    min-height:44px; padding:0 14px; border:1.5px solid #c3d1de; border-radius:10px; background:#fff;
+    font-size:13.5px; font-weight:600; color:var(--navy-800); box-shadow:0 1px 2px rgba(16,41,68,.06);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .dd-btn:hover{ border-color:#9db4c8; }
+  .dd-btn:after{
+    content:''; flex:0 0 auto; width:12px; height:8px; margin-left:10px; transition:transform .15s ease;
+    background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23102944' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/contain no-repeat;
+  }
+  .dd.open .dd-btn{ border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-ring); }
+  .dd.open .dd-btn:after{ transform:rotate(180deg); }
+  .dd-panel{
+    top:calc(100% + 6px); padding:10px; max-height:320px; border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 18px 44px rgba(8,24,42,.25); scrollbar-width:thin; scrollbar-color:#9db4c8 transparent;
+  }
+  .dd-search{
+    height:38px; padding:0 12px 0 34px; margin-bottom:8px; border:1.5px solid #c3d1de; border-radius:9px; font-size:12.5px;
+    background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235b6b7b' stroke-width='2' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><path d='M20 20l-3.5-3.5'/></svg>") no-repeat 11px center;
+  }
+  .dd-search:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-ring); }
+  .dd-option{ gap:10px; padding:8px 10px; font-size:13px; border-radius:8px; }
+  .dd-option input[type=checkbox]{ width:16px; height:16px; accent-color:var(--navy-800); cursor:pointer; flex:0 0 auto; }
+  .dd-option:hover{ background:var(--surface-3); }
+  .dd-option.all-option{ font-weight:700; color:var(--navy-800); border-bottom:1px dashed var(--line); border-radius:8px 8px 0 0; margin-bottom:4px; padding-bottom:9px; }
+
+  /* Breached */
+  .breach-opt{
+    padding:11px 12px; margin-bottom:10px; background:#f5f9fc; border:1px solid var(--line-2); border-radius:11px;
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .breach-opt:last-child{ margin-bottom:0; }
+  .breach-opt:not(:last-child){ border-bottom:1px solid var(--line-2); }
+  .breach-opt:has(input:checked){ background:var(--danger-bg); border-color:var(--danger-line); }
+  .breach-opt .breach-label{ font-weight:600; color:var(--navy-800); }
+  .breach-opt .breach-dot{ width:10px; height:10px; box-shadow:0 0 0 3px rgba(255,0,0,.15); }
+  .switch{ width:44px; height:24px; }
+  .switch .slider{ background-color:#c5d0db; box-shadow:inset 0 1px 3px rgba(16,41,68,.25); }
+  .switch .slider:before{ height:18px; width:18px; left:3px; bottom:3px; box-shadow:0 1px 4px rgba(0,0,0,.3); }
+  .switch input:checked + .slider:before{ transform:translateX(20px); }
+  .switch input:focus-visible + .slider{ outline:3px solid var(--accent-ring); outline-offset:2px; }
+
+  /* ---------- 2) KPI Total ---------- */
+  .top-total-wrap h1{ letter-spacing:1.5px; color:var(--navy-800); }
+  .total-box{
+    position:relative; overflow:hidden; display:grid; grid-template-columns:auto auto;
+    grid-template-areas:"icon label" "icon value"; column-gap:16px; row-gap:0; align-items:center; justify-items:start;
+    margin:6px auto 4px; padding:14px 34px 16px 16px; width:fit-content; border:1px solid #c7d9ea; border-radius:18px;
+    background:linear-gradient(135deg,#ffffff 0%,#eef5fb 100%);
+    box-shadow:0 1px 2px rgba(16,41,68,.06), 0 16px 36px rgba(16,41,68,.16);
+  }
+  .total-box::before{
+    content:""; grid-area:icon; width:60px; height:60px; border-radius:16px;
+    background:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z'/><path d='M14 6v12' stroke-dasharray='2 3'/></svg>") center/30px no-repeat,
+      var(--brand-gradient);
+    box-shadow:0 6px 14px rgba(16,41,68,.35), inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  .total-box::after{
+    content:""; position:absolute; left:0; right:0; bottom:0; height:5px;
+    background:linear-gradient(90deg,var(--navy-800),var(--navy-700) 50%,var(--accent));
+  }
+  .total-label{ grid-area:label; font-size:13.5px; font-weight:700; color:var(--ink-2); letter-spacing:.3px; line-height:1.2; margin-bottom:2px; }
+  .total-value{ grid-area:value; font-size:46px; font-weight:800; line-height:1.05; letter-spacing:-.5px; font-variant-numeric:tabular-nums; color:var(--navy-800); }
+  .total-value:not(.skeleton-num){
+    background:linear-gradient(180deg,#1b4a73 0%,#08182a 100%); -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent; color:transparent;
+  }
+  .total-value.skeleton-num{ min-width:150px; min-height:46px; }
+
+  /* ---------- 3) Biểu đồ ngang (Total Tickets by Agent) ---------- */
+  .bar-panel{
+    border:1px solid var(--line); border-radius:14px; background:linear-gradient(180deg,#fff,#f8fbfe); box-shadow:var(--shadow-card);
+  }
+  .bar-panel .panel-title{ border-radius:13px 13px 0 0; padding:11px 16px; font-size:14px; border-bottom:3px solid var(--accent); }
+  .bar-panel .panel-body{ height:400px; padding:14px 18px 10px 12px; }
+  .sort-btn{
+    height:28px; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.55);
+    transition:background .15s ease;
+  }
+  .sort-btn:hover{ background:rgba(255,255,255,.3); }
+  .sort-btn:focus-visible{ outline:3px solid rgba(255,255,255,.6); outline-offset:2px; }
+
+  /* ---------- 4) Bảng dữ liệu ---------- */
+  .table-panel{ border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-card); overflow:hidden; background:#fff; }
+  .table-toolbar{ padding:14px 16px; gap:12px; border-bottom:3px solid var(--accent); }
+  .table-toolbar input[type=search]{
+    height:42px; width:320px; padding:0 14px 0 42px; border:1px solid rgba(255,255,255,.3); border-radius:11px; font:inherit; font-size:13px;
+    background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23102944' stroke-width='2' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><path d='M20 20l-3.5-3.5'/></svg>") no-repeat 14px center;
+    box-shadow:0 2px 8px rgba(0,0,0,.18);
+  }
+  .table-toolbar input[type=search]:focus{ outline:none; box-shadow:0 0 0 4px rgba(17,141,255,.45); }
+  .table-toolbar #rowCountLabel:not(.skeleton-num){
+    padding:7px 14px; border-radius:999px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28);
+    font-weight:700; font-size:12.5px !important;
+  }
+  .btn-export{
+    height:40px; padding:0 18px; border:none; border-radius:10px; background:#fff; color:var(--navy-800); font-size:13px; font-weight:700;
+    box-shadow:0 3px 10px rgba(0,0,0,.22); transition:background .15s ease, color .15s ease, transform .12s ease;
+  }
+  .btn-export:hover:not(:disabled){ background:var(--accent); color:#fff; transform:translateY(-1px); }
+  .btn-export:focus-visible{ outline:3px solid rgba(255,255,255,.6); outline-offset:2px; }
+
+  .table-wrap{ scrollbar-width:thin; scrollbar-color:#8fa9be #eef3f8; }
+  .table-wrap::-webkit-scrollbar{ width:11px; height:11px; }
+  .table-wrap::-webkit-scrollbar-track{ background:#eef3f8; }
+  .table-wrap::-webkit-scrollbar-thumb{ background:#8fa9be; border-radius:10px; border:2px solid #eef3f8; }
+  .table-wrap::-webkit-scrollbar-thumb:hover{ background:#5f819d; }
+
+  table.data-table{ border-collapse:separate; border-spacing:0; font-size:12.5px; }
+  table.data-table th{
+    padding:13px 14px; background:linear-gradient(180deg,#f6f9fc 0%,#e4edf5 100%); color:var(--navy-800);
+    font-size:12px; font-weight:700; border-bottom:2px solid var(--navy-700); user-select:none; z-index:2;
+    transition:background .12s ease;
+  }
+  table.data-table th:hover{ background:linear-gradient(180deg,#eaf2f9 0%,#d6e4f0 100%); }
+  table.data-table th.sorted{ color:#0b3a6b; box-shadow:inset 0 -3px 0 var(--accent); }
+  table.data-table th.sorted[data-dir="asc"]::after{ content:" ▲"; font-size:9px; color:var(--accent); }
+  table.data-table th.sorted[data-dir="desc"]::after{ content:" ▼"; font-size:9px; color:var(--accent); }
+  table.data-table td{ padding:11px 14px; height:48px; color:var(--ink); border-bottom:1px solid #e9eff5; background:#fff; transition:background .1s ease; }
+  table.data-table tbody tr:nth-child(even) td{ background:#f8fbfe; }
+  table.data-table tbody tr:hover td{ background:#e6f1fb; }
+  table.data-table tbody tr:hover td:first-child{ box-shadow:inset 4px 0 0 var(--accent), 8px 0 10px -8px rgba(16,41,68,.35); }
+
+  /* Cột Ticket Key cố định bên trái khi cuộn ngang */
+  table.data-table th:first-child, table.data-table td:first-child{ position:sticky; left:0; box-shadow:8px 0 10px -8px rgba(16,41,68,.28); }
+  table.data-table th:first-child{ z-index:4; }
+  table.data-table td:first-child{ z-index:1; }
+  table.data-table td:nth-child(2){ font-weight:600; color:var(--navy-800); }
+
+  table.data-table a.tlink{
+    display:inline-flex; align-items:center; padding:4px 10px; border-radius:8px; background:#e8f2fd; color:#0b5cc0;
+    font-weight:700; font-variant-numeric:tabular-nums; text-decoration:none; border:1px solid #cfe2f7;
+    transition:background .12s ease, color .12s ease, box-shadow .12s ease;
+  }
+  table.data-table a.tlink:hover{ background:var(--navy-800); color:#fff; border-color:var(--navy-800); box-shadow:0 4px 10px rgba(16,41,68,.3); text-decoration:none; }
+
+  /* Badge trạng thái: pill nền nhạt + chấm màu (màu lấy từ --st do JS gán) */
+  .badge{
+    display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; font-size:11.5px; font-weight:700;
+    line-height:1.2; white-space:nowrap; background:var(--st,#999); color:#fff;
+  }
+  @supports (background: color-mix(in srgb, red 10%, white)){
+    .badge{
+      background:color-mix(in srgb, var(--st,#999) 13%, #fff);
+      color:color-mix(in srgb, var(--st,#999) 74%, #000);
+      border:1px solid color-mix(in srgb, var(--st,#999) 34%, #fff);
+      box-shadow:0 1px 2px color-mix(in srgb, var(--st,#999) 18%, transparent);
+    }
+    .badge::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--st,#999); flex:0 0 auto; }
+  }
+
+  /* Thanh SLA */
+  .progress-wrap{ gap:8px; min-width:130px; }
+  .progress-track{ height:10px; border-radius:999px; background:#e1e9f1; box-shadow:inset 0 1px 2px rgba(16,41,68,.18); }
+  .progress-fill{ border-radius:999px; }
+  .progress-fill::after{ content:""; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(180deg,rgba(255,255,255,.38),rgba(255,255,255,0) 65%); }
+  .progress-pct{ font-size:11.5px; font-weight:700; font-variant-numeric:tabular-nums; min-width:36px; }
+
+  /* Phân trang */
+  .pager{ justify-content:center; gap:16px; padding:14px 16px; background:#f5f9fc; border-top:1px solid var(--line-2); }
+  .pager button{
+    min-height:36px; padding:0 18px; border:1.5px solid var(--navy-700); border-radius:9px; background:#fff; color:var(--navy-800);
+    font:inherit; font-size:13px; font-weight:600; transition:background .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+  .pager button:hover:not(:disabled){ background:var(--navy-800); color:#fff; box-shadow:0 4px 10px rgba(16,41,68,.25); }
+  .pager button:focus-visible{ outline:3px solid var(--accent-ring); outline-offset:2px; }
+  .pager #pageInfo{ font-size:13px; font-weight:700; color:var(--navy-800); min-width:90px; text-align:center; }
+
+  /* Đồng bộ đường nhấn xanh dưới tiêu đề cho các thẻ còn lại (chỉ thêm viền, giữ nguyên kích thước chữ) */
+  .chart-panel .panel-title, .donut-panel .panel-title, .kpi-head{ border-bottom:3px solid var(--accent); }
+  .kpi-card:hover{ box-shadow:0 2px 4px rgba(16,41,68,.08), 0 12px 26px rgba(16,41,68,.14); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:768px){
+    .slicer-row{ gap:12px; }
+    .date-inputs{ grid-template-columns:1fr 1fr; }
+    .date-inputs input[type=date]{ flex:0 0 auto; }
+    .top-total-wrap h1{ letter-spacing:.5px; }
+    .date-sep{ display:none; }
+    .total-box{ padding:10px 20px 14px 12px; column-gap:12px; border-radius:16px; }
+    .total-box::before{ width:48px; height:48px; border-radius:13px; background-size:24px, auto; }
+    .total-label{ font-size:12px; }
+    .total-value{ font-size:32px; }
+    .total-value.skeleton-num{ min-width:100px; min-height:34px; }
+    .bar-panel .panel-body{ height:340px; padding:10px 12px 8px 6px; }
+    .table-toolbar input[type=search]{ width:100%; max-width:100%; }
+    .pager{ gap:10px; }
+  }
+  @media (max-width:400px){ .total-value{ font-size:28px; } }
+  @media (prefers-reduced-motion:reduce){
+    .slicer-row .panel, .dd-btn, .btn-export, .pager button, table.data-table td, table.data-table a.tlink{ transition:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -1061,7 +1313,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div class="top-total-wrap">
       <h1 style="font-size:28px;font-weight:bold;margin:8px 0 4px 0;">DASHBOARD REPORT</h1>
       <div class="total-box">
-        <div class="total-label">Total:</div>
+        <div class="total-label">Total tickets</div>
         <div class="total-value skeleton-num" id="kpiTotal">0</div>
       </div>
     </div>
@@ -1074,10 +1326,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   <div class="slicer-row">
     <div class="panel slicer-created">
-      <div class="panel-title">Created Time</div>
+      <div class="panel-title"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><span class="pt-text">Created Time</span></div>
       <div class="panel-body">
         <div class="date-inputs">
-          <input type="date" id="dateFrom"> <input type="date" id="dateTo">
+          <label class="date-field"><span>Từ ngày</span><input type="date" id="dateFrom"></label>
+          <span class="date-sep" aria-hidden="true"></span>
+          <label class="date-field"><span>Đến ngày</span><input type="date" id="dateTo"></label>
         </div>
         <div class="range-slider">
           <div class="range-track"></div>
@@ -1088,7 +1342,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       </div>
     </div>
     <div class="panel slicer-app">
-      <div class="panel-title">Application</div>
+      <div class="panel-title"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="pt-text">Application</span></div>
       <div class="panel-body">
         <div class="dd" id="appDD">
           <div class="dd-btn" id="appDDBtn"><span id="appDDLabel">All</span></div>
@@ -1101,7 +1355,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       </div>
     </div>
     <div class="panel slicer-agent">
-      <div class="panel-title">Agent</div>
+      <div class="panel-title"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><span class="pt-text">Agent</span></div>
       <div class="panel-body">
         <div class="dd" id="agentDD">
           <div class="dd-btn" id="agentDDBtn"><span id="agentDDLabel">All</span></div>
@@ -1114,7 +1368,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       </div>
     </div>
     <div class="panel slicer-status">
-      <div class="panel-title">Status</div>
+      <div class="panel-title"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg></span><span class="pt-text">Status</span></div>
       <div class="panel-body">
         <div class="dd" id="statusDD">
           <div class="dd-btn" id="statusDDBtn"><span id="statusDDLabel">All</span></div>
@@ -1127,7 +1381,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       </div>
     </div>
     <div class="panel slicer-breached">
-      <div class="panel-title">Breached</div>
+      <div class="panel-title"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg></span><span class="pt-text">Breached</span></div>
       <div class="panel-body">
         <div class="breach-opt">
           <span class="breach-label"><span class="breach-dot"></span>Breached Response</span>
@@ -1750,17 +2004,48 @@ const areaChart = new Chart(document.getElementById('areaChart'), {
       y:{ display:false, grace:'10%' } } }
 });
 
+/* Nền "đường ray" mờ phía sau mỗi thanh (chỉ là lớp vẽ trang trí, không đụng dữ liệu) */
+const barTrackPlugin = {
+  id:'barTrack',
+  beforeDatasetsDraw(chart){
+    const area = chart.chartArea; if(!area) return;
+    const meta = chart.getDatasetMeta(0); if(!meta || !meta.data) return;
+    const c = chart.ctx; c.save(); c.fillStyle = 'rgba(18,58,94,0.06)';
+    meta.data.forEach(bar=>{
+      const h = bar.height, y = bar.y - h/2, w = area.right - area.left;
+      c.beginPath();
+      if(c.roundRect) c.roundRect(area.left, y, w, h, 8); else c.rect(area.left, y, w, h);
+      c.fill();
+    });
+    c.restore();
+  }
+};
 const barChart = new Chart(document.getElementById('barChart'), {
   type:'bar',
-  data:{ labels:[], datasets:[{ label:'Total Tickets', data:[], backgroundColor:cBlue, borderRadius:2, barThickness:14 }]},
+  plugins:[barTrackPlugin],
+  data:{ labels:[], datasets:[{ label:'Total Tickets', data:[],
+    backgroundColor:(ctx)=>{
+      const ch = ctx.chart, a = ch.chartArea;
+      if(!a) return cBlue;
+      const g = ch.ctx.createLinearGradient(a.left, 0, a.right, 0);
+      g.addColorStop(0, '#1b4a73'); g.addColorStop(1, '#118DFF');
+      return g;
+    },
+    hoverBackgroundColor:'#0b6fd6',
+    borderRadius:8, borderSkipped:false, barPercentage:0.72, categoryPercentage:0.9, maxBarThickness:22 }]},
   options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    layout:{ padding:{ right:46 } },
     plugins:{
       legend:{display:false},
-      datalabels:{ align:'end', anchor:'end', color:'#252423', font:{size:11,weight:'600'} }
+      tooltip:{ backgroundColor:'#102944', padding:10, cornerRadius:8, displayColors:false,
+        titleFont:{size:12,weight:'700'}, bodyFont:{size:12},
+        callbacks:{ label:(c)=> ' ' + Number(c.parsed.x).toLocaleString('vi-VN') + ' ticket' } },
+      datalabels:{ align:'end', anchor:'end', offset:6, color:'#102944', font:{size:12,weight:'700'},
+        formatter:(v)=> Number(v).toLocaleString('vi-VN') }
     },
     scales:{
       x:{ display:false, grid:{display:false} },
-      y:{ grid:{display:false}, ticks:{font:{size:11}} } } }
+      y:{ grid:{display:false}, border:{display:false}, ticks:{ color:'#33475b', font:{size:12,weight:'600'}, padding:10 } } } }
 });
 
 const donutChart = new Chart(document.getElementById('donutChart'), {
@@ -2331,6 +2616,13 @@ function renderTable(){
   const start = (currentPage-1)*PAGE_SIZE;
   const pageRows = rows.slice(start, start+PAGE_SIZE);
 
+  /* [UI] đánh dấu cột đang sắp xếp trên tiêu đề (chỉ thêm class, không đổi logic sắp xếp) */
+  Array.from(document.getElementById('tableHeadRow')?.children || []).forEach((th, i)=>{
+    const on = DISPLAY_TABLE_COLS[i] === sortCol;
+    th.classList.toggle('sorted', on);
+    if(on) th.dataset.dir = sortAsc ? 'asc' : 'desc'; else delete th.dataset.dir;
+  });
+
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
   pageRows.forEach(d=>{
@@ -2339,7 +2631,7 @@ function renderTable(){
       const td = document.createElement('td');
       if(c==='Status'){
         const color = STATUS_COLORS[d.Status] || '#999';
-        td.innerHTML = `<span class="badge" style="background:${esc(color)}">${esc(d.Status||'')}</span>`;
+        td.innerHTML = `<span class="badge" style="--st:${esc(color)}">${esc(d.Status||'')}</span>`;
       } else if(c==='Ticket Key'){
         const key = d[c] || '';
         const url = d['Ticket URL'];
@@ -2351,9 +2643,9 @@ function renderTable(){
         }
       } else if(c==='FR_Breached' || c==='TTR_Breached'){
         if(d[c]==='Yes'){
-          td.innerHTML = `<span class="badge" style="background:var(--bad)">Yes</span>`;
+          td.innerHTML = `<span class="badge" style="--st:var(--bad)">Yes</span>`;
         } else if(d[c]==='No'){
-          td.innerHTML = `<span class="badge" style="background:var(--good)">No</span>`;
+          td.innerHTML = `<span class="badge" style="--st:var(--good)">No</span>`;
         } else {
           td.textContent = '';
         }

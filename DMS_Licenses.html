@@ -417,11 +417,15 @@
       render();
       if (!configured()) return;
       state.supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+      state.supabase.auth.onAuthStateChange(async (_event, session) => {
+        state.session = session;
+        // Cửa sổ này chỉ là popup phụ để hoàn tất OAuth Google; khi đã có session thì đóng lại,
+        // cửa sổ chính (window.opener) sẽ tự nhận session qua đồng bộ đa-tab của Supabase.
+        if (window.opener && session) { setTimeout(() => window.close(), 300); return; }
+        await resolveProfile(); render();
+      });
       const { data } = await state.supabase.auth.getSession();
       state.session = data.session; await resolveProfile(); render();
-      state.supabase.auth.onAuthStateChange(async (_event, session) => {
-        state.session = session; await resolveProfile(); render();
-      });
     }
 
     async function resolveProfile() {
@@ -453,8 +457,30 @@
         toast("Hãy tự cấu hình SUPABASE_CONFIG ở đầu file HTML trước khi đăng nhập.", "error");
         return;
       }
-      const { error } = await state.supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.href } });
-      if (error) toast(`Đăng nhập thất bại: ${error.message}`, "error");
+      // Google chặn (403) việc load trang đăng nhập của họ bên trong iframe, nên ta mở OAuth
+      // trong một cửa sổ popup riêng thay vì để Supabase redirect ngay tại trang hiện tại.
+      const { data, error } = await state.supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.href, skipBrowserRedirect: true }
+      });
+      if (error) { toast(`Đăng nhập thất bại: ${error.message}`, "error"); return; }
+      const w = 480, h = 640;
+      const left = window.screenX + (window.outerWidth - w) / 2;
+      const top = window.screenY + (window.outerHeight - h) / 2;
+      const popup = window.open(data.url, "google-login", `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`);
+      if (!popup) {
+        toast("Trình duyệt đã chặn cửa sổ popup. Vui lòng cho phép popup cho trang này rồi bấm đăng nhập lại.", "error");
+        return;
+      }
+      // Dự phòng: nếu sự kiện đồng bộ đa-tab của Supabase không kịp bắt, khi popup đóng ta
+      // vẫn chủ động đọc lại session từ localStorage để cập nhật giao diện.
+      const poll = setInterval(async () => {
+        if (popup.closed) {
+          clearInterval(poll);
+          const { data: sd } = await state.supabase.auth.getSession();
+          if (sd.session) { state.session = sd.session; await resolveProfile(); render(); }
+        }
+      }, 500);
     }
     async function logout() {
       await state.supabase?.auth.signOut(); state.session = null; state.profile = null; render();

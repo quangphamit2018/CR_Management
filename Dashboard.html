@@ -1332,6 +1332,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   .aa-tick.warn{ border-left-color:#e0a800; background:var(--warn-bg); border-color:var(--warn-line); color:#5c4500; }
   .aa-tick.err{ border-left-color:#d64550; background:var(--danger-bg); border-color:var(--danger-line); color:var(--danger); }
   .aa-tick b{ font-weight:700; }
+  .aa-diag{ margin-top:10px; }
+  .aa-diag summary{ cursor:pointer; font-weight:700; color:#5c4500; }
+  .aa-diag pre{ margin:8px 0; padding:10px 12px; border-radius:9px; background:#fffdf5; border:1px solid var(--warn-line); font-size:12px; line-height:1.55; white-space:pre-wrap; user-select:all; }
+  .aa-diag div{ font-size:12px; color:#5c4500; }
   .aa-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-bottom:18px; }
   .aa-box{
     padding:16px 18px 18px; background:var(--surface-2); border:1px solid var(--line-2); border-left:4px solid var(--navy-700); border-radius:12px; min-width:0;
@@ -2013,7 +2017,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         <div class="us-note aa-setup" id="aaSetupBanner" style="display:none;margin-bottom:18px;">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>
           <div><b>Chưa cài đặt phần server cho Auto Assign.</b> Trang này chỉ là nơi cấu hình — job chạy trên Supabase.
-            Cần chạy file <code>01_auto_assign_schema.sql</code> trong SQL Editor và deploy Edge Function <code>jira-auto-assign</code>
+            Cần chạy file <code>auto_assign_full_setup.sql</code> trong SQL Editor và deploy Edge Function <code>jira-auto-assign</code>
             (hướng dẫn nằm trong 2 file đi kèm).
             <br><b>Đã chạy SQL mà vẫn báo lỗi?</b> Trong SQL Editor chạy <code>notify pgrst, 'reload schema';</code> rồi tải lại trang.
             Nếu vẫn lỗi, chạy <code>select proname from pg_proc where proname like 'auto_assign%';</code> — phải ra đủ 4 hàm.</div>
@@ -5402,7 +5406,7 @@ let aaBusy = false;
 let aaSavedCfg = null;         // cấu hình đã lưu trên server
 let aaLogRows = [];
 let aaSource = 'cron';           // 'cron' = đọc lịch từ cron.job của jira-sync | 'manual' = giờ nhập tay
-let aaSupportsSource = false;    // false khi server chưa chạy 03_sync_schedule_source.sql
+let aaSupportsSource = false;    // false khi server chưa chạy auto_assign_full_setup.sql
 let aaSyncInfo = null;           // { rows:[{jobname,schedule,active,cron_timezone}], tz, error } — lịch sync thật đọc từ server
 
 function aaEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -5450,7 +5454,7 @@ function aaSetSource(src){
   const sw = aaEl('aaSourceSwitch'), note = aaEl('aaSourceNote');
   sw.style.display = aaSupportsSource ? '' : 'none';
   note.style.display = aaSupportsSource ? 'none' : '';
-  if(!aaSupportsSource) note.textContent = 'Để Auto Assign tự đọc lịch sync hiện có (không phải nhập tay), hãy chạy file 03_sync_schedule_source.sql trong Supabase rồi tải lại trang.';
+  if(!aaSupportsSource) note.textContent = 'Để Auto Assign tự đọc lịch sync hiện có (không phải nhập tay), hãy chạy file auto_assign_full_setup.sql trong Supabase (SQL Editor) rồi tải lại trang.';
   aaEl('aaSrcCronBtn').classList.toggle('active', aaSource === 'cron');
   aaEl('aaSrcManualBtn').classList.toggle('active', aaSource === 'manual');
   aaEl('aaCronBox').style.display = aaSource === 'cron' ? '' : 'none';
@@ -5470,7 +5474,7 @@ async function aaLoadSyncSchedule(){
   const token = getSessionToken(); if(!token) return;
   try{
     const r = await rpc('auto_assign_get_sync_schedule', { session_token: token });
-    if(aaIsMissingServer(r)) aaSyncInfo = { rows: [], tz: 'UTC', error: 'Chưa có hàm đọc lịch sync — hãy chạy file 03_sync_schedule_source.sql.' };
+    if(aaIsMissingServer(r)) aaSyncInfo = { rows: [], tz: 'UTC', error: 'Chưa có hàm đọc lịch sync — hãy chạy file auto_assign_full_setup.sql.' };
     else if(r.status === 401 || r.status === 403) aaSyncInfo = { rows: [], tz: 'UTC', error: 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.' };
     else if(!r.ok || !Array.isArray(r.data)) aaSyncInfo = { rows: [], tz: 'UTC', error: 'Không đọc được lịch sync: ' + aaErrFull(r) };
     else aaSyncInfo = { rows: r.data, tz: (r.data[0] && r.data[0].cron_timezone) || 'UTC', error: '' };
@@ -5658,15 +5662,23 @@ function aaRenderTick(cfg){
   el.style.display = '';
   el.className = 'aa-tick';
   if(!Object.prototype.hasOwnProperty.call(cfg, 'last_tick_at')){
-    el.textContent = 'Chưa có theo dõi nhịp cron. Chạy phần 1 của file 04_heartbeat_and_tick.sql và deploy lại Edge Function để thấy thời điểm cron gọi tới gần nhất.';
+    el.textContent = 'Chưa có theo dõi nhịp cron. Chạy file auto_assign_full_setup.sql (bản mới nhất) và deploy lại Edge Function để thấy thời điểm cron gọi tới gần nhất.';
     return;
   }
   if(!cfg.last_tick_at){
     if(cfg.enabled){
       el.classList.add('warn');
       el.innerHTML = '<b>Chưa nhận được nhịp nào từ cron.</b> Job đã bật nhưng chưa có lần gọi nào tới Edge Function. Hãy kiểm tra: ' +
-        '(1) job cron <code>auto-assign-tick</code> đã được tạo và đang bật; (2) Edge Function <code>jira-auto-assign</code> đã deploy; ' +
-        '(3) secret <code>AUTO_ASSIGN_CRON_SECRET</code> khớp với lệnh cron. Các câu lệnh chẩn đoán nằm trong file 04_heartbeat_and_tick.sql.';
+        '(1) job cron <code>auto-assign-tick</code> đã được tạo và đang bật (PHẦN 4 của file auto_assign_full_setup.sql — cần thay secret rồi chạy lại); ' +
+        '(2) Edge Function <code>jira-auto-assign</code> đã deploy; (3) secret <code>AUTO_ASSIGN_CRON_SECRET</code> khớp với secret trong file SQL.' +
+        '<details class="aa-diag"><summary>Xem 2 câu lệnh chẩn đoán (chạy trong SQL Editor)</summary>' +
+        '<pre>-- 1) Đã có cron tick chưa? (phải có dòng auto-assign-tick, active = true)\n' +
+        'select jobid, jobname, schedule, active from cron.job order by jobid;\n\n' +
+        '-- 2) Edge Function trả lời gì?\n' +
+        'select id, status_code, left(content::text, 300) as noi_dung, error_msg, created\n' +
+        'from net._http_response order by created desc limit 10;</pre>' +
+        '<div>200 + not_due = đúng, chỉ chưa tới mốc · 401 Unauthorized = secret trong cron khác secret của hàm · ' +
+        '401 Missing authorization header = thiếu header Authorization · 404 = chưa deploy / sai tên · 500/502 = đọc nội dung lỗi.</div></details>';
     } else {
       el.textContent = 'Chưa nhận được nhịp nào từ cron (job đang tắt).';
     }
@@ -5842,7 +5854,7 @@ async function aaSave(){
         intervalEnd: aaEl('aaIntervalEnd').value
       }
     };
-    if(aaSupportsSource) payload.p_schedule_source = aaSource;   // server cũ (chưa chạy file 03) không có tham số này
+    if(aaSupportsSource) payload.p_schedule_source = aaSource;   // server cũ (chưa chạy auto_assign_full_setup.sql) không có tham số này
     const r = await rpc('auto_assign_save_config', payload);
     if(aaIsMissingServer(r)){
       aaShowSetup(true);

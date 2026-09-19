@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Masterdata Portal</title>
+  <title>Masterdata DMS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -12,7 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     /* =====================================================================
-       Masterdata Portal — Crimson theme
+       Masterdata DMS — Crimson theme
        Màu gốc #b71c1c. Gradient đi từ đỏ tươi (#e53935) → đỏ gốc → đỏ rượu vang (#3d080c),
        điểm nhấn vàng hổ phách (#ffc857) dùng rất tiết chế cho trạng thái active / eyebrow.
        ===================================================================== */
@@ -976,7 +976,7 @@
       ];
       return `<main class="auth-split ${entering ? "is-entering" : ""}">
         <section class="auth-showcase">
-          <div class="auth-brand rv" style="--d:100"><div class="brand-mark">${ICONS.database}</div><div><strong>Masterdata Portal</strong><small>CCVN data workspace</small></div></div>
+          <div class="auth-brand rv" style="--d:100"><div class="brand-mark">${ICONS.database}</div><div><strong>Masterdata DMS</strong><small>CCVN data workspace</small></div></div>
           <div class="auth-stage">
             <div class="showcase-copy">
               <h2 class="rv" style="--d:220">Một nơi duy nhất cho masterdata CCVN</h2>
@@ -993,7 +993,7 @@
           </div>
         </section>
         <section class="auth-form-side"><div class="auth-form">
-          <div class="card-brand rv" style="--d:380"><div class="brand-mark">${ICONS.database}</div><div><strong>Masterdata Portal</strong><small>CCVN data workspace</small></div><span class="card-badge">${ICONS.lock}Truy cập bảo mật</span></div>
+          <div class="card-brand rv" style="--d:380"><div class="brand-mark">${ICONS.database}</div><div><strong>Masterdata DMS</strong><small>CCVN data workspace</small></div><span class="card-badge">${ICONS.lock}Truy cập bảo mật</span></div>
           <h1 class="rv" style="--d:450">Đăng nhập để tiếp tục</h1>
           <p class="rv" style="--d:540">Dùng tài khoản Gmail đã được Super-admin phê duyệt để truy cập, tra cứu và quản lý masterdata.</p>
           <button class="google-btn rv" style="--d:640" id="google-login" type="button"><span class="g-chip"><svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.72-.06-1.42-.18-2.09H12v3.95h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.22c1.89-1.74 2.99-4.3 2.99-7.39Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.89 6.62-2.38l-3.22-2.51c-.89.6-2.03.96-3.4.96-2.61 0-4.82-1.76-5.61-4.13H3.06v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.94A6.05 6.05 0 0 1 6.08 12c0-.67.11-1.32.31-1.94V7.47H3.06A10 10 0 0 0 2 12c0 1.63.39 3.17 1.06 4.53l3.33-2.59Z"/><path fill="#EA4335" d="M12 5.93c1.47 0 2.79.51 3.83 1.51l2.87-2.87C16.97 2.89 14.7 2 12 2a10 10 0 0 0-8.94 5.47l3.33 2.59C7.18 7.69 9.39 5.93 12 5.93Z"/></svg><i class="g-spin"></i></span><span class="g-label">Tiếp tục với Google</span></button>
@@ -1046,7 +1046,7 @@
       const activeTab = tabs.find(x => x[0] === state.tab) || tabs[0];
       return `<div class="app-shell">
         <aside class="sidebar" id="sidebar">
-          <div class="brand"><div class="brand-mark">${ICONS.database}</div><div><strong>Masterdata Portal</strong><small>CCVN data workspace</small></div></div>
+          <div class="brand"><div class="brand-mark">${ICONS.database}</div><div><strong>Masterdata DMS</strong><small>CCVN data workspace</small></div></div>
           <div class="nav-label">Workspace</div><nav class="nav">${tabs.map(([id, label, icon]) => `<button class="${state.tab === id ? "active" : ""}" data-tab="${id}">${icon}<span>${label}</span></button>`).join("")}</nav>
           <div class="sidebar-foot">
             <div class="user-card">

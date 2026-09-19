@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Masterdata Portal</title>
+  <meta name="description" content="Cổng quản lý Masterdata với xác thực Google và phân quyền Supabase." />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --ink: #16202f;
+      --muted: #667085;
+      --line: #e6e9ef;
+      --surface: #ffffff;
+      --surface-soft: #f7f8fb;
+      --brand: #175cd3;
+      --brand-dark: #1244a0;
+      --brand-soft: #e8f0ff;
+      --success: #079455;
+      --success-soft: #eafaf3;
+      --warning: #b54708;
+      --warning-soft: #fff4e8;
+      --danger: #c4320a;
+      --danger-soft: #fff0ed;
+      --shadow: 0 18px 50px rgba(22, 32, 47, .09);
+      --radius: 16px;
+      --sidebar: 256px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #f3f6fb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: #f3f6fb; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+    .app-shell { min-height: 100vh; display: flex; }
+    .sidebar {
+      width: var(--sidebar); flex: 0 0 var(--sidebar); background: #101828; color: #d0d5dd;
+      display: flex; flex-direction: column; padding: 24px 16px; position: fixed; inset: 0 auto 0 0; z-index: 20;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 2px 10px 30px; color: #fff; }
+    .brand-mark {
+      width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+      background: linear-gradient(135deg, #458cff, #7f56d9); box-shadow: 0 5px 16px rgba(69, 140, 255, .3);
+    }
+    .brand strong { font-size: 15px; letter-spacing: -.02em; }
+    .brand small { display: block; color: #98a2b3; font-size: 10px; margin-top: 3px; }
+    .nav-label { text-transform: uppercase; font-size: 10px; letter-spacing: .09em; color: #667085; padding: 0 12px 9px; }
+    .nav { display: grid; gap: 5px; }
+    .nav button {
+      border: 0; background: transparent; color: #98a2b3; text-align: left; padding: 11px 12px;
+      border-radius: 10px; display: flex; align-items: center; gap: 11px; transition: .18s ease;
+    }
+    .nav button:hover { background: #1d2939; color: #fff; }
+    .nav button.active { color: #fff; background: #1d4ed8; box-shadow: inset 3px 0 #91b5ff; }
+    .nav svg { width: 17px; height: 17px; flex: 0 0 auto; }
+    .sidebar-foot { margin-top: auto; padding: 16px 10px 0; border-top: 1px solid #1d2939; }
+    .user-chip { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; min-width: 0; }
+    .avatar { width: 31px; height: 31px; border-radius: 50%; background: #d1e0ff; color: #194185; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: 0 0 auto; }
+    .user-chip div:last-child { min-width: 0; }
+    .user-chip b, .user-chip span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-chip b { color: #f2f4f7; font-size: 12px; }
+    .user-chip span { color: #98a2b3; font-size: 11px; margin-top: 2px; }
+    .signout { background: transparent; border: 0; color: #98a2b3; padding: 0; font-size: 12px; }
+    .signout:hover { color: #fff; }
+    .main { margin-left: var(--sidebar); flex: 1; min-width: 0; }
+    .topbar {
+      height: 73px; padding: 0 34px; background: rgba(255,255,255,.88); border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(12px);
+    }
+    .topbar h1 { margin: 0; font-size: 20px; letter-spacing: -.025em; }
+    .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .page { padding: 30px 34px 60px; max-width: 1600px; margin: 0 auto; }
+    .eyebrow { color: var(--brand); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
+    .page-title { margin: 0; font-size: 29px; letter-spacing: -.045em; }
+    .page-subtitle { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+    .header-row { display: flex; justify-content: space-between; gap: 18px; align-items: end; margin-bottom: 26px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+    .btn {
+      display: inline-flex; gap: 8px; align-items: center; justify-content: center; border: 1px solid transparent;
+      border-radius: 9px; padding: 10px 14px; font-size: 13px; font-weight: 650; transition: .18s ease; white-space: nowrap;
+    }
+    .btn svg { width: 16px; height: 16px; }
+    .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 4px 10px rgba(23, 92, 211, .2); }
+    .btn-primary:hover { background: var(--brand-dark); transform: translateY(-1px); }
+    .btn-secondary { background: #fff; color: #344054; border-color: #d0d5dd; }
+    .btn-secondary:hover { background: #f9fafb; border-color: #98a2b3; }
+    .btn-danger { background: var(--danger-soft); color: var(--danger); border-color: #fecdca; }
+    .btn-plain { background: transparent; color: var(--muted); border: 0; padding: 5px; }
+    .btn:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+    .grid-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 15px; margin-bottom: 22px; }
+    .stat-card, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 2px 7px rgba(16, 24, 40, .025); }
+    .stat-card { padding: 18px; position: relative; overflow: hidden; }
+    .stat-card::after { content: ""; position: absolute; width: 75px; height: 75px; border-radius: 50%; background: var(--brand-soft); right: -25px; top: -30px; opacity: .7; }
+    .stat-label { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .stat-value { font-size: 29px; font-weight: 750; letter-spacing: -.04em; margin-top: 10px; position: relative; z-index: 1; }
+    .stat-note { color: #98a2b3; font-size: 11px; margin-top: 4px; }
+    .panel { overflow: hidden; }
+    .panel-head { padding: 18px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .panel-head h2 { margin: 0; font-size: 15px; letter-spacing: -.015em; }
+    .panel-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .panel-body { padding: 20px; }
+    .table-wrap { width: 100%; overflow: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 820px; }
+    th, td { padding: 12px 16px; border-bottom: 1px solid #eef0f3; text-align: left; font-size: 12px; vertical-align: middle; white-space: nowrap; }
+    th { color: #667085; font-size: 10px; text-transform: uppercase; letter-spacing: .07em; font-weight: 750; background: #fcfcfd; position: sticky; top: 0; z-index: 1; }
+    td { color: #344054; }
+    tr:hover td { background: #fafcff; }
+    td strong { color: #101828; font-size: 12px; }
+    .badge { display: inline-flex; align-items: center; border-radius: 99px; padding: 4px 8px; font-size: 10px; font-weight: 750; }
+    .badge-success { background: var(--success-soft); color: var(--success); }
+    .badge-warning { background: var(--warning-soft); color: var(--warning); }
+    .badge-danger { background: var(--danger-soft); color: var(--danger); }
+    .badge-blue { background: var(--brand-soft); color: var(--brand); }
+    .toolbar { padding: 14px 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+    .search { width: min(320px, 100%); position: relative; }
+    .search input { width: 100%; padding: 10px 12px 10px 35px; border: 1px solid #d0d5dd; border-radius: 8px; outline: none; color: var(--ink); background: #fff; font-size: 12px; }
+    .search input:focus, .field input:focus, .field select:focus, .field textarea:focus { border-color: #84adff; box-shadow: 0 0 0 3px #e8f0ff; }
+    .search svg { position: absolute; left: 11px; top: 10px; color: #98a2b3; width: 16px; }
+    .empty { text-align: center; padding: 44px 20px; color: var(--muted); }
+    .empty strong { display: block; color: var(--ink); font-size: 14px; margin-bottom: 6px; }
+    .two-col { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; }
+    .import-drop { border: 1px dashed #98a2b3; border-radius: 13px; background: #fafcff; padding: 30px; text-align: center; transition: .2s; }
+    .import-drop.drag { border-color: var(--brand); background: var(--brand-soft); }
+    .import-drop svg { color: var(--brand); width: 34px; height: 34px; }
+    .import-drop h3 { margin: 12px 0 6px; font-size: 15px; }
+    .import-drop p { margin: 0 auto 16px; color: var(--muted); font-size: 12px; max-width: 430px; line-height: 1.55; }
+    .notice { border-radius: 10px; padding: 12px 14px; font-size: 12px; line-height: 1.5; }
+    .notice-info { background: var(--brand-soft); color: #194185; }
+    .notice-warning { background: var(--warning-soft); color: #93370d; }
+    .notice-danger { background: var(--danger-soft); color: #912018; }
+    .setup-code { background: #101828; color: #d0d5dd; border-radius: 9px; padding: 14px; font: 11px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 230px; overflow: auto; white-space: pre-wrap; }
+    .table-list { display: grid; gap: 9px; }
+    .table-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 13px; border: 1px solid var(--line); border-radius: 10px; }
+    .table-item b { font-size: 12px; display: block; }
+    .table-item span { color: var(--muted); font-size: 11px; display: block; margin-top: 3px; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(16, 24, 40, .55); display: grid; place-items: center; padding: 20px; z-index: 50; }
+    .modal { background: #fff; border-radius: 15px; width: min(630px, 100%); max-height: min(800px, 92vh); overflow: auto; box-shadow: 0 24px 80px rgba(16,24,40,.25); }
+    .modal-head { padding: 19px 22px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .modal-head h2 { margin: 0; font-size: 17px; }
+    .modal-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    .modal-body { padding: 21px 22px; }
+    .modal-foot { padding: 14px 22px 20px; display: flex; justify-content: flex-end; gap: 9px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field { display: grid; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { font-size: 11px; color: #475467; font-weight: 650; }
+    .field input, .field select, .field textarea { width: 100%; border: 1px solid #d0d5dd; border-radius: 8px; padding: 10px 11px; outline: none; color: var(--ink); font-size: 12px; background: #fff; }
+    .field textarea { min-height: 82px; resize: vertical; }
+    .toast-wrap { position: fixed; right: 22px; bottom: 22px; z-index: 100; display: grid; gap: 9px; width: min(370px, calc(100vw - 44px)); }
+    .toast { background: #101828; color: #fff; border-radius: 10px; padding: 12px 14px; font-size: 12px; box-shadow: var(--shadow); animation: pop .2s ease both; }
+    .toast.error { background: #912018; } .toast.success { background: #067647; }
+    @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .login-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 16% 12%, #dce9ff 0, transparent 31%), #f4f7fc; }
+    .login-card { width: min(450px, 100%); background: #fff; border: 1px solid #e1e6ee; border-radius: 20px; box-shadow: 0 25px 70px rgba(16, 24, 40, .11); padding: 36px; }
+    .login-logo { display: flex; align-items: center; gap: 11px; margin-bottom: 48px; }
+    .login-logo .brand-mark { width: 42px; height: 42px; }
+    .login-card h1 { margin: 0; font-size: 28px; letter-spacing: -.045em; }
+    .login-card > p { color: var(--muted); line-height: 1.6; font-size: 13px; margin: 10px 0 28px; }
+    .google-btn { width: 100%; border: 1px solid #d0d5dd; background: #fff; color: #344054; border-radius: 9px; padding: 12px 14px; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 10px; }
+    .google-btn:hover { background: #f9fafb; }
+    .google-icon { width: 18px; height: 18px; }
+    .login-foot { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 17px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .center-state { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f4f7fc; }
+    .state-card { width: min(520px, 100%); background: #fff; border-radius: 18px; border: 1px solid var(--line); padding: 34px; box-shadow: var(--shadow); text-align: center; }
+    .state-icon { margin: 0 auto 18px; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: var(--warning-soft); color: var(--warning); }
+    .state-icon svg { width: 26px; }
+    .state-card h2 { margin: 0; font-size: 20px; }
+    .state-card p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 9px auto 21px; max-width: 390px; }
+    .loading { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); font-size: 13px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid #d0d5dd; border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .mobile-menu { display: none; border: 0; background: transparent; color: var(--ink); padding: 5px; }
+    .pill-tabs { display: flex; gap: 5px; background: #f2f4f7; padding: 4px; border-radius: 9px; }
+    .pill-tabs button { border: 0; background: transparent; color: var(--muted); padding: 7px 10px; border-radius: 6px; font-size: 11px; }
+    .pill-tabs button.active { background: #fff; color: var(--brand); box-shadow: 0 1px 4px rgba(16,24,40,.1); font-weight: 700; }
+    @media (max-width: 1050px) { .grid-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .two-col { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) {
+      :root { --sidebar: 0px; }
+      .sidebar { transform: translateX(-100%); transition: transform .2s; width: 256px; }
+      .sidebar.open { transform: translateX(0); box-shadow: 12px 0 40px rgba(16,24,40,.18); }
+      .mobile-menu { display: inline-grid; place-items: center; }
+      .topbar { padding: 0 17px; height: 64px; }
+      .topbar h1 { font-size: 17px; }
+      .topbar p { display: none; }
+      .page { padding: 22px 16px 46px; }
+      .header-row { align-items: flex-start; flex-direction: column; margin-bottom: 20px; }
+      .page-title { font-size: 25px; }
+      .grid-stats { gap: 9px; }
+      .stat-card { padding: 14px; }
+      .stat-value { font-size: 23px; }
+      .panel-head, .panel-body { padding: 15px; }
+      .toolbar { padding: 12px 15px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .login-card { padding: 27px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toast-wrap"></div>
+
+  <script>
+
+    const SUPABASE_CONFIG = {
+      url: "https://rnsjiqbbeywgbnqsojce.supabase.co",
+      anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJuc2ppcWJiZXl3Z2JucXNvamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0OTExNjAsImV4cCI6MjA5MzA2NzE2MH0.1BrlS__GNAMFbBmudl6gUJwJ9j_zoDdAj9rtfhBkhdk"
+    };
+
+    const ICONS = {
+      grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+      users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 20v-1.8a3.6 3.6 0 0 0-3.6-3.6H6.6A3.6 3.6 0 0 0 3 18.2V20"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M17 11a3.5 3.5 0 1 0-1.1-6.8M21 20v-1.8a3.6 3.6 0 0 0-2.7-3.5"/></svg>',
+      database: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg>',
+      upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/></svg>',
+      search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
+      plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+      edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 16.5-.8 3.3 3.3-.8L18.8 6.7a2.2 2.2 0 0 0-3.1-3.1L4 16.5Z"/><path d="m14.5 5.5 4 4"/></svg>',
+      trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M10 11v6M14 11v6M6 7l.8 13h10.4L18 7M9 7V4h6v3"/></svg>',
+      menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+      copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
+      close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg>',
+      file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>',
+      clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>',
+      refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11a8 8 0 0 0-14.8-4L3 10M3 5v5h5M4 13a8 8 0 0 0 14.8 4L21 14m0 5v-5h-5"/></svg>'
+    };
+
+    const DMS_FIELDS = [
+      ["username", "UserName", true], ["dt_active_status", "DTACTIVESTATUS"], ["tenant", "Tenant"],
+      ["user_active_status", "USERACTIVESTATUS"], ["expire_date", "ExpireDate"], ["email", "Email"],
+      ["last_login_time", "LastLoginTime"], ["created_datetime", "CreatedDateTime"], ["role_name", "RoleName"],
+      ["region_code", "Region Code"], ["region", "Region"]
+    ];
+    const CENTRAL_FIELDS = [
+      ["username", "UserName", true], ["password_expiry_date", "PasswordExpiryDate"], ["description", "Description"],
+      ["employee_code", "EmployeeCode"], ["employee_name", "EmployeeName"], ["date_of_birth", "DateOfBirth"],
+      ["date_of_joining", "DateOfJoining"], ["email", "Email"], ["role_name", "RoleName"],
+      ["territory_hierarchy", "TerritoryHierarchy"], ["last_login_time", "LastLoginTime"],
+      ["created_datetime", "CreatedDateTime"], ["modified_datetime", "ModifiedDateTime"], ["is_active", "IsActive"]
+    ];
+
+    const state = {
+      supabase: null, session: null, profile: null, tab: "dashboard", dataset: "dms",
+      dms: [], central: [], profiles: [], logs: [], counts: { dms: 0, central: 0, pending: 0 },
+      search: "", loading: false
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
+    const configured = () => SUPABASE_CONFIG.url.startsWith("https://") && !SUPABASE_CONFIG.url.includes("YOUR_PROJECT") && SUPABASE_CONFIG.anonKey && !SUPABASE_CONFIG.anonKey.includes("YOUR_");
+    const roleLabel = (role) => ({ "super-admin": "Super-admin", "senior-member": "Senior-member", member: "Member" }[role] || role);
+    const statusBadge = (status) => `<span class="badge ${status === "approved" ? "badge-success" : status === "rejected" ? "badge-danger" : "badge-warning"}">${status === "approved" ? "Đã duyệt" : status === "rejected" ? "Từ chối" : "Chờ duyệt"}</span>`;
+    const initials = (name) => String(name || "U").split(/[\s@]+/).filter(Boolean).slice(0, 2).map(x => x[0]).join("").toUpperCase();
+    const formatDate = (value) => value ? new Date(value).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" }) : "—";
+    const isAdmin = () => state.profile?.role === "super-admin";
+    const canEdit = () => ["super-admin", "senior-member"].includes(state.profile?.role);
+
+    function toast(message, type = "") {
+      const node = document.createElement("div");
+      node.className = `toast ${type}`; node.textContent = message; $("#toast-root").appendChild(node);
+      setTimeout(() => node.remove(), 4200);
+    }
+
+    function setLoading(value) {
+      state.loading = value;
+      const el = document.querySelector("[data-loading]");
+      if (el) el.classList.toggle("hidden", !value);
+    }
+
+    function render() {
+      const root = $("#root");
+      if (!state.session) { root.innerHTML = renderLogin(); return; }
+      if (!state.profile) { root.innerHTML = renderLoadingState(); return; }
+      if (state.profile.approval_status !== "approved") { root.innerHTML = renderPending(); return; }
+      root.innerHTML = renderApp();
+      bindAppEvents();
+    }
+
+    function renderLogin() {
+      return `<main class="login-shell"><section class="login-card">
+        <div class="login-logo"><div class="brand-mark">${ICONS.database}</div><div><b>Masterdata Portal</b><small>CCVN data workspace</small></div></div>
+        <h1>Đăng nhập để tiếp tục</h1>
+        <p>Dùng tài khoản Gmail đã được Super-admin phê duyệt để truy cập, tra cứu và quản lý masterdata.</p>
+        <button class="google-btn" id="google-login"><svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.72-.06-1.42-.18-2.09H12v3.95h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.22c1.89-1.74 2.99-4.3 2.99-7.39Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.89 6.62-2.38l-3.22-2.51c-.89.6-2.03.96-3.4.96-2.61 0-4.82-1.76-5.61-4.13H3.06v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.94A6.05 6.05 0 0 1 6.08 12c0-.67.11-1.32.31-1.94V7.47H3.06A10 10 0 0 0 2 12c0 1.63.39 3.17 1.06 4.53l3.33-2.59Z"/><path fill="#EA4335" d="M12 5.93c1.47 0 2.79.51 3.83 1.51l2.87-2.87C16.97 2.89 14.7 2 12 2a10 10 0 0 0-8.94 5.47l3.33 2.59C7.18 7.69 9.39 5.93 12 5.93Z"/></svg>Tiếp tục với Google</button>
+        <div class="login-foot">Tài khoản mới sẽ được tạo ở trạng thái <b>chờ duyệt</b>. Super-admin sẽ cấp quyền trước khi bạn vào được dữ liệu.</div>
+      </section></main>`;
+    }
+
+    function renderLoadingState() {
+      return `<main class="center-state"><section class="state-card"><div class="loading"><i class="spinner"></i> Đang xác thực tài khoản…</div></section></main>`;
+    }
+
+    function renderPending() {
+      const rejected = state.profile.approval_status === "rejected";
+      return `<main class="center-state"><section class="state-card">
+        <div class="state-icon ${rejected ? "danger" : ""}" style="${rejected ? "background:#fff0ed;color:#c4320a" : ""}">${rejected ? ICONS.close : ICONS.clock}</div>
+        <h2>${rejected ? "Tài khoản chưa được cấp quyền" : "Tài khoản đang chờ duyệt"}</h2>
+        <p>${rejected ? "Super-admin đã từ chối yêu cầu truy cập của tài khoản này. Vui lòng liên hệ quản trị viên nếu cần được xem xét lại." : "Yêu cầu của bạn đã được ghi nhận. Super-admin cần phê duyệt trước khi bạn có thể xem dữ liệu."}</p>
+        <div class="notice notice-info" style="text-align:left"><b>${escapeHtml(state.profile.email)}</b><br>Trạng thái: ${statusBadge(state.profile.approval_status)}</div>
+        <button class="btn btn-secondary" style="margin-top:18px" id="logout-pending">Đăng xuất</button>
+      </section></main>`;
+    }
+
+    function renderApp() {
+      const tabs = [
+        ["dashboard", "Tổng quan", ICONS.grid],
+        ["dms", "DMS Userlist", ICONS.users],
+        ["central", "Central User list", ICONS.users],
+        ...(isAdmin() ? [["admin", "Quản lý dữ liệu", ICONS.database]] : [])
+      ];
+      const activeTab = tabs.find(x => x[0] === state.tab) || tabs[0];
+      return `<div class="app-shell">
+        <aside class="sidebar" id="sidebar">
+          <div class="brand"><div class="brand-mark">${ICONS.database}</div><div><strong>Masterdata Portal</strong><small>CCVN data workspace</small></div></div>
+          <div class="nav-label">Workspace</div><nav class="nav">${tabs.map(([id, label, icon]) => `<button class="${state.tab === id ? "active" : ""}" data-tab="${id}">${icon}<span>${label}</span></button>`).join("")}</nav>
+          <div class="sidebar-foot">
+            <div class="user-chip"><div class="avatar">${initials(state.profile.display_name || state.profile.email)}</div><div><b>${escapeHtml(state.profile.display_name || "Người dùng")}</b><span>${escapeHtml(roleLabel(state.profile.role))}</span></div></div>
+            <button class="signout" id="logout">Đăng xuất</button>
+          </div>
+        </aside>
+        <main class="main">
+          <header class="topbar"><div style="display:flex;align-items:center;gap:10px"><button class="mobile-menu" id="mobile-menu">${ICONS.menu}</button><div><h1>${escapeHtml(activeTab[1])}</h1><p>Quản lý masterdata CCVN tập trung và an toàn</p></div></div><div class="actions"><span class="badge badge-success">● Kết nối an toàn</span></div></header>
+          <section class="page">${renderPage()}</section>
+        </main>
+      </div>`;
+    }
+
+    function renderPage() {
+      if (state.tab === "dashboard") return renderDashboard();
+      if (state.tab === "dms" || state.tab === "central") return renderDataset();
+      return renderAdmin();
+    }
+
+    function renderDashboard() {
+      const recent = state.logs.slice(0, 5);
+      return `<div class="header-row"><div><div class="eyebrow">Workspace overview</div><h2 class="page-title">Xin chào, ${escapeHtml((state.profile.display_name || "bạn").split(" ")[0])}</h2><p class="page-subtitle">Theo dõi nhanh trạng thái dữ liệu và quyền truy cập.</p></div>${isAdmin() ? `<button class="btn btn-primary" data-tab="admin">${ICONS.upload} Import masterdata</button>` : ""}</div>
+        <div class="grid-stats">
+          <div class="stat-card"><div class="stat-label">DMS Userlist</div><div class="stat-value">${state.counts.dms.toLocaleString("vi-VN")}</div><div class="stat-note">bản ghi hiện có</div></div>
+          <div class="stat-card"><div class="stat-label">Central User list</div><div class="stat-value">${state.counts.central.toLocaleString("vi-VN")}</div><div class="stat-note">bản ghi hiện có</div></div>
+          <div class="stat-card"><div class="stat-label">Quyền của bạn</div><div class="stat-value" style="font-size:20px;margin-top:16px">${escapeHtml(roleLabel(state.profile.role))}</div><div class="stat-note">truy cập đã phê duyệt</div></div>
+          <div class="stat-card"><div class="stat-label">Cập nhật gần nhất</div><div class="stat-value" style="font-size:18px;margin-top:17px">${recent[0] ? formatDate(recent[0].created_at).split(",")[0] : "—"}</div><div class="stat-note">${recent[0] ? "import masterdata" : "chưa có lịch sử import"}</div></div>
+        </div>
+        <div class="two-col">
+          <section class="panel"><div class="panel-head"><div><h2>Truy cập nhanh</h2><p>Mở trực tiếp bảng dữ liệu cần xử lý.</p></div></div><div class="panel-body" style="display:grid;gap:11px">
+            <button class="table-item" style="background:#fff;text-align:left" data-tab="dms"><div><b>DMS Userlist</b><span>${state.counts.dms.toLocaleString("vi-VN")} người dùng • khóa UserName</span></div><span style="color:var(--brand)">→</span></button>
+            <button class="table-item" style="background:#fff;text-align:left" data-tab="central"><div><b>Central User list</b><span>${state.counts.central.toLocaleString("vi-VN")} người dùng • khóa UserName</span></div><span style="color:var(--brand)">→</span></button>
+          </div></section>
+          <section class="panel"><div class="panel-head"><div><h2>Lịch sử import</h2><p>Những lần cập nhật gần nhất.</p></div></div>${recent.length ? `<div class="table-wrap"><table><thead><tr><th>File</th><th>Thời gian</th><th>Trạng thái</th></tr></thead><tbody>${recent.map(log => `<tr><td><strong>${escapeHtml(log.file_name)}</strong></td><td>${formatDate(log.created_at)}</td><td>${log.status === "success" ? '<span class="badge badge-success">Thành công</span>' : '<span class="badge badge-danger">Lỗi</span>'}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Chưa có lịch sử import</strong>Chỉ Super-admin mới có thể nạp file masterdata.</div>`}</section>
+        </div>`;
+    }
+
+    function renderDataset() {
+      const isDms = state.tab === "dms"; state.dataset = isDms ? "dms" : "central";
+      const fields = isDms ? DMS_FIELDS : CENTRAL_FIELDS;
+      const rows = state[isDms ? "dms" : "central"];
+      const filtered = rows.filter(row => !state.search || Object.values(row).some(v => String(v ?? "").toLowerCase().includes(state.search.toLowerCase()))).slice(0, 500);
+      return `<div class="header-row"><div><div class="eyebrow">${isDms ? "DMS directory" : "Central directory"}</div><h2 class="page-title">${isDms ? "DMS Userlist" : "Central User list"}</h2><p class="page-subtitle">${isDms ? "Danh sách người dùng DMS theo tenant, vùng và trạng thái." : "Danh sách nhân sự Central và thông tin hoạt động."}</p></div><div class="actions">${canEdit() ? `<button class="btn btn-primary" id="new-row">${ICONS.plus} Thêm bản ghi</button>` : ""}</div></div>
+        <section class="panel"><div class="toolbar"><div class="search">${ICONS.search}<input id="table-search" value="${escapeHtml(state.search)}" placeholder="Tìm theo tên, email, tenant…" /></div><div style="display:flex;gap:9px;align-items:center"><span class="badge badge-blue">${filtered.length}${rows.length > 500 ? "+": ""} / ${state.counts[isDms ? "dms" : "central"].toLocaleString("vi-VN")} dòng</span><button class="btn btn-secondary" id="refresh-data">${ICONS.refresh} Làm mới</button></div></div>
+        ${filtered.length ? `<div class="table-wrap"><table><thead><tr>${fields.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}<th>Thao tác</th></tr></thead><tbody>${filtered.map(row => `<tr>${fields.map(([key]) => `<td>${key === "username" ? `<strong>${escapeHtml(row[key])}</strong>` : escapeHtml(row[key] || "—")}</td>`).join("")}<td><div style="display:flex;gap:4px">${canEdit() ? `<button class="btn btn-plain edit-row" data-key="${escapeHtml(row.username)}" title="Sửa">${ICONS.edit}</button>` : ""}${isAdmin() ? `<button class="btn btn-plain delete-row" data-key="${escapeHtml(row.username)}" title="Xóa" style="color:var(--danger)">${ICONS.trash}</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Không tìm thấy dữ liệu</strong>Thử đổi từ khóa tìm kiếm hoặc làm mới bảng.</div>`}</section>`;
+    }
+
+    function renderAdmin() {
+      return `<div class="header-row"><div><div class="eyebrow">Super-admin console</div><h2 class="page-title">Quản lý dữ liệu</h2><p class="page-subtitle">Chỉ Super-admin nhìn thấy khu vực này.</p></div></div>
+        <div class="two-col">
+          <section class="panel"><div class="panel-head"><div><h2>Import masterdata</h2><p>Upsert theo UserName — bản ghi cũ được cập nhật, bản ghi mới được thêm.</p></div></div><div class="panel-body">
+            <div class="import-drop" id="dropzone">${ICONS.upload}<h3>Kéo thả file Excel vào đây</h3><p>Hỗ trợ file .xlsx có hai sheet <b>DMS Userlist</b> và <b>Central User list</b>. Chỉ Super-admin được phép import.</p><label class="btn btn-primary" for="file-input">${ICONS.file} Chọn file Excel</label><input id="file-input" type="file" accept=".xlsx,.xls" class="hidden" /></div>
+            <div id="import-status" style="margin-top:14px"></div>
+          </div></section>
+          <section class="panel"><div class="panel-head"><div><h2>Các bảng dữ liệu</h2><p>RLS bảo vệ quyền truy cập tại Supabase.</p></div></div><div class="panel-body"><div class="table-list">
+            <div class="table-item"><div><b>profiles</b><span>${state.profiles.length} tài khoản • quyền và trạng thái duyệt</span></div><span class="badge badge-blue">Auth</span></div>
+            <div class="table-item"><div><b>dms_users</b><span>${state.counts.dms.toLocaleString("vi-VN")} bản ghi • upsert UserName</span></div><span class="badge badge-success">RLS</span></div>
+            <div class="table-item"><div><b>central_users</b><span>${state.counts.central.toLocaleString("vi-VN")} bản ghi • upsert UserName</span></div><span class="badge badge-success">RLS</span></div>
+            <div class="table-item"><div><b>import_logs</b><span>${state.logs.length} lần import gần đây</span></div><span class="badge badge-success">RLS</span></div>
+          </div></div></section>
+        </div>
+        <section class="panel" style="margin-top:18px"><div class="panel-head"><div><h2>Phê duyệt tài khoản</h2><p>Duyệt yêu cầu Gmail mới và cấp role.</p></div><span class="badge badge-warning">${state.counts.pending} chờ duyệt</span></div>${renderProfilesTable()}</section>
+        <section class="panel" style="margin-top:18px"><div class="panel-head"><div><h2>Lịch sử import</h2><p>Audit log do Supabase lưu lại.</p></div></div>${renderLogsTable()}</section>`;
+    }
+
+    function renderProfilesTable() {
+      if (!state.profiles.length) return `<div class="empty"><strong>Chưa có tài khoản nào</strong>Người dùng mới sẽ xuất hiện sau khi đăng nhập Google.</div>`;
+      return `<div class="table-wrap"><table style="min-width:700px"><thead><tr><th>Tài khoản</th><th>Role</th><th>Trạng thái</th><th>Ngày đăng ký</th><th>Thao tác</th></tr></thead><tbody>${state.profiles.map(p => `<tr><td><strong>${escapeHtml(p.display_name || "—")}</strong><br><span style="font-size:11px;color:#667085">${escapeHtml(p.email)}</span></td><td><select class="role-select" data-id="${p.id}" style="border:1px solid #d0d5dd;border-radius:6px;padding:5px;font-size:11px" ${p.id === state.profile.id ? "disabled" : ""}><option value="member" ${p.role === "member" ? "selected" : ""}>Member</option><option value="senior-member" ${p.role === "senior-member" ? "selected" : ""}>Senior-member</option><option value="super-admin" ${p.role === "super-admin" ? "selected" : ""}>Super-admin</option></select></td><td>${statusBadge(p.approval_status)}</td><td>${formatDate(p.created_at)}</td><td><div style="display:flex;gap:5px">${p.approval_status !== "approved" ? `<button class="btn btn-secondary approve-user" data-id="${p.id}">Duyệt</button>` : ""}${p.approval_status === "approved" && p.id !== state.profile.id ? `<button class="btn btn-danger reject-user" data-id="${p.id}">Thu hồi</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`;
+    }
+
+    function renderLogsTable() {
+      if (!state.logs.length) return `<div class="empty"><strong>Chưa có lịch sử</strong>Các lần import thành công và thất bại sẽ được lưu ở đây.</div>`;
+      return `<div class="table-wrap"><table><thead><tr><th>File</th><th>DMS</th><th>Central</th><th>Người import</th><th>Thời gian</th><th>Trạng thái</th></tr></thead><tbody>${state.logs.map(l => `<tr><td><strong>${escapeHtml(l.file_name)}</strong></td><td>${l.dms_rows}</td><td>${l.central_rows}</td><td>${escapeHtml(l.imported_by || "—")}</td><td>${formatDate(l.created_at)}</td><td>${l.status === "success" ? '<span class="badge badge-success">Thành công</span>' : '<span class="badge badge-danger">Lỗi</span>'}</td></tr>`).join("")}</tbody></table></div>`;
+    }
+
+    function bindAppEvents() {
+      document.querySelectorAll("[data-tab]").forEach(el => el.addEventListener("click", () => {
+        state.tab = el.dataset.tab; state.search = ""; $("#sidebar")?.classList.remove("open"); render();
+      }));
+      $("#mobile-menu")?.addEventListener("click", () => $("#sidebar").classList.toggle("open"));
+      $("#logout")?.addEventListener("click", logout);
+      $("#refresh-data")?.addEventListener("click", loadData);
+      $("#table-search")?.addEventListener("input", e => { state.search = e.target.value; const cursor = e.target.selectionStart; render(); const input = $("#table-search"); input?.focus(); input?.setSelectionRange(cursor, cursor); });
+      $("#new-row")?.addEventListener("click", () => openRowModal());
+      document.querySelectorAll(".edit-row").forEach(el => el.addEventListener("click", () => openRowModal(el.dataset.key)));
+      document.querySelectorAll(".delete-row").forEach(el => el.addEventListener("click", () => deleteRow(el.dataset.key)));
+      $("#file-input")?.addEventListener("change", e => e.target.files[0] && importWorkbook(e.target.files[0]));
+      const dropzone = $("#dropzone");
+      if (dropzone) {
+        ["dragenter", "dragover"].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.add("drag"); }));
+        ["dragleave", "drop"].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.remove("drag"); }));
+        dropzone.addEventListener("drop", e => e.dataTransfer.files[0] && importWorkbook(e.dataTransfer.files[0]));
+      }
+      document.querySelectorAll(".approve-user").forEach(el => el.addEventListener("click", () => updateProfile(el.dataset.id, { approval_status: "approved" })));
+      document.querySelectorAll(".reject-user").forEach(el => el.addEventListener("click", () => updateProfile(el.dataset.id, { approval_status: "rejected" })));
+      document.querySelectorAll(".role-select").forEach(el => el.addEventListener("change", () => updateProfile(el.dataset.id, { role: el.value })));
+    }
+
+    async function boot() {
+      render();
+      if (!configured()) return;
+      state.supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+      const { data } = await state.supabase.auth.getSession();
+      state.session = data.session; await resolveProfile(); render();
+      state.supabase.auth.onAuthStateChange(async (_event, session) => {
+        state.session = session; await resolveProfile(); render();
+      });
+    }
+
+    async function resolveProfile() {
+      if (!state.session) { state.profile = null; return; }
+      const { data, error } = await state.supabase.from("profiles").select("*").eq("id", state.session.user.id).maybeSingle();
+      if (error) { toast(`Không đọc được hồ sơ: ${error.message}`, "error"); state.profile = null; return; }
+      state.profile = data;
+      if (data?.approval_status === "approved") await loadData();
+    }
+
+    async function loadData() {
+      if (!state.supabase || !state.profile) return;
+      setLoading(true);
+      const [dms, central, profiles, logs] = await Promise.all([
+        state.supabase.from("dms_users").select("*", { count: "exact" }).order("updated_at", { ascending: false }).limit(500),
+        state.supabase.from("central_users").select("*", { count: "exact" }).order("updated_at", { ascending: false }).limit(500),
+        isAdmin() ? state.supabase.from("profiles").select("*").order("created_at", { ascending: false }) : Promise.resolve({ data: [], count: 0 }),
+        isAdmin() ? state.supabase.from("import_logs").select("*").order("created_at", { ascending: false }).limit(20) : Promise.resolve({ data: [], count: 0 })
+      ]);
+      if (dms.error || central.error) toast(`Không tải được dữ liệu: ${(dms.error || central.error).message}`, "error");
+      state.dms = dms.data || []; state.central = central.data || []; state.profiles = profiles.data || []; state.logs = logs.data || [];
+      state.counts.dms = dms.count ?? state.dms.length; state.counts.central = central.count ?? state.central.length;
+      state.counts.pending = state.profiles.filter(p => p.approval_status === "pending").length;
+      setLoading(false); if ($("#root").innerHTML) render();
+    }
+
+    async function login() {
+      if (!configured() || !state.supabase) {
+        toast("Hãy tự cấu hình SUPABASE_CONFIG ở đầu file HTML trước khi đăng nhập.", "error");
+        return;
+      }
+      const { error } = await state.supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.href } });
+      if (error) toast(`Đăng nhập thất bại: ${error.message}`, "error");
+    }
+    async function logout() {
+      await state.supabase?.auth.signOut(); state.session = null; state.profile = null; render();
+    }
+
+    function normalizeHeader(value) {
+      return String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+    function valueFrom(row, label) {
+      const wanted = normalizeHeader(label);
+      const key = Object.keys(row).find(k => normalizeHeader(k) === wanted);
+      return key ? (row[key] === null || row[key] === undefined ? null : String(row[key])) : null;
+    }
+    function mapSheetRow(row, fields) {
+      const payload = {};
+      fields.forEach(([key, label]) => payload[key] = valueFrom(row, label));
+      payload.updated_at = new Date().toISOString();
+      return payload;
+    }
+    async function upsertBatches(table, rows) {
+      const chunkSize = 400;
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const { error } = await state.supabase.from(table).upsert(rows.slice(i, i + chunkSize), { onConflict: "username" });
+        if (error) throw error;
+      }
+    }
+    async function importWorkbook(file) {
+      if (!isAdmin()) return toast("Chỉ Super-admin mới được import dữ liệu.", "error");
+      const status = $("#import-status"); if (status) status.innerHTML = `<div class="loading"><i class="spinner"></i> Đang đọc và upsert ${escapeHtml(file.name)}…</div>`;
+      try {
+        const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
+        const getSheet = (expected) => workbook.Sheets[workbook.SheetNames.find(name => normalizeHeader(name) === normalizeHeader(expected)) || expected];
+        const dmsSheet = getSheet("DMS Userlist"), centralSheet = getSheet("Central User list");
+        if (!dmsSheet || !centralSheet) throw new Error("File phải có đúng hai sheet: DMS Userlist và Central User list.");
+        const dmsRows = XLSX.utils.sheet_to_json(dmsSheet, { defval: null }).map(row => mapSheetRow(row, DMS_FIELDS)).filter(row => row.username);
+        const centralRows = XLSX.utils.sheet_to_json(centralSheet, { defval: null }).map(row => mapSheetRow(row, CENTRAL_FIELDS)).filter(row => row.username);
+        await upsertBatches("dms_users", dmsRows); await upsertBatches("central_users", centralRows);
+        const { error: logError } = await state.supabase.from("import_logs").insert({ file_name: file.name, dms_rows: dmsRows.length, central_rows: centralRows.length, imported_by: state.session.user.id, status: "success" });
+        if (logError) throw logError;
+        if (status) status.innerHTML = `<div class="notice notice-info"><b>Import thành công.</b> Đã upsert ${dmsRows.length.toLocaleString("vi-VN")} DMS và ${centralRows.length.toLocaleString("vi-VN")} Central. Dòng trùng UserName đã được cập nhật đè.</div>`;
+        toast("Import masterdata thành công.", "success"); await loadData();
+      } catch (error) {
+        try { await state.supabase.from("import_logs").insert({ file_name: file.name, imported_by: state.session.user.id, status: "error", error_message: error.message }); } catch (_) {}
+        if (status) status.innerHTML = `<div class="notice notice-danger"><b>Import thất bại.</b> ${escapeHtml(error.message)}</div>`;
+        toast(`Import thất bại: ${error.message}`, "error");
+      }
+    }
+
+    function openRowModal(key) {
+      const isDms = state.tab === "dms", fields = isDms ? DMS_FIELDS : CENTRAL_FIELDS, table = isDms ? "dms_users" : "central_users";
+      const rows = isDms ? state.dms : state.central, row = key ? rows.find(item => item.username === key) : {};
+      const modalRoot = $("#modal-root");
+      modalRoot.innerHTML = `<div class="modal-backdrop" id="modal-backdrop"><section class="modal"><div class="modal-head"><div><h2>${key ? "Chỉnh sửa bản ghi" : "Thêm bản ghi mới"}</h2><p>${isDms ? "DMS Userlist" : "Central User list"} • khóa chính UserName</p></div><button class="btn btn-plain" id="close-modal">${ICONS.close}</button></div><div class="modal-body"><form id="record-form" class="form-grid">${fields.map(([field, label, required]) => `<div class="field ${["description", "territory_hierarchy"].includes(field) ? "full" : ""}"><label for="field-${field}">${escapeHtml(label)}${required ? " *" : ""}</label>${field === "description" || field === "territory_hierarchy" ? `<textarea id="field-${field}" ${key && field === "username" ? "disabled" : ""}>${escapeHtml(row[field])}</textarea>` : `<input id="field-${field}" value="${escapeHtml(row[field])}" ${required ? "required" : ""} ${key && field === "username" ? "readonly" : ""} />`}</div>`).join("")}</form></div><div class="modal-foot"><button class="btn btn-secondary" id="cancel-modal">Hủy</button><button class="btn btn-primary" id="save-record">Lưu bản ghi</button></div></section></div>`;
+      const close = () => modalRoot.innerHTML = "";
+      $("#close-modal").addEventListener("click", close); $("#cancel-modal").addEventListener("click", close); $("#modal-backdrop").addEventListener("click", e => e.target.id === "modal-backdrop" && close());
+      $("#save-record").addEventListener("click", async () => {
+        const form = $("#record-form"); if (!form.reportValidity()) return;
+        const payload = {}; fields.forEach(([field]) => payload[field] = $(`#field-${field}`).value || null); payload.updated_at = new Date().toISOString();
+        const { error } = await state.supabase.from(table).upsert(payload, { onConflict: "username" });
+        if (error) return toast(`Không lưu được: ${error.message}`, "error");
+        close(); toast("Đã lưu bản ghi.", "success"); await loadData();
+      });
+    }
+
+    async function deleteRow(key) {
+      if (!isAdmin() || !confirm(`Xóa bản ghi UserName "${key}"? Hành động này không thể hoàn tác.`)) return;
+      const table = state.tab === "dms" ? "dms_users" : "central_users";
+      const { error } = await state.supabase.from(table).delete().eq("username", key);
+      if (error) return toast(`Không xóa được: ${error.message}`, "error");
+      toast("Đã xóa bản ghi.", "success"); await loadData();
+    }
+
+    async function updateProfile(id, changes) {
+      const { error } = await state.supabase.from("profiles").update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) return toast(`Không cập nhật được quyền: ${error.message}`, "error");
+      toast("Đã cập nhật tài khoản.", "success"); await loadData();
+    }
+
+    document.addEventListener("click", e => {
+      if (e.target.closest("#google-login")) login();
+      if (e.target.closest("#logout-pending")) logout();
+    });
+    boot();
+  </script>
+</body>
+</html>

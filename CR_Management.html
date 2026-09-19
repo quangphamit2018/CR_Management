@@ -390,15 +390,6 @@ body.sidebar-hidden .drawer{ left:0; }
   background: rgba(255,255,255,0.06); padding:1px 7px; border-radius:20px; flex-shrink:0;
 }
 .nav-item.active .count{ background: rgba(63,208,201,0.2); color: var(--accent); }
-.nav-item.nav-subitem{
-  margin-left:14px;
-  padding-left:24px;
-  font-size:13px;
-  border-left:1px solid rgba(255,255,255,0.08);
-  border-radius:0 10px 10px 0;
-}
-.nav-item.nav-subitem svg{ width:15px; height:15px; opacity:.72; }
-.nav-item.nav-subitem.active{ border-left-color:rgba(63,208,201,0.55); }
 
 .sidebar-foot{ margin-top:auto; padding-top:14px; border-top:1px solid var(--border); }
 .conn-pill{
@@ -5247,7 +5238,7 @@ html{
       <span class="nav-label">Tạo BRD</span>
       <span class="count" id="navCountBrd">0</span>
     </div>
-    <div class="nav-item nav-subitem" data-view="weekly_mom" title="Weekly MoM">
+    <div class="nav-item" data-view="weekly_mom" title="Weekly MoM">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M8 14h3M8 18h7"/></svg>
       <span class="nav-label">Weekly MoM</span>
       <span class="count" id="navCountWeeklyMom">0</span>

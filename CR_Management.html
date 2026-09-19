@@ -13257,9 +13257,9 @@ function openWeeklyMomDownloadModal(){
   }
 }
 
-function downloadWeeklyMomExcel(recordId){
-  if(typeof XLSX === "undefined"){
-    toast("Không tải được thư viện Excel (XLSX). Kiểm tra kết nối mạng rồi thử lại.", "err");
+async function downloadWeeklyMomExcel(recordId){
+  if(typeof ExcelJS === "undefined"){
+    toast("Không tải được thư viện Excel (ExcelJS). Kiểm tra kết nối mạng rồi thử lại.", "err");
     return;
   }
   const candidates = weeklyMomDownloadCandidates();
@@ -13269,18 +13269,87 @@ function downloadWeeklyMomExcel(recordId){
     toast("Chưa có dữ liệu Weekly MoM để tải.", "warn");
     return;
   }
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.aoa_to_sheet([
-    WEEKLY_MOM_EXCEL_HEADERS,
-    ...items.map(weeklyMomExportRow)
-  ]);
-  worksheet["!cols"] = [
-    {wch:12}, {wch:45}, {wch:12}, {wch:20}, {wch:22},
-    {wch:10}, {wch:10}, {wch:22}, {wch:42}, {wch:70}, {wch:30}
-  ];
-  XLSX.utils.book_append_sheet(workbook, worksheet, WEEKLY_MOM_EXCEL_SHEET_NAME);
-  const metadata = [
-    ["Thông tin export", ""],
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(WEEKLY_MOM_EXCEL_SHEET_NAME);
+  const exportedRows = items.map(weeklyMomExportRow);
+  const columnWidths = [12, 45, 12, 20, 22, 10, 10, 22, 42, 70, 30];
+  const thinBorder = {
+    top: { style:"thin", color:{ argb:"FFD7E4E8" } },
+    left: { style:"thin", color:{ argb:"FFD7E4E8" } },
+    bottom: { style:"thin", color:{ argb:"FFD7E4E8" } },
+    right: { style:"thin", color:{ argb:"FFD7E4E8" } }
+  };
+  const headerBorder = {
+    top: { style:"thin", color:{ argb:"FF0D777A" } },
+    left: { style:"thin", color:{ argb:"FF0D777A" } },
+    bottom: { style:"medium", color:{ argb:"FF0D777A" } },
+    right: { style:"thin", color:{ argb:"FF0D777A" } }
+  };
+  const bodyFont = { name:"Aptos", size:10, color:{ argb:"FF183F55" } };
+  const headerFont = { name:"Aptos Display", size:10, bold:true, color:{ argb:"FFFFFFFF" } };
+  const headerFill = { type:"pattern", pattern:"solid", fgColor:{ argb:"FF159A9C" } };
+  const evenRowFill = { type:"pattern", pattern:"solid", fgColor:{ argb:"FFF8FBFC" } };
+  const statusFill = { type:"pattern", pattern:"solid", fgColor:{ argb:"FFEEF8F8" } };
+
+  worksheet.columns = columnWidths.map(width=>({ width }));
+  worksheet.addRow(WEEKLY_MOM_EXCEL_HEADERS);
+  exportedRows.forEach(row=> worksheet.addRow(row));
+  worksheet.views = [{ state:"frozen", ySplit:1 }];
+  worksheet.autoFilter = { from:"A1", to:`K${exportedRows.length + 1}` };
+  worksheet.properties.defaultRowHeight = 21;
+  worksheet.pageSetup = {
+    orientation:"landscape",
+    paperSize:9,
+    fitToPage:true,
+    fitToWidth:1,
+    fitToHeight:0,
+    margins:{ left:0.25, right:0.25, top:0.5, bottom:0.5, header:0.2, footer:0.2 }
+  };
+
+  const headerRow = worksheet.getRow(1);
+  headerRow.height = 30;
+  headerRow.eachCell({ includeEmpty:true }, cell=>{
+    cell.font = headerFont;
+    cell.fill = headerFill;
+    cell.border = headerBorder;
+    cell.alignment = { horizontal:"center", vertical:"middle", wrapText:true };
+  });
+
+  for(let rowIndex = 2; rowIndex <= exportedRows.length + 1; rowIndex++){
+    const row = worksheet.getRow(rowIndex);
+    const values = exportedRows[rowIndex - 2];
+    const estimatedLines = values.reduce((max, value, columnIndex)=>{
+      const text = String(value || "");
+      const width = columnWidths[columnIndex] || 20;
+      const lineCount = text.split("\n").reduce((sum, line)=>{
+        return sum + Math.max(1, Math.ceil(line.length / Math.max(8, width * 1.05)));
+      }, 0);
+      return Math.max(max, lineCount);
+    }, 1);
+    row.height = Math.min(150, Math.max(24, estimatedLines * 15 + 6));
+    row.eachCell({ includeEmpty:true }, (cell, columnIndex)=>{
+      cell.font = bodyFont;
+      cell.border = thinBorder;
+      cell.alignment = {
+        horizontal: columnIndex === 1 ? "center" : "left",
+        vertical:"top",
+        wrapText:true
+      };
+      if(rowIndex % 2 === 0) cell.fill = evenRowFill;
+      if(columnIndex === 4 || columnIndex === 5){
+        cell.fill = statusFill;
+        cell.font = { ...bodyFont, bold:true, color:{ argb:"FF0E7F83" } };
+      }
+    });
+  }
+
+  // Sheet thông tin export cũng được format để không còn là một bảng thô.
+  const metadata = workbook.addWorksheet("Import_Metadata");
+  metadata.columns = [{ width:24 }, { width:48 }];
+  metadata.mergeCells("A1:B1");
+  metadata.getCell("A1").value = "Thông tin export Weekly MoM";
+  metadata.addRows([
     ["Ngày họp", selected?.meeting_date || todayISO()],
     ["Ngày upload", selected?.upload_date || todayISO()],
     ["Batch", selected?.import_batch_id || selected?.id || "—"],
@@ -13288,11 +13357,45 @@ function downloadWeeklyMomExcel(recordId){
     ["Nguồn file", selected?.source_file_name || "—"],
     ["Số dòng", items.length],
     ["Múi giờ", "Asia/Ho_Chi_Minh (UTC+7)"]
-  ];
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(metadata), "Import_Metadata");
-  const suffix = selected?.meeting_date || todayISO();
-  XLSX.writeFile(workbook, `CR_Report_Summary_Weekly_${suffix.replaceAll("-", "")}.xlsx`);
-  toast(`Đã tải ${items.length} dòng của ngày họp ${weeklyMomDateLabel(suffix)}.`, "ok");
+  ]);
+  metadata.getRow(1).height = 30;
+  metadata.getCell("A1").font = headerFont;
+  metadata.getCell("A1").fill = headerFill;
+  metadata.getCell("A1").border = headerBorder;
+  metadata.getCell("A1").alignment = { horizontal:"left", vertical:"middle" };
+  for(let rowIndex = 2; rowIndex <= 8; rowIndex++){
+    const row = metadata.getRow(rowIndex);
+    row.height = 22;
+    row.eachCell({ includeEmpty:true }, (cell, columnIndex)=>{
+      cell.font = columnIndex === 1 ? { ...bodyFont, bold:true } : bodyFont;
+      cell.border = thinBorder;
+      cell.alignment = { vertical:"middle", wrapText:true };
+      if(rowIndex % 2 === 0) cell.fill = evenRowFill;
+    });
+  }
+  metadata.views = [{ state:"frozen", ySplit:1 }];
+
+  DLProgress.open("Đang tạo báo cáo Weekly MoM");
+  try{
+    DLProgress.setIndeterminate("Đang áp dụng font, màu, border và chiều cao dòng...");
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const suffix = selected?.meeting_date || todayISO();
+    anchor.href = url;
+    anchor.download = `CR_Report_Summary_Weekly_${suffix.replaceAll("-", "")}.xlsx`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    DLProgress.setProgress(100, "Hoàn tất file Excel đã format");
+    toast(`Đã tải ${items.length} dòng của ngày họp ${weeklyMomDateLabel(suffix)} với định dạng báo cáo.`, "ok");
+  }catch(err){
+    toast("Tạo file Weekly MoM thất bại: " + err.message, "err");
+  }finally{
+    DLProgress.close();
+  }
 }
 
 function fmtBrdDateTime(iso){

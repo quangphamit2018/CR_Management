@@ -1327,6 +1327,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   }
   .aa-next span{ color:var(--ink-2); font-size:12px; }
 
+  .aa-tick{ margin:-8px 0 18px; padding:10px 16px; border-radius:12px; font-size:12.5px; line-height:1.6; border:1px solid var(--line); border-left:5px solid #8494a5; background:#f5f7fa; color:var(--ink-2); }
+  .aa-tick.ok{ border-left-color:#28a745; background:var(--ok-bg); border-color:var(--ok-line); color:#1a5e2b; }
+  .aa-tick.warn{ border-left-color:#e0a800; background:var(--warn-bg); border-color:var(--warn-line); color:#5c4500; }
+  .aa-tick.err{ border-left-color:#d64550; background:var(--danger-bg); border-color:var(--danger-line); color:var(--danger); }
+  .aa-tick b{ font-weight:700; }
   .aa-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-bottom:18px; }
   .aa-box{
     padding:16px 18px 18px; background:var(--surface-2); border:1px solid var(--line-2); border-left:4px solid var(--navy-700); border-radius:12px; min-width:0;
@@ -2015,6 +2020,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         </div>
 
         <div class="aa-next" id="aaNextRun" style="display:none;"></div>
+        <div class="aa-tick" id="aaTickInfo" style="display:none;"></div>
 
         <div class="aa-grid">
           <!-- Điều kiện quét -->
@@ -5614,6 +5620,7 @@ function aaNextRun(cfg){
 }
 
 function aaRenderState(cfg){
+  aaRenderTick(cfg);
   const badge = aaEl('aaStateBadge'), next = aaEl('aaNextRun');
   const on = !!(cfg && cfg.enabled);
   badge.className = 'aa-state ' + (on ? 'on' : 'off');
@@ -5630,6 +5637,66 @@ function aaRenderState(cfg){
     next.style.display = 'none';
   }
 }
+
+/* ---------- Nhịp cron: lần gần nhất Edge Function được cron gọi tới (phát hiện cron chưa chạy) ---------- */
+function aaTickResultText(res){
+  res = String(res || '');
+  const map = { not_due: 'chưa tới mốc chạy', disabled: 'job đang tắt', no_assignee: 'chưa chọn người nhận', already_ran: 'mốc này đã chạy rồi',
+    no_supported_sync_schedule: 'lịch sync chưa hỗ trợ đọc tự động' };
+  if(map[res]) return map[res];
+  if(/^ran /.test(res)) return 'ĐÃ CHẠY — ' + res.replace(/^ran\s+\S+:\s*/, '');
+  if(/^error/.test(res)) return 'LỖI — ' + res.replace(/^error:?\s*/, '');
+  return res || '(chưa có kết quả)';
+}
+function aaAgo(ms){
+  const s = Math.max(0, Math.round(ms / 1000));
+  return s < 60 ? s + ' giây trước' : s < 3600 ? Math.round(s / 60) + ' phút trước' : Math.round(s / 3600) + ' giờ trước';
+}
+function aaRenderTick(cfg){
+  const el = aaEl('aaTickInfo');
+  if(!cfg || !cfg.id){ el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.className = 'aa-tick';
+  if(!Object.prototype.hasOwnProperty.call(cfg, 'last_tick_at')){
+    el.textContent = 'Chưa có theo dõi nhịp cron. Chạy phần 1 của file 04_heartbeat_and_tick.sql và deploy lại Edge Function để thấy thời điểm cron gọi tới gần nhất.';
+    return;
+  }
+  if(!cfg.last_tick_at){
+    if(cfg.enabled){
+      el.classList.add('warn');
+      el.innerHTML = '<b>Chưa nhận được nhịp nào từ cron.</b> Job đã bật nhưng chưa có lần gọi nào tới Edge Function. Hãy kiểm tra: ' +
+        '(1) job cron <code>auto-assign-tick</code> đã được tạo và đang bật; (2) Edge Function <code>jira-auto-assign</code> đã deploy; ' +
+        '(3) secret <code>AUTO_ASSIGN_CRON_SECRET</code> khớp với lệnh cron. Các câu lệnh chẩn đoán nằm trong file 04_heartbeat_and_tick.sql.';
+    } else {
+      el.textContent = 'Chưa nhận được nhịp nào từ cron (job đang tắt).';
+    }
+    return;
+  }
+  const age = Date.now() - new Date(cfg.last_tick_at).getTime();
+  const when = new Date(cfg.last_tick_at).toLocaleTimeString('vi-VN');
+  const isErr = /^error/.test(String(cfg.last_tick_result || ''));
+  const stale = age > 150000;     // > 2,5 phút: cron gọi mỗi phút nên chắc chắn đã có vấn đề
+  if(stale && cfg.enabled) el.classList.add('warn'); else if(isErr) el.classList.add('err'); else el.classList.add('ok');
+  el.innerHTML = 'Nhịp cron gần nhất: <b>' + aaEsc(when) + '</b> (' + aaEsc(aaAgo(age)) + ') — ' + aaEsc(aaTickResultText(cfg.last_tick_result)) +
+    (stale && cfg.enabled ? '. <b>Đã quá lâu chưa có nhịp mới — cron có thể đã dừng hoặc Edge Function đang lỗi.</b>' : '');
+}
+let aaLastTickSeen = null;
+async function aaRefreshTick(){
+  if(!aaLoadedOnce || document.hidden) return;
+  if(aaEl('viewAutoAssign').style.display === 'none') return;
+  const token = getSessionToken(); if(!token) return;
+  try{
+    const r = await rpc('auto_assign_get_config', { session_token: token });
+    if(!(r.ok && Array.isArray(r.data) && r.data[0])) return;
+    const c = r.data[0];
+    aaSavedCfg = Object.assign({}, aaSavedCfg || {}, { last_tick_at: c.last_tick_at, last_tick_result: c.last_tick_result });
+    aaRenderTick(aaSavedCfg);
+    const key = String(c.last_tick_at || '') + '|' + String(c.last_tick_result || '');
+    if(aaLastTickSeen !== null && aaLastTickSeen !== key && /^ran /.test(String(c.last_tick_result || ''))) aaLoadLog();   // có lần chạy mới -> cập nhật lịch sử
+    aaLastTickSeen = key;
+  }catch(e){ /* mất mạng tạm thời: bỏ qua, lần sau thử lại */ }
+}
+setInterval(aaRefreshTick, 30000);
 
 /* ---------- Nạp dữ liệu ---------- */
 async function aaLoadAssignees(){
@@ -5819,8 +5886,16 @@ async function aaCallEdge(mode){
       body: JSON.stringify({ mode: mode === 'run' ? 'run' : 'dry_run', session_token: token })
     });
     const data = await resp.json().catch(() => null);
-    if(resp.status === 404 && !data){ aaSetAlert('Edge Function "' + AA_EDGE_FUNCTION + '" chưa được deploy trên Supabase.', 'err'); aaShowSetup(true); return; }
-    if(resp.status === 401){ aaSetAlert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 'err'); return; }
+    if(resp.status === 404){
+      aaSetAlert('Edge Function "' + AA_EDGE_FUNCTION + '" chưa được deploy (hoặc sai tên) trên Supabase. Chi tiết: ' + ((data && (data.message || data.error)) || 'HTTP 404'), 'err');
+      return;
+    }
+    if(resp.status === 401){
+      // 401 có thể do phiên Admin hết hạn (hàm trả error tiếng Việt) HOẶC do cổng JWT của Supabase (message tiếng Anh) -> hiện đúng lý do
+      const why = data && (data.error || data.message);
+      aaSetAlert(why ? 'Bị từ chối (401): ' + why : 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 'err');
+      return;
+    }
     if(!resp.ok || !data || !data.ok){
       aaSetAlert('Thất bại: ' + ((data && (data.error || data.detail)) || ('HTTP ' + resp.status)), 'err');
       console.error('[Auto Assign] Lỗi:', data);
@@ -5837,7 +5912,7 @@ async function aaCallEdge(mode){
       aaSetAlert(data.found ? 'Tìm thấy ' + data.found + ' ticket thoả điều kiện (chưa giao, đây chỉ là xem trước).' : 'Không có ticket nào thoả điều kiện lúc này.', 'info');
     }
   }catch(e){
-    aaSetAlert('Lỗi kết nối Edge Function: ' + e.message, 'err');
+    aaSetAlert('Lỗi kết nối Edge Function: ' + e.message + ' — thường do Edge Function chưa deploy hoặc bị chặn CORS; hãy xem tab Logs của function trên Supabase.', 'err');
   }finally{ aaBusyOn(false); }
 }
 

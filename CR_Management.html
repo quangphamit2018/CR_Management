@@ -4337,38 +4337,50 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 .brd-error{ color:#c0433f; border-color:#f0cbc8; background:#fdf6f5; }
 
 /* ---- Form BRD trong modal -------------------------------------------------- */
-.weekly-mom-workspace{ padding:18px 0 24px; }
+.weekly-mom-workspace{
+  padding:22px 20px 28px; min-height:calc(100vh - 76px);
+  background:linear-gradient(145deg,#f4f9fa 0%,#eef5f7 52%,#f8fbfc 100%);
+  border:1px solid #dce9ed; border-radius:18px;
+}
 .weekly-mom-intro{
-  display:flex; align-items:center; gap:13px; padding:16px 18px; margin-bottom:14px;
-  border:1px solid #dfe9ed; border-radius:14px; background:#fff;
-  box-shadow:0 4px 14px rgba(22,52,78,.035);
+  display:flex; align-items:center; gap:14px; padding:17px 20px; margin-bottom:16px;
+  border:1px solid #cfe1e6; border-radius:16px; background:linear-gradient(110deg,#ffffff,#f5fbfc);
+  box-shadow:0 8px 22px rgba(22,52,78,.07); position:relative; overflow:hidden;
+}
+.weekly-mom-intro::after{
+  content:""; position:absolute; right:-50px; top:-70px; width:190px; height:190px;
+  border-radius:50%; background:rgba(23,159,160,.08); pointer-events:none;
 }
 .weekly-mom-intro-icon{
-  width:40px; height:40px; display:flex; align-items:center; justify-content:center;
-  flex:0 0 auto; border-radius:11px; color:#167f83; background:#e5f5f3;
+  width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+  flex:0 0 auto; border-radius:13px; color:#087d82; background:#dff3f1;
+  border:1px solid #bfe4e1; box-shadow:0 4px 10px rgba(23,159,160,.12); z-index:1;
 }
 .weekly-mom-intro-icon svg{ width:21px; height:21px; }
-.weekly-mom-title{ color:#173d57; font-family:var(--font-head); font-size:15px; font-weight:800; }
-.weekly-mom-note{ margin-top:3px; color:#758b9b; font-size:12px; line-height:1.45; }
-.weekly-mom-total{ margin-left:auto; color:#5d7689; font-size:12px; white-space:nowrap; }
-.weekly-mom-total b{ color:#167f83; font-size:18px; margin-right:3px; }
+.weekly-mom-title{ color:#123c56; font-family:var(--font-head); font-size:16px; font-weight:850; letter-spacing:-.01em; }
+.weekly-mom-note{ margin-top:4px; color:#526f80; font-size:12px; line-height:1.5; }
+.weekly-mom-total{ margin-left:auto; color:#466678; font-size:12px; white-space:nowrap; z-index:1; }
+.weekly-mom-total b{ color:#087d82; font-size:20px; margin-right:4px; }
 .weekly-mom-grid{ display:grid; gap:13px; }
 .weekly-mom-card{
-  overflow:hidden; border:1px solid #dfe9ed; border-radius:14px; background:#fff;
-  box-shadow:0 4px 14px rgba(22,52,78,.035);
+  overflow:hidden; border:1px solid #cbdfe4; border-radius:16px; background:#fff;
+  box-shadow:0 7px 20px rgba(22,52,78,.07); transition:box-shadow .18s ease,border-color .18s ease;
 }
+.weekly-mom-card:hover{ border-color:#9cced0; box-shadow:0 10px 25px rgba(22,52,78,.11); }
 .weekly-mom-card-head{
-  display:flex; align-items:flex-start; gap:12px; padding:15px 17px 12px;
-  border-bottom:1px solid #edf2f4; background:#fbfdfe;
+  display:flex; align-items:center; gap:14px; padding:14px 17px;
+  border-bottom:1px solid #c5dfe1; background:linear-gradient(105deg,#e9f7f6 0%,#f8fbfc 58%,#eef7f8 100%);
+  box-shadow:inset 0 3px 0 #159a9c; position:relative; z-index:2;
 }
-.weekly-mom-card-date{ color:#167f83; font-size:12px; font-weight:800; white-space:nowrap; }
-.weekly-mom-card-vendor{ color:#173d57; font-size:14px; font-weight:800; }
-.weekly-mom-card-title{ color:#3d5b6d; font-size:12px; margin-top:3px; }
+.weekly-mom-card-date{ color:#08777c; font-size:12px; font-weight:850; white-space:nowrap; padding:7px 9px; border:1px solid #b7dfdd; border-radius:8px; background:#fff; box-shadow:0 2px 5px rgba(22,52,78,.05); }
+.weekly-mom-card-vendor{ color:#123c56; font-size:14px; font-weight:850; }
+.weekly-mom-card-title{ color:#456778; font-size:12px; margin-top:3px; }
 .weekly-mom-card-actions{ margin-left:auto; display:flex; gap:6px; }
-.weekly-mom-card-body{ padding:13px 17px 16px; min-width:0; }
+.weekly-mom-card-body{ padding:14px 17px 17px; min-width:0; height:min(760px,calc(100vh - 230px)); display:flex; flex-direction:column; overflow:hidden; }
+.weekly-mom-card-body[hidden]{ display:none !important; }
 .weekly-mom-card.is-collapsed .weekly-mom-card-body{ display:none; }
-.weekly-mom-card-toggle{ display:inline-flex; align-items:center; gap:5px; border:1px solid #dce8ec; border-radius:7px; padding:6px 8px; color:#557082; background:#fff; cursor:pointer; font-size:11px; font-weight:750; }
-.weekly-mom-card-toggle:hover{ color:#167f83; border-color:#abd4d5; background:#f5fbfb; }
+.weekly-mom-card-toggle{ display:inline-flex; align-items:center; gap:5px; border:1px solid #b8d5d8; border-radius:8px; padding:7px 9px; color:#145c68; background:#fff; cursor:pointer; font-size:11px; font-weight:800; }
+.weekly-mom-card-toggle:hover{ color:#08777c; border-color:#70b9bb; background:#f3fbfa; }
 .weekly-mom-card-toggle svg{ width:13px; height:13px; transition:transform .18s ease; }
 .weekly-mom-card:not(.is-collapsed) .weekly-mom-card-toggle svg{ transform:rotate(180deg); }
 .weekly-mom-detail-table{ width:100%; min-width:2050px; table-layout:fixed; }
@@ -4410,17 +4422,21 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 .weekly-mom-table tbody tr:last-child td{ border-bottom:0; }
 .weekly-mom-table tbody tr:nth-child(even) td{ background:#f8fbfc; }
 .weekly-mom-table tbody tr:hover td{ background:#eef8f8; }
-.weekly-mom-table th{ color:#24495d; background:#e8f2f4; font-size:11.5px; font-weight:850; white-space:nowrap; }
+.weekly-mom-table th{ color:#153e55; background:#d9edef; font-size:11.5px; font-weight:850; white-space:nowrap; position:sticky; top:0; z-index:1; box-shadow:0 2px 0 #9fcdd0; }
 .weekly-mom-table td{ color:#183f55; white-space:pre-wrap; line-height:1.5; }
 .weekly-mom-crid{ color:#167f83; font-weight:800; white-space:nowrap; }
 .weekly-mom-empty,.weekly-mom-error{
   padding:44px 20px; border:1px dashed #cfdfe3; border-radius:13px; color:#78909f; text-align:center; background:#fff;
 }
 .weekly-mom-error{ color:#a1564f; border-color:#e8c9c5; background:#fffafa; }
-.weekly-mom-form-rows{ width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; border:1px solid #dfe8ec; border-radius:9px; -webkit-overflow-scrolling:touch; scrollbar-color:#9bbdc3 #eef5f6; scrollbar-width:thin; }
+.weekly-mom-form-rows{ width:100%; max-width:100%; flex:1; min-height:0; overflow:auto; border:1px solid #cbdfe4; border-radius:10px; -webkit-overflow-scrolling:touch; scrollbar-color:#76adb2 #e8f2f3; scrollbar-width:thin; }
 .weekly-mom-form-rows::-webkit-scrollbar{ height:11px; }
-.weekly-mom-form-rows::-webkit-scrollbar-track{ background:#eef5f6; border-radius:8px; }
-.weekly-mom-form-rows::-webkit-scrollbar-thumb{ background:#9bbdc3; border:2px solid #eef5f6; border-radius:8px; }
+.weekly-mom-form-rows::-webkit-scrollbar-track{ background:#e8f2f3; border-radius:8px; }
+.weekly-mom-form-rows::-webkit-scrollbar-thumb{ background:#76adb2; border:2px solid #e8f2f3; border-radius:8px; }
+.weekly-mom-sort-button{ display:inline-flex; align-items:center; gap:6px; border:0; padding:0; color:inherit; background:transparent; cursor:pointer; font:inherit; text-align:left; }
+.weekly-mom-sort-button:hover{ color:#08777c; }
+.weekly-mom-sort-icon{ display:inline-flex; width:14px; height:14px; align-items:center; justify-content:center; color:#6c969d; font-size:12px; font-weight:900; }
+.weekly-mom-sort-button.is-active .weekly-mom-sort-icon{ color:#08777c; }
 .weekly-mom-form-table{ width:100%; min-width:960px; border-collapse:separate; border-spacing:0; }
 .weekly-mom-form-table th,.weekly-mom-form-table td{ padding:7px; border-right:1px solid #e3ebef; border-bottom:1px solid #e3ebef; vertical-align:top; }
 .weekly-mom-form-table th:last-child,.weekly-mom-form-table td:last-child{ border-right:0; }
@@ -4432,10 +4448,12 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 .weekly-mom-row-remove{ border:0; background:transparent; color:#c0433f; cursor:pointer; font-size:15px; padding:6px; }
 .weekly-mom-add-row{ margin-top:9px; }
 @media(max-width:700px){
+  .weekly-mom-workspace{ padding:12px 10px 20px; border-radius:12px; }
   .weekly-mom-intro{ align-items:flex-start; flex-wrap:wrap; padding:13px; }
   .weekly-mom-total{ width:100%; margin-left:53px; }
   .weekly-mom-card-head{ flex-wrap:wrap; }
   .weekly-mom-card-actions{ width:100%; margin-left:0; }
+  .weekly-mom-card-body{ height:min(680px,calc(100vh - 205px)); padding:10px; }
   .weekly-mom-summary{ grid-template-columns:1fr; }
   .weekly-mom-column-check{ grid-template-columns:1fr; }
 }
@@ -5707,7 +5725,7 @@ html{
           </div>
           <div>
             <div class="weekly-mom-title">Biên bản Weekly với Vendor</div>
-            <div class="weekly-mom-note">Mỗi buổi họp có thể ghi nhận nhiều CR, cùng cập nhật hiện tại, next action, ETA và ghi chú.</div>
+            <div class="weekly-mom-note">Mỗi buổi họp có thể ghi nhận nhiều CR. Bấm tên cột để sắp xếp; mở chi tiết để xem toàn bộ dữ liệu trong khung cuộn.</div>
           </div>
           <div class="weekly-mom-total"><b id="weeklyMomCount">0</b> buổi họp</div>
         </div>
@@ -6143,6 +6161,7 @@ const STATE = {
   editingWeeklyMomId: null,
   weeklyMomRows: [],
   weeklyMomExpanded: {},
+  weeklyMomSort: {},
   editingUserId: null,
   brdVersionRows: [],     // dòng lịch sử phiên bản đang soạn trong form BRD (mảng object)
   drawerCrId: null,       // cr_id (text) currently shown in drawer
@@ -12469,6 +12488,44 @@ function weeklyMomActionButton(action, id, label, danger=false){
   return `<button class="btn btn-ghost btn-sm" data-weekly-act="${action}" data-id="${esc(String(id))}"${danger ? ' style="color:#c0433f;"' : ""}>${label}</button>`;
 }
 
+function weeklyMomSortValue(row, header){
+  if(header === "CR ID") return weeklyMomText(row?.cr_id);
+  if(header === "Progress") return weeklyMomProgressValue(row);
+  const key = {
+    "Description":"description",
+    "Priority":"priority",
+    "Status":"status",
+    "Sub-Status":"sub_status",
+    "BRD":"brd",
+    "FSD":"fsd",
+    "ETA":"eta",
+    "Loop Mail Header":"loop_mail_header",
+    "Note":"note"
+  }[header];
+  return weeklyMomText(key ? row?.[key] : "");
+}
+
+function weeklyMomSortedRows(rows, sortState){
+  if(!sortState || sortState.index === null || sortState.index === undefined) return rows;
+  const header = WEEKLY_MOM_EXCEL_HEADERS[Number(sortState.index)];
+  if(!header) return rows;
+  const direction = sortState.direction === "desc" ? -1 : 1;
+  return rows.map((row, originalIndex)=>({row, originalIndex})).sort((a,b)=>{
+    const av = weeklyMomSortValue(a.row, header);
+    const bv = weeklyMomSortValue(b.row, header);
+    if(!av && bv) return 1;
+    if(av && !bv) return -1;
+    const result = av.localeCompare(bv, "vi", {numeric:true, sensitivity:"base"});
+    return result === 0 ? a.originalIndex - b.originalIndex : result * direction;
+  }).map(entry=>entry.row);
+}
+
+function weeklyMomSortableHeader(header, index, recordKey, sortState){
+  const isActive = Number(sortState?.index) === index;
+  const icon = isActive ? (sortState.direction === "desc" ? "↓" : "↑") : "↕";
+  return `<th><button class="weekly-mom-sort-button${isActive ? " is-active" : ""}" type="button" data-weekly-sort="${esc(recordKey)}" data-weekly-sort-index="${index}" title="Sắp xếp theo ${esc(header)}"><span>${esc(header)}</span><span class="weekly-mom-sort-icon" aria-hidden="true">${icon}</span></button></th>`;
+}
+
 function renderWeeklyMomList(){
   const grid = $("#weeklyMomGrid");
   if(!grid) return;
@@ -12493,7 +12550,10 @@ function renderWeeklyMomList(){
 
   grid.innerHTML = STATE.weeklyMomList.map(record=>{
     const rows = weeklyMomRowsOf(record);
-    const crRows = rows.length ? rows.map(row=>`
+    const recordKey = String(record.id);
+    const sortState = STATE.weeklyMomSort[recordKey] || { index:null, direction:"asc" };
+    const sortedRows = weeklyMomSortedRows(rows, sortState);
+    const crRows = sortedRows.length ? sortedRows.map(row=>`
       <tr>
         <td class="weekly-mom-crid">${esc(weeklyMomText(row.cr_id) || "—")}</td>
         <td class="${row.description ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.description) || "—")}</td>
@@ -12512,9 +12572,8 @@ function renderWeeklyMomList(){
     const summary = weeklyMomText(record.overall_summary);
     const isExcelImport = record.source_type === "excel";
     const isCurrentUploadDay = !record.upload_date || record.upload_date === todayISO();
-    const recordKey = String(record.id);
     const isExpanded = STATE.weeklyMomExpanded[recordKey] !== false;
-    return `<article class="weekly-mom-card" data-weekly-id="${esc(String(record.id))}">
+    return `<article class="weekly-mom-card${isExpanded ? "" : " is-collapsed"}" data-weekly-id="${esc(String(record.id))}">
       <div class="weekly-mom-card-head">
         <div class="weekly-mom-card-date">${esc(weeklyMomDateLabel(record.meeting_date))}</div>
         <div>
@@ -12538,7 +12597,7 @@ function renderWeeklyMomList(){
         </div>
         <div class="weekly-mom-form-rows">
           <table class="weekly-mom-table weekly-mom-detail-table">
-            <thead><tr>${WEEKLY_MOM_EXCEL_HEADERS.map(header=>`<th>${esc(header)}</th>`).join("")}</tr></thead>
+            <thead><tr>${WEEKLY_MOM_EXCEL_HEADERS.map((header,index)=>weeklyMomSortableHeader(header,index,recordKey,sortState)).join("")}</tr></thead>
             <tbody>${crRows}</tbody>
           </table>
         </div>
@@ -12560,6 +12619,17 @@ function renderWeeklyMomList(){
           "Chuyển vào Recycle Bin"
         );
       }
+    });
+  });
+  $all("#weeklyMomGrid [data-weekly-sort]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const key = String(btn.dataset.weeklySort);
+      const index = Number(btn.dataset.weeklySortIndex);
+      const current = STATE.weeklyMomSort[key];
+      STATE.weeklyMomSort[key] = current && Number(current.index) === index
+        ? { index, direction: current.direction === "asc" ? "desc" : "asc" }
+        : { index, direction:"asc" };
+      renderWeeklyMomList();
     });
   });
   $all("#weeklyMomGrid [data-weekly-toggle]").forEach(btn=>{

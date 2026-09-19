@@ -831,6 +831,9 @@
     .tl-prev tr.r-old td { background: #e6e6e6; }
     .tl-prev tr.r-new td { background: #d8f0cf; }
     .tl-check select { border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 10px; font-size: 12px; background: #fff; color: var(--ink); outline: none; }
+    .tl-multi { padding: 10px 20px; font-size: 12px; color: var(--ink-2); background: var(--surface-soft); border-bottom: 1px solid var(--line); line-height: 1.6; }
+    .tl-multi .bad { color: var(--danger); font-weight: 650; }
+    .tl-multi .warn { color: var(--warning); font-weight: 650; }
     #tl-export:disabled { opacity: .5; cursor: not-allowed; }
     @media (max-width: 900px) { .tl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 600px) { .tl-grid { grid-template-columns: 1fr; } }
@@ -1423,15 +1426,30 @@
     }
     // Bộ lọc trạng thái: mặc định Tất cả; người dùng có thể thu hẹp về Active / Deactive
     const toolStatus = () => tool.status || "all";
+    let toolMulti = null;   // thông tin tìm nhiều mã của lần lọc gần nhất (null = đang tìm thường)
     function toolListRows() {
-      const q = tool.q.trim().toLowerCase(), st = toolStatus();
-      return state.central.filter(r => (st === "all" || (st === "inactive") === isInactive(r)) && (!q || rowSearchText(r, CENTRAL_FIELDS).includes(q)));
+      const q = tool.q.trim().toLowerCase(), st = toolStatus(), okStatus = r => st === "all" || (st === "inactive") === isInactive(r);
+      const tokens = [...new Map(tool.q.split(/[\s,;]+/).filter(Boolean).map(x => [x.toLowerCase(), x])).values()];
+      toolMulti = null;
+      if (tokens.length >= 2) {
+        const want = new Set(tokens.map(x => x.toLowerCase())), found = new Set(), out = [];
+        let hidden = 0;
+        state.central.forEach(r => {
+          const hit = [r.username, r.employee_code, r.email].map(x => String(x ?? "").trim().toLowerCase()).filter(k => want.has(k));
+          if (!hit.length) return;
+          hit.forEach(k => found.add(k));
+          if (okStatus(r)) out.push(r); else hidden++;
+        });
+        if (found.size) { toolMulti = { total: tokens.length, missing: tokens.filter(x => !found.has(x.toLowerCase())), hidden }; return out; }
+      }
+      return state.central.filter(r => okStatus(r) && (!q || rowSearchText(r, CENTRAL_FIELDS).includes(q)));
     }
     function renderToolList() {
-      const rows = toolListRows(), picked = new Set(tool.picked);
-      if (!rows.length) return `<div class="empty"><strong>${state.loading ? "Đang tải dữ liệu…" : "Không có account phù hợp"}</strong>Không có account nào khớp. Thử đổi bộ lọc Trạng thái hoặc từ khóa tìm kiếm.</div>`;
-      const body = rows.slice(0, TOOL_LIST_LIMIT).map(r => { const on = picked.has(r.username); return `<tr data-pk="${escapeHtml(r.username)}" class="${on ? "sel" : ""}"><td><input type="checkbox" ${on ? "checked" : ""} aria-label="Chọn ${escapeHtml(r.username)}"></td><td><strong>${escapeHtml(r.username)}</strong></td><td>${cellHtml(r.employee_name)}</td><td>${cellHtml(r.description)}</td><td>${cellHtml(r.email)}</td><td>${cellHtml(r.territory_hierarchy)}</td><td><span class="badge ${isInactive(r) ? "badge-danger" : "badge-success"}">${isInactive(r) ? "Deactive" : "Active"}</span></td></tr>`; }).join("");
-      return `<div class="table-wrap tl-scroll"><table class="tl-table"><thead><tr><th></th><th>UserName</th><th>EmployeeName</th><th>Description</th><th>Email</th><th>Territory</th><th>Trạng thái</th></tr></thead><tbody>${body}</tbody></table></div><div class="tl-foot">Hiển thị ${nf(Math.min(rows.length, TOOL_LIST_LIMIT))} / ${nf(rows.length)} account${rows.length > TOOL_LIST_LIMIT ? " — dùng ô tìm kiếm để thu hẹp" : ""}</div>`;
+      const rows = toolListRows(), picked = new Set(tool.picked), lim = toolMulti ? 500 : TOOL_LIST_LIMIT;
+      const mm = toolMulti, banner = mm ? `<div class="tl-multi"><b>Đã dán ${nf(mm.total)} mã</b> · khớp ${nf(mm.total - mm.missing.length)}${mm.missing.length ? ` · <span class="bad">không thấy ${nf(mm.missing.length)}: ${escapeHtml(mm.missing.join(", "))}</span>` : ""}${mm.hidden ? ` · <span class="warn">${nf(mm.hidden)} account bị ẩn bởi bộ lọc Trạng thái</span>` : ""}</div>` : "";
+      if (!rows.length) return banner + `<div class="empty"><strong>${state.loading ? "Đang tải dữ liệu…" : "Không có account phù hợp"}</strong>Không có account nào khớp. Thử đổi bộ lọc Trạng thái hoặc từ khóa tìm kiếm.</div>`;
+      const body = rows.slice(0, lim).map(r => { const on = picked.has(r.username); return `<tr data-pk="${escapeHtml(r.username)}" class="${on ? "sel" : ""}"><td><input type="checkbox" ${on ? "checked" : ""} aria-label="Chọn ${escapeHtml(r.username)}"></td><td><strong>${escapeHtml(r.username)}</strong></td><td>${cellHtml(r.employee_name)}</td><td>${cellHtml(r.description)}</td><td>${cellHtml(r.email)}</td><td>${cellHtml(r.territory_hierarchy)}</td><td><span class="badge ${isInactive(r) ? "badge-danger" : "badge-success"}">${isInactive(r) ? "Deactive" : "Active"}</span></td></tr>`; }).join("");
+      return banner + `<div class="table-wrap tl-scroll"><table class="tl-table"><thead><tr><th></th><th>UserName</th><th>EmployeeName</th><th>Description</th><th>Email</th><th>Territory</th><th>Trạng thái</th></tr></thead><tbody>${body}</tbody></table></div><div class="tl-foot">Hiển thị ${nf(Math.min(rows.length, lim))} / ${nf(rows.length)} account${rows.length > lim ? " — dùng ô tìm kiếm để thu hẹp" : ""}</div>`;
     }
     function toolMsg(m, touched, i) {
       const e = m.filter(x => x[0] === "e"), w = m.filter(x => x[0] === "w");
@@ -1459,8 +1477,8 @@
       const rep = tool.mode === "replace", rem = tool.mode === "remove", items = toolPersons(), v = toolValidate(items), cnt = toolCount(items), nAll = state.central.length, nOff = state.central.filter(isInactive).length;
       return `<div class="tl-seg"><button type="button" data-tl-mode="replace" class="${rep ? "on" : ""}">${ICONS.swap} Thay thế account</button><button type="button" data-tl-mode="create" class="${tool.mode === "create" ? "on" : ""}">${ICONS.plus} Tạo mới account</button><button type="button" data-tl-mode="remove" class="${rem ? "on" : ""}">${ICONS.trash} Remove account</button></div>
       ${rep || rem ? `<section class="panel tl-panel"><div class="panel-head"><div><h2>① Chọn account cần ${rem ? "remove" : "thay thế"}</h2><p>Hiện tất cả trạng thái; dùng bộ lọc Trạng thái để thu hẹp về Active hoặc Deactive. Lựa chọn được giữ nguyên khi bạn tìm kiếm.</p></div><span class="badge badge-blue" id="tl-count">${tool.picked.length} đã chọn</span></div>
-        <div class="toolbar"><div class="search"><span class="search-icon">${ICONS.search}</span><input id="tl-search" value="${escapeHtml(tool.q)}" placeholder="Tìm UserName, tên, email, mã vùng…" autocomplete="off" /></div>
-        <div class="toolbar-right"><label class="tl-check">Trạng thái <select id="tl-status" aria-label="Lọc theo trạng thái">${[["all", "Tất cả", nAll], ["active", "Active", nAll - nOff], ["inactive", "Deactive", nOff]].map(([k, l, n]) => `<option value="${k}"${toolStatus() === k ? " selected" : ""}>${l} (${nf(n)})</option>`).join("")}</select></label><button type="button" class="btn btn-secondary" data-tl="clear">Bỏ chọn hết</button></div></div>
+        <div class="toolbar"><div class="search"><span class="search-icon">${ICONS.search}</span><input id="tl-search" value="${escapeHtml(tool.q)}" placeholder="Tìm hoặc dán nhiều UserName…" autocomplete="off" /></div>
+        <div class="toolbar-right"><label class="tl-check">Trạng thái <select id="tl-status" aria-label="Lọc theo trạng thái">${[["all", "Tất cả", nAll], ["active", "Active", nAll - nOff], ["inactive", "Deactive", nOff]].map(([k, l, n]) => `<option value="${k}"${toolStatus() === k ? " selected" : ""}>${l} (${nf(n)})</option>`).join("")}</select></label><button type="button" class="btn btn-secondary" data-tl="pickall">Chọn tất cả kết quả</button><button type="button" class="btn btn-secondary" data-tl="clear">Bỏ chọn hết</button></div></div>
         <div id="tl-list">${renderToolList()}</div></section>` : ""}
       ${rem ? "" : `<section class="panel tl-panel"><div class="panel-head"><div><h2>${rep ? "② Thông tin người mới" : "① Thông tin account mới"}</h2><p>UserName, EmployeeName, Email là bắt buộc. EmployeeCode tự lấy theo UserName; tên tự chuyển IN HOA không dấu khi xuất. Ngày sinh để trống = NULL, ngày vào làm để trống = 1900-01-01.</p></div>${rep ? "" : `<button type="button" class="btn btn-secondary" data-tl="add">${ICONS.plus} Thêm người</button>`}</div><div class="panel-body" id="tl-cards">${renderToolCards(items, v)}</div></section>`}
       <section class="panel tl-panel"><div class="panel-head"><div><h2>${rep ? "③" : "②"} Xem trước &amp; xuất phiếu</h2><p>${rep ? "Dòng xám là account cũ (Deactive), dòng xanh là account mới (Active) — đúng thứ tự thay thế." : rem ? "Dòng xám là account bị remove (IsActive = 0, Note = Remove)." : "Dòng xanh là account mới (Active)."}</p></div><button type="button" class="btn btn-excel" id="tl-export" data-tl="export" ${!cnt || v.errors ? "disabled" : ""}>${ICONS.xlsx} Xuất phiếu Excel</button></div><div class="panel-body" id="tl-preview">${renderToolPreview(items, v)}</div></section>`;
@@ -1526,6 +1544,13 @@
         const act = a.dataset.tl, i = Number(a.dataset.i);
         if (act === "export") toolExport();
         else if (act === "add") { tool.list.push(blankPerson()); toolDrawPersons(); }
+        else if (act === "pickall") {
+          const rows = toolListRows();
+          if (!rows.length) return toast("Không có kết quả để chọn.", "error");
+          if (rows.length > 200) return toast(`Có ${nf(rows.length)} kết quả — hãy thu hẹp còn tối đa 200 account rồi chọn.`, "error");
+          const have = new Set(tool.picked); rows.forEach(r => have.has(r.username) || tool.picked.push(r.username));
+          $("#tl-list").innerHTML = renderToolList(); toolDrawPersons(); toast(`Đã chọn ${nf(rows.length)} account.`, "success");
+        }
         else if (act === "clear") { tool.picked = []; $("#tl-list").innerHTML = renderToolList(); toolDrawPersons(); }
         else if (act === "remove") {
           if (tool.mode === "create") tool.list.splice(i, 1);
@@ -1545,6 +1570,12 @@
         if (t.dataset.f === "username" && !p.codeEdited) { p.code = t.value; const c = pg.querySelector(`[data-i="${t.dataset.i}"][data-f="code"]`); if (c) c.value = t.value; }
         if (t.dataset.f === "code") p.codeEdited = !!t.value;
         toolRefresh();
+      });
+      pg.addEventListener("paste", e => {   // input 1 dòng sẽ làm mất xuống dòng khi dán → đổi thành dấu cách
+        const t = e.target; if (t.id !== "tl-search") return;
+        e.preventDefault();
+        t.setRangeText((e.clipboardData || window.clipboardData).getData("text").replace(/[\r\n\t;,]+/g, " ").trim() + " ", t.selectionStart, t.selectionEnd, "end");
+        t.dispatchEvent(new Event("input", { bubbles: true }));
       });
       pg.addEventListener("change", e => { if (e.target.id === "tl-status") { tool.status = e.target.value; $("#tl-list").innerHTML = renderToolList(); } });
     }

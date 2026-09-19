@@ -1148,13 +1148,25 @@
       if (text === undefined) { text = fields.map(([key]) => row[key] ?? "").join("\u0001").toLowerCase(); searchIndex.set(row, text); }
       return text;
     }
-    let filterMemo = { rows: null, q: "", out: null };
+    let filterMemo = { rows: null, q: "", out: null, multi: null };
+    let datasetMulti = null;   // thông tin tìm nhiều mã của lần lọc gần nhất (null = tìm thường)
+    const multiBanner = mm => `<div class="tl-multi"><b>Đã dán ${nf(mm.total)} mã</b> · khớp ${nf(mm.total - mm.missing.length)}${mm.missing.length ? ` · <span class="bad">không thấy ${nf(mm.missing.length)}: ${escapeHtml(mm.missing.join(", "))}</span>` : ""}${mm.hidden ? ` · <span class="warn">${nf(mm.hidden)} account bị ẩn bởi bộ lọc Trạng thái</span>` : ""}</div>`;
+    // Từ 2 mã trở lên (cách nhau bằng dấu cách / phẩy / xuống dòng) → khớp chính xác UserName, EmployeeCode hoặc Email;
+    // không có kết quả nào thì quay về tìm chứa chuỗi như cũ
     function getFilteredRows(rows, fields, query) {
       const q = String(query || "").trim().toLowerCase();
-      if (!q) return rows;
-      if (filterMemo.rows === rows && filterMemo.q === q) return filterMemo.out;
-      const out = rows.filter(row => rowSearchText(row, fields).includes(q));
-      filterMemo = { rows, q, out };
+      if (!q) { datasetMulti = null; return rows; }
+      if (filterMemo.rows === rows && filterMemo.q === q) { datasetMulti = filterMemo.multi; return filterMemo.out; }
+      let out = null, multi = null;
+      const tokens = [...new Map(String(query).split(/[\s,;]+/).filter(Boolean).map(x => [x.toLowerCase(), x])).values()];
+      if (tokens.length >= 2) {
+        const want = new Set(tokens.map(x => x.toLowerCase())), found = new Set();
+        out = rows.filter(row => { const hit = [row.username, row.employee_code, row.email].map(x => String(x ?? "").trim().toLowerCase()).filter(k => want.has(k)); hit.forEach(k => found.add(k)); return hit.length > 0; });
+        if (found.size) multi = { total: tokens.length, missing: tokens.filter(x => !found.has(x.toLowerCase())), hidden: 0 };
+        else out = null;
+      }
+      if (!out) out = rows.filter(row => rowSearchText(row, fields).includes(q));
+      filterMemo = { rows, q, out, multi }; datasetMulti = multi;
       return out;
     }
     const nf = (n) => Number(n).toLocaleString("vi-VN");
@@ -1169,7 +1181,7 @@
       const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
       state.page = Math.min(Math.max(1, Math.floor(state.page) || 1), totalPages);
       const start = (state.page - 1) * state.pageSize;
-      return { isDms, fields, rows, filtered, total, totalPages, start, pageRows: filtered.slice(start, start + state.pageSize) };
+      return { multi: datasetMulti, isDms, fields, rows, filtered, total, totalPages, start, pageRows: filtered.slice(start, start + state.pageSize) };
     }
 
     function rowBadgeText(v) {
@@ -1236,23 +1248,23 @@
     }
 
     function renderDatasetBody(v) {
-      const { fields, pageRows, start, total } = v;
+      const { fields, pageRows, start, total } = v, bn = v.multi ? multiBanner(v.multi) : "";
       if (!total) {
         const msg = state.loading && !v.rows.length
           ? `<div class="loading"><i class="spinner"></i> <span data-loading-text>${loadingText()}</span></div>`
           : `<div class="empty"><strong>Không tìm thấy dữ liệu</strong>Thử đổi từ khóa tìm kiếm hoặc làm mới bảng.</div>`;
-        return `<div class="table-wrap data-scroll is-empty">${msg}</div>${renderPager(v)}`;
+        return `${bn}<div class="table-wrap data-scroll is-empty">${msg}</div>${renderPager(v)}`;
       }
       const head = `<th class="col-idx">#</th>${fields.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}<th class="col-act">Thao tác</th>`;
       const body = pageRows.map((row, i) => `<tr><td class="col-idx">${nf(start + i + 1)}</td>${fields.map(([key]) => `<td>${key === "username" ? `<strong>${cellHtml(row[key])}</strong>` : cellHtml(row[key])}</td>`).join("")}<td class="col-act"><div style="display:flex;gap:4px">${canEdit() ? `<button class="btn btn-plain edit-row" data-key="${escapeHtml(row.username)}" title="Sửa">${ICONS.edit}</button>` : ""}${isAdmin() ? `<button class="btn btn-plain delete-row" data-key="${escapeHtml(row.username)}" title="Xóa" style="color:var(--danger)">${ICONS.trash}</button>` : ""}</div></td></tr>`).join("");
-      return `<div class="table-wrap data-scroll" tabindex="0" aria-label="Bảng dữ liệu, cuộn ngang và dọc để xem đủ các cột"><table class="data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${renderPager(v)}`;
+      return `${bn}<div class="table-wrap data-scroll" tabindex="0" aria-label="Bảng dữ liệu, cuộn ngang và dọc để xem đủ các cột"><table class="data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${renderPager(v)}`;
     }
 
     function renderDataset() {
       const v = getDatasetView();
       return `<div class="header-row"><div><div class="eyebrow">${v.isDms ? "DMS directory" : "Central directory"}</div><h2 class="page-title">${v.isDms ? "DMS Userlist" : "Central User list"}</h2><p class="page-subtitle">${v.isDms ? "Danh sách người dùng DMS theo tenant, vùng và trạng thái." : "Danh sách nhân sự Central và thông tin hoạt động."}</p></div><div class="actions">${canEdit() ? `<button class="btn btn-light" id="new-row">${ICONS.plus} Thêm bản ghi</button>` : ""}</div></div>
         <section class="panel"><div class="toolbar">
-          <div class="search${state.search ? " has-value" : ""}"><span class="search-icon">${ICONS.search}</span><input id="table-search" value="${escapeHtml(state.search)}" placeholder="Tìm theo tên, email, tenant…" autocomplete="off" /><button type="button" class="search-clear" id="search-clear" aria-label="Xóa tìm kiếm" tabindex="-1">${ICONS.close}</button></div>
+          <div class="search${state.search ? " has-value" : ""}"><span class="search-icon">${ICONS.search}</span><input id="table-search" value="${escapeHtml(state.search)}" placeholder="Tìm theo tên, email, tenant… hoặc dán nhiều UserName" autocomplete="off" /><button type="button" class="search-clear" id="search-clear" aria-label="Xóa tìm kiếm" tabindex="-1">${ICONS.close}</button></div>
           <div class="toolbar-right">
             <span class="loading${state.loading ? "" : " hidden"}" data-loading><i class="spinner"></i><span data-loading-text>${loadingText()}</span></span>
             <span class="badge badge-blue" id="row-badge">${rowBadgeText(v)}</span>
@@ -1324,6 +1336,13 @@
       $("#refresh-data")?.addEventListener("click", loadData);
       let searchTimer = null;
       const searchInput = $("#table-search"), searchWrap = searchInput?.closest(".search");
+      searchInput?.addEventListener("paste", e => {   // dán cột từ Excel: input 1 dòng làm mất xuống dòng → đổi thành dấu cách
+        const txt = (e.clipboardData || window.clipboardData).getData("text");
+        if (!/[\r\n\t;,]/.test(txt)) return;
+        e.preventDefault();
+        searchInput.setRangeText(txt.replace(/[\r\n\t;,]+/g, " ").trim() + " ", searchInput.selectionStart, searchInput.selectionEnd, "end");
+        searchInput.dispatchEvent(new Event("input"));
+      });
       searchInput?.addEventListener("input", e => {
         state.search = e.target.value; state.page = 1;
         searchWrap?.classList.toggle("has-value", !!e.target.value);

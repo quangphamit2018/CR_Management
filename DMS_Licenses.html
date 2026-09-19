@@ -346,6 +346,26 @@
     .notice-warning { background: linear-gradient(100deg, #fff3df, #fffaf1); color: #8a3d05; border-left-color: #f59e0b; }
     .notice-danger { background: linear-gradient(100deg, #ffe4e2, #fff3f2); color: #7d1212; border-left-color: #8e1216; }
 
+    /* ---------- Import: progress bar + kết quả ---------- */
+    .progress-card { background: linear-gradient(180deg, #fff, #fffafa); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(90, 13, 18, .04); animation: fade-in .18s ease both; }
+    .progress-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+    .progress-label { font-size: 12.5px; font-weight: 650; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .progress-pct { font-size: 13px; font-weight: 780; color: var(--brand); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+    .progress-track { position: relative; height: 10px; border-radius: 99px; background: #f6e2e1; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 99px; background: var(--g-brand); transition: width .35s ease; position: relative; overflow: hidden; min-width: 10px; }
+    .progress-fill::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .5), transparent); animation: progress-shimmer 1.3s linear infinite; }
+    @keyframes progress-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+    .progress-sub { margin-top: 9px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .result-card { display: flex; gap: 12px; align-items: flex-start; border-radius: 14px; padding: 15px 16px; border: 1px solid; animation: confirm-pop .2s ease both; }
+    .result-card.success { background: linear-gradient(135deg, #eafaf1, #dcf4e7); border-color: #b6e5cf; }
+    .result-card.error { background: linear-gradient(135deg, #fff1f0, #ffe0dd); border-color: #f5b7b3; }
+    .result-icon { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #fff; }
+    .result-card.success .result-icon { color: var(--success); box-shadow: 0 4px 12px rgba(11, 122, 79, .20); }
+    .result-card.error .result-icon { color: var(--danger); box-shadow: 0 4px 12px rgba(163, 21, 21, .20); }
+    .result-icon svg { width: 17px; height: 17px; }
+    .result-title { font-size: 13px; font-weight: 760; color: var(--ink); margin-bottom: 3px; }
+    .result-detail { font-size: 12px; color: var(--ink-2); line-height: 1.65; }
+
     /* ---------- Toolbar / inputs ---------- */
     .toolbar { padding: 14px 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #fff, #fffafa); }
     .search { width: min(340px, 100%); position: relative; }
@@ -1485,16 +1505,31 @@
       payload.updated_at = new Date().toISOString();
       return payload;
     }
-    async function upsertBatches(table, rows) {
+    async function upsertBatches(table, rows, onChunk) {
       const chunkSize = 400;
       for (let i = 0; i < rows.length; i += chunkSize) {
-        const { error } = await state.supabase.from(table).upsert(rows.slice(i, i + chunkSize), { onConflict: "username" });
+        const chunk = rows.slice(i, i + chunkSize);
+        const { error } = await state.supabase.from(table).upsert(chunk, { onConflict: "username" });
         if (error) throw error;
+        onChunk?.(chunk.length);
       }
+    }
+    function renderImportProgress(label, done, total) {
+      const pct = total ? Math.min(100, Math.round((done / total) * 100)) : 0;
+      return `<div class="progress-card">
+        <div class="progress-head"><span class="progress-label">${escapeHtml(label)}</span><span class="progress-pct">${pct}%</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="progress-sub">${nf(done)} / ${nf(total)} dòng đã xử lý</div>
+      </div>`;
+    }
+    function renderImportResult(kind, title, detailHtml) {
+      return `<div class="result-card ${kind}"><div class="result-icon">${kind === "success" ? ICONS.toastSuccess : ICONS.toastError}</div><div><div class="result-title">${escapeHtml(title)}</div><div class="result-detail">${detailHtml}</div></div></div>`;
     }
     async function importWorkbook(file) {
       if (!isAdmin()) return toast("Chỉ Super-admin mới được import dữ liệu.", "error");
-      const status = $("#import-status"); if (status) status.innerHTML = `<div class="loading"><i class="spinner"></i> Đang đọc và upsert ${escapeHtml(file.name)}…</div>`;
+      const status = $("#import-status");
+      const setStatus = (label, done, total) => { if (status) status.innerHTML = renderImportProgress(label, done, total); };
+      setStatus(`Đang đọc file "${file.name}"…`, 0, 1);
       try {
         const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
         const getSheet = (expected) => workbook.Sheets[workbook.SheetNames.find(name => normalizeHeader(name) === normalizeHeader(expected)) || expected];
@@ -1502,14 +1537,29 @@
         if (!dmsSheet || !centralSheet) throw new Error("File phải có đúng hai sheet: DMS Userlist và Central User list.");
         const dmsRows = XLSX.utils.sheet_to_json(dmsSheet, { defval: null }).map(row => mapSheetRow(row, DMS_FIELDS)).filter(row => row.username);
         const centralRows = XLSX.utils.sheet_to_json(centralSheet, { defval: null }).map(row => mapSheetRow(row, CENTRAL_FIELDS)).filter(row => row.username);
-        await upsertBatches("dms_users", dmsRows); await upsertBatches("central_users", centralRows);
+        const totalRows = dmsRows.length + centralRows.length;
+        const totalSteps = totalRows + 1; // +1 bước ghi lịch sử import
+        let done = 0;
+        setStatus(`Đang upsert DMS Userlist (0/${nf(dmsRows.length)})…`, done, totalSteps);
+        await upsertBatches("dms_users", dmsRows, n => {
+          done += n; setStatus(`Đang upsert DMS Userlist (${nf(Math.min(done, dmsRows.length))}/${nf(dmsRows.length)})…`, done, totalSteps);
+        });
+        setStatus(`Đang upsert Central User list (0/${nf(centralRows.length)})…`, done, totalSteps);
+        await upsertBatches("central_users", centralRows, n => {
+          done += n;
+          const centralDone = Math.min(done - dmsRows.length, centralRows.length);
+          setStatus(`Đang upsert Central User list (${nf(centralDone)}/${nf(centralRows.length)})…`, done, totalSteps);
+        });
+        setStatus("Đang ghi lịch sử import…", totalSteps - 1, totalSteps);
         const { error: logError } = await state.supabase.from("import_logs").insert({ file_name: file.name, dms_rows: dmsRows.length, central_rows: centralRows.length, imported_by: state.session.user.id, status: "success" });
         if (logError) throw logError;
-        if (status) status.innerHTML = `<div class="notice notice-info"><b>Import thành công.</b> Đã upsert ${dmsRows.length.toLocaleString("vi-VN")} DMS và ${centralRows.length.toLocaleString("vi-VN")} Central. Dòng trùng UserName đã được cập nhật đè.</div>`;
+        setStatus("Hoàn tất", totalSteps, totalSteps);
+        if (status) status.innerHTML = renderImportResult("success", "Import thành công",
+          `Đã upsert <b>${nf(dmsRows.length)}</b> dòng <b>DMS Userlist</b> và <b>${nf(centralRows.length)}</b> dòng <b>Central User list</b>. Dòng trùng UserName đã được cập nhật đè.`);
         toast("Import masterdata thành công.", "success"); await loadData();
       } catch (error) {
         try { await state.supabase.from("import_logs").insert({ file_name: file.name, imported_by: state.session.user.id, status: "error", error_message: error.message }); } catch (_) {}
-        if (status) status.innerHTML = `<div class="notice notice-danger"><b>Import thất bại.</b> ${escapeHtml(error.message)}</div>`;
+        if (status) status.innerHTML = renderImportResult("error", "Import thất bại", escapeHtml(error.message));
         toast(`Import thất bại: ${error.message}`, "error");
       }
     }

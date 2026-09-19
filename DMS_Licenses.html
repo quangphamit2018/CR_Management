@@ -1193,7 +1193,7 @@
 
     function renderProfilesTable() {
       if (!state.profiles.length) return `<div class="empty"><strong>Chưa có tài khoản nào</strong>Người dùng mới sẽ xuất hiện sau khi đăng nhập Google.</div>`;
-      return `<div class="table-wrap"><table style="min-width:700px"><thead><tr><th>Tài khoản</th><th>Role</th><th>Trạng thái</th><th>Ngày đăng ký</th><th>Thao tác</th></tr></thead><tbody>${state.profiles.map(p => `<tr><td><strong>${escapeHtml(p.display_name || "—")}</strong><br><span style="font-size:11px;color:var(--muted)">${escapeHtml(p.email)}</span></td><td><select class="role-select" data-id="${p.id}"  ${p.id === state.profile.id ? "disabled" : ""}><option value="member" ${p.role === "member" ? "selected" : ""}>Member</option><option value="senior-member" ${p.role === "senior-member" ? "selected" : ""}>Senior-member</option><option value="super-admin" ${p.role === "super-admin" ? "selected" : ""}>Super-admin</option></select></td><td>${statusBadge(p.approval_status)}</td><td>${formatDate(p.created_at)}</td><td><div style="display:flex;gap:5px">${p.approval_status !== "approved" ? `<button class="btn btn-secondary approve-user" data-id="${p.id}">Duyệt</button>` : ""}${p.approval_status === "approved" && p.id !== state.profile.id ? `<button class="btn btn-danger reject-user" data-id="${p.id}">Thu hồi</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`;
+      return `<div class="table-wrap"><table style="min-width:760px"><thead><tr><th>Tài khoản</th><th>Role</th><th>Trạng thái</th><th>Ngày đăng ký</th><th>Thao tác</th></tr></thead><tbody>${state.profiles.map(p => `<tr><td><strong>${escapeHtml(p.display_name || "—")}</strong><br><span style="font-size:11px;color:var(--muted)">${escapeHtml(p.email)}</span></td><td><select class="role-select" data-id="${p.id}"  ${p.id === state.profile.id ? "disabled" : ""}><option value="member" ${p.role === "member" ? "selected" : ""}>Member</option><option value="senior-member" ${p.role === "senior-member" ? "selected" : ""}>Senior-member</option><option value="super-admin" ${p.role === "super-admin" ? "selected" : ""}>Super-admin</option></select></td><td>${statusBadge(p.approval_status)}</td><td>${formatDate(p.created_at)}</td><td><div style="display:flex;gap:5px;align-items:center">${p.approval_status !== "approved" ? `<button class="btn btn-secondary approve-user" data-id="${p.id}">Duyệt</button>` : ""}${p.approval_status === "approved" && p.id !== state.profile.id ? `<button class="btn btn-danger reject-user" data-id="${p.id}">Thu hồi</button>` : ""}${p.id !== state.profile.id ? `<button class="btn btn-plain delete-profile" data-id="${p.id}" data-name="${escapeHtml(p.display_name || p.email)}" title="Xóa tài khoản" aria-label="Xóa tài khoản" style="color:var(--danger)">${ICONS.trash}</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`;
     }
 
     function renderLogsTable() {
@@ -1235,6 +1235,7 @@
       document.querySelectorAll(".approve-user").forEach(el => el.addEventListener("click", () => updateProfile(el.dataset.id, { approval_status: "approved" })));
       document.querySelectorAll(".reject-user").forEach(el => el.addEventListener("click", () => updateProfile(el.dataset.id, { approval_status: "rejected" })));
       document.querySelectorAll(".role-select").forEach(el => el.addEventListener("change", () => updateProfile(el.dataset.id, { role: el.value })));
+      document.querySelectorAll(".delete-profile").forEach(el => el.addEventListener("click", () => deleteProfile(el.dataset.id, el.dataset.name)));
     }
 
     async function boot() {
@@ -1496,6 +1497,15 @@
       const { error } = await state.supabase.from("profiles").update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
       if (error) return toast(`Không cập nhật được quyền: ${error.message}`, "error");
       toast("Đã cập nhật tài khoản.", "success"); await loadData();
+    }
+
+    async function deleteProfile(id, name) {
+      if (!isAdmin()) return toast("Chỉ Super-admin mới được xóa tài khoản.", "error");
+      if (id === state.profile.id) return toast("Không thể tự xóa tài khoản của chính mình.", "error");
+      if (!confirm(`Xóa tài khoản "${name}"? Người này sẽ mất toàn bộ quyền truy cập và phải gửi lại yêu cầu nếu đăng nhập lại. Hành động này không thể hoàn tác.`)) return;
+      const { error } = await state.supabase.from("profiles").delete().eq("id", id);
+      if (error) return toast(`Không xóa được tài khoản: ${error.message}`, "error");
+      toast(`Đã xóa tài khoản "${name}".`, "success"); await loadData();
     }
 
     document.addEventListener("click", e => {

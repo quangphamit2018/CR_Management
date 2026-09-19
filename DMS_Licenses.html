@@ -403,6 +403,22 @@
 
     /* ---------- Modal ---------- */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(38, 7, 10, .62); backdrop-filter: blur(5px); display: grid; place-items: center; padding: 20px; z-index: 50; }
+    .modal-backdrop.confirm-backdrop { z-index: 60; animation: fade-in .15s ease both; }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ---------- Confirm dialog (thay browser confirm() mặc định) ---------- */
+    .confirm-modal { width: min(400px, 100%); padding: 30px 28px 26px; text-align: center; animation: confirm-pop .22s var(--ease, cubic-bezier(.22, 1, .36, 1)) both; }
+    @keyframes confirm-pop { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+    .confirm-icon { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 16px; }
+    .confirm-icon svg { width: 24px; height: 24px; }
+    .confirm-icon.danger { background: linear-gradient(135deg, #ffe4e2, #ffc9c5); color: var(--danger); box-shadow: 0 10px 24px rgba(163, 21, 21, .20); }
+    .confirm-icon.info { background: var(--g-soft); color: var(--brand); box-shadow: 0 10px 24px rgba(183, 28, 28, .16); }
+    .confirm-title { margin: 0 0 9px; font-size: 16.5px; font-weight: 760; color: var(--ink); letter-spacing: -.01em; }
+    .confirm-msg { margin: 0 0 24px; font-size: 12.5px; color: var(--muted); line-height: 1.65; }
+    .confirm-actions { display: flex; gap: 10px; }
+    .confirm-actions .btn { flex: 1; padding: 11px 14px; }
+    .btn-outline-danger { background: #fff; border-color: var(--line-strong); color: var(--danger); }
+    .btn-outline-danger:hover { background: linear-gradient(135deg, #a31515, #6b0d10); color: #fff; border-color: transparent; box-shadow: 0 8px 18px rgba(163, 21, 21, .28); }
     .modal { background: #fff; border-radius: 22px; width: min(630px, 100%); max-height: min(800px, 92vh); overflow: auto; box-shadow: 0 30px 90px rgba(60, 8, 12, .40); }
     .modal-head { padding: 22px 22px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; position: relative; background: linear-gradient(180deg, #fff4f3, #fff); }
     .modal-head::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: linear-gradient(90deg, #e53935, #b71c1c 55%, #5e0c12); }
@@ -768,6 +784,7 @@
   <div class="aurora" aria-hidden="true"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><i class="grid"></i></div>
   <div id="root"></div>
   <div id="modal-root"></div>
+  <div id="confirm-root"></div>
   <div id="toast-root" class="toast-wrap"></div>
 
   <script>
@@ -860,6 +877,34 @@
       const remove = () => { node.classList.add("leaving"); setTimeout(() => node.remove(), 200); };
       const timer = setTimeout(remove, 4200);
       node.querySelector(".toast-close").addEventListener("click", () => { clearTimeout(timer); remove(); });
+    }
+
+    // Hộp thoại xác nhận tùy chỉnh, thay cho confirm() mặc định của trình duyệt (xấu, không đồng bộ giao diện).
+    // Trả về Promise<boolean>: true nếu người dùng bấm nút xác nhận, false nếu Hủy / Esc / bấm ra ngoài.
+    function confirmDialog({ title = "Xác nhận", message = "", confirmText = "Xác nhận", cancelText = "Hủy", danger = true } = {}) {
+      return new Promise(resolve => {
+        const root = $("#confirm-root");
+        const onKey = e => { if (e.key === "Escape") close(false); };
+        const close = (result) => {
+          document.removeEventListener("keydown", onKey);
+          root.innerHTML = "";
+          resolve(result);
+        };
+        root.innerHTML = `<div class="modal-backdrop confirm-backdrop" id="confirm-backdrop"><section class="modal confirm-modal">
+          <div class="confirm-icon ${danger ? "danger" : "info"}">${danger ? ICONS.trash : ICONS.toastInfo}</div>
+          <h2 class="confirm-title">${escapeHtml(title)}</h2>
+          <p class="confirm-msg">${escapeHtml(message)}</p>
+          <div class="confirm-actions">
+            <button type="button" class="btn btn-secondary" id="confirm-cancel">${escapeHtml(cancelText)}</button>
+            <button type="button" class="btn ${danger ? "btn-danger" : "btn-primary"}" id="confirm-ok">${escapeHtml(confirmText)}</button>
+          </div>
+        </section></div>`;
+        document.addEventListener("keydown", onKey);
+        $("#confirm-backdrop").addEventListener("click", e => e.target.id === "confirm-backdrop" && close(false));
+        $("#confirm-cancel").addEventListener("click", () => close(false));
+        $("#confirm-ok").addEventListener("click", () => close(true));
+        $("#confirm-ok").focus();
+      });
     }
 
     function loadingText() {
@@ -1193,7 +1238,7 @@
 
     function renderProfilesTable() {
       if (!state.profiles.length) return `<div class="empty"><strong>Chưa có tài khoản nào</strong>Người dùng mới sẽ xuất hiện sau khi đăng nhập Google.</div>`;
-      return `<div class="table-wrap"><table style="min-width:760px"><thead><tr><th>Tài khoản</th><th>Role</th><th>Trạng thái</th><th>Ngày đăng ký</th><th>Thao tác</th></tr></thead><tbody>${state.profiles.map(p => `<tr><td><strong>${escapeHtml(p.display_name || "—")}</strong><br><span style="font-size:11px;color:var(--muted)">${escapeHtml(p.email)}</span></td><td><select class="role-select" data-id="${p.id}"  ${p.id === state.profile.id ? "disabled" : ""}><option value="member" ${p.role === "member" ? "selected" : ""}>Member</option><option value="senior-member" ${p.role === "senior-member" ? "selected" : ""}>Senior-member</option><option value="super-admin" ${p.role === "super-admin" ? "selected" : ""}>Super-admin</option></select></td><td>${statusBadge(p.approval_status)}</td><td>${formatDate(p.created_at)}</td><td><div style="display:flex;gap:5px;align-items:center">${p.approval_status !== "approved" ? `<button class="btn btn-secondary approve-user" data-id="${p.id}">Duyệt</button>` : ""}${p.approval_status === "approved" && p.id !== state.profile.id ? `<button class="btn btn-danger reject-user" data-id="${p.id}">Thu hồi</button>` : ""}${p.id !== state.profile.id ? `<button class="btn btn-plain delete-profile" data-id="${p.id}" data-name="${escapeHtml(p.display_name || p.email)}" title="Xóa tài khoản" aria-label="Xóa tài khoản" style="color:var(--danger)">${ICONS.trash}</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`;
+      return `<div class="table-wrap"><table style="min-width:760px"><thead><tr><th>Tài khoản</th><th>Role</th><th>Trạng thái</th><th>Ngày đăng ký</th><th>Thao tác</th></tr></thead><tbody>${state.profiles.map(p => `<tr><td><strong>${escapeHtml(p.display_name || "—")}</strong><br><span style="font-size:11px;color:var(--muted)">${escapeHtml(p.email)}</span></td><td><select class="role-select" data-id="${p.id}"  ${p.id === state.profile.id ? "disabled" : ""}><option value="member" ${p.role === "member" ? "selected" : ""}>Member</option><option value="senior-member" ${p.role === "senior-member" ? "selected" : ""}>Senior-member</option><option value="super-admin" ${p.role === "super-admin" ? "selected" : ""}>Super-admin</option></select></td><td>${statusBadge(p.approval_status)}</td><td>${formatDate(p.created_at)}</td><td><div style="display:flex;gap:5px;align-items:center">${p.approval_status !== "approved" ? `<button class="btn btn-secondary approve-user" data-id="${p.id}">Duyệt</button>` : ""}${p.approval_status === "approved" && p.id !== state.profile.id ? `<button class="btn btn-danger reject-user" data-id="${p.id}">Thu hồi</button>` : ""}${p.id !== state.profile.id ? `<button class="btn btn-outline-danger delete-profile" data-id="${p.id}" data-name="${escapeHtml(p.display_name || p.email)}" title="Xóa tài khoản">${ICONS.trash} Xóa</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`;
     }
 
     function renderLogsTable() {
@@ -1486,10 +1531,17 @@
     }
 
     async function deleteRow(key) {
-      if (!isAdmin() || !confirm(`Xóa bản ghi UserName "${key}"? Hành động này không thể hoàn tác.`)) return;
+      if (!isAdmin()) return;
+      const ok = await confirmDialog({
+        title: "Xóa bản ghi?",
+        message: `Xóa bản ghi UserName "${key}"? Hành động này không thể hoàn tác.`,
+        confirmText: "Xóa bản ghi"
+      });
+      if (!ok) return;
       const table = state.tab === "dms" ? "dms_users" : "central_users";
-      const { error } = await state.supabase.from(table).delete().eq("username", key);
+      const { data, error } = await state.supabase.from(table).delete().eq("username", key).select();
       if (error) return toast(`Không xóa được: ${error.message}`, "error");
+      if (!data || !data.length) return toast(`Không xóa được bản ghi này — có thể do chưa có chính sách RLS DELETE cho bảng "${table}" trong Supabase.`, "error");
       toast("Đã xóa bản ghi.", "success"); await loadData();
     }
 
@@ -1502,9 +1554,15 @@
     async function deleteProfile(id, name) {
       if (!isAdmin()) return toast("Chỉ Super-admin mới được xóa tài khoản.", "error");
       if (id === state.profile.id) return toast("Không thể tự xóa tài khoản của chính mình.", "error");
-      if (!confirm(`Xóa tài khoản "${name}"? Người này sẽ mất toàn bộ quyền truy cập và phải gửi lại yêu cầu nếu đăng nhập lại. Hành động này không thể hoàn tác.`)) return;
-      const { error } = await state.supabase.from("profiles").delete().eq("id", id);
+      const ok = await confirmDialog({
+        title: "Xóa tài khoản?",
+        message: `Xóa tài khoản "${name}"? Người này sẽ mất toàn bộ quyền truy cập và phải gửi lại yêu cầu nếu đăng nhập lại. Hành động này không thể hoàn tác.`,
+        confirmText: "Xóa tài khoản"
+      });
+      if (!ok) return;
+      const { data, error } = await state.supabase.from("profiles").delete().eq("id", id).select();
       if (error) return toast(`Không xóa được tài khoản: ${error.message}`, "error");
+      if (!data || !data.length) return toast(`Không xóa được tài khoản này — có thể do chưa có chính sách RLS DELETE cho bảng "profiles" trong Supabase.`, "error");
       toast(`Đã xóa tài khoản "${name}".`, "success"); await loadData();
     }
 

@@ -4366,6 +4366,38 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 .weekly-mom-card-title{ color:#6d8391; font-size:12px; margin-top:3px; }
 .weekly-mom-card-actions{ margin-left:auto; display:flex; gap:6px; }
 .weekly-mom-card-body{ padding:13px 17px 16px; }
+.weekly-mom-card.is-collapsed .weekly-mom-card-body{ display:none; }
+.weekly-mom-card-toggle{ display:inline-flex; align-items:center; gap:5px; border:1px solid #dce8ec; border-radius:7px; padding:6px 8px; color:#557082; background:#fff; cursor:pointer; font-size:11px; font-weight:750; }
+.weekly-mom-card-toggle:hover{ color:#167f83; border-color:#abd4d5; background:#f5fbfb; }
+.weekly-mom-card-toggle svg{ width:13px; height:13px; transition:transform .18s ease; }
+.weekly-mom-card:not(.is-collapsed) .weekly-mom-card-toggle svg{ transform:rotate(180deg); }
+.weekly-mom-detail-table{ min-width:1680px; table-layout:fixed; }
+.weekly-mom-detail-table th:nth-child(1),.weekly-mom-detail-table td:nth-child(1){ width:92px; }
+.weekly-mom-detail-table th:nth-child(2),.weekly-mom-detail-table td:nth-child(2){ width:260px; }
+.weekly-mom-detail-table th:nth-child(3),.weekly-mom-detail-table td:nth-child(3){ width:100px; }
+.weekly-mom-detail-table th:nth-child(4),.weekly-mom-detail-table td:nth-child(4){ width:120px; }
+.weekly-mom-detail-table th:nth-child(5),.weekly-mom-detail-table td:nth-child(5){ width:135px; }
+.weekly-mom-detail-table th:nth-child(6),.weekly-mom-detail-table td:nth-child(6){ width:90px; }
+.weekly-mom-detail-table th:nth-child(7),.weekly-mom-detail-table td:nth-child(7){ width:90px; }
+.weekly-mom-detail-table th:nth-child(8),.weekly-mom-detail-table td:nth-child(8){ width:125px; }
+.weekly-mom-detail-table th:nth-child(9),.weekly-mom-detail-table td:nth-child(9){ width:260px; }
+.weekly-mom-detail-table th:nth-child(10),.weekly-mom-detail-table td:nth-child(10){ width:360px; }
+.weekly-mom-detail-table th:nth-child(11),.weekly-mom-detail-table td:nth-child(11){ width:220px; }
+.weekly-mom-date-edit-note{ padding:11px 12px; border:1px solid #cfe7e6; border-radius:9px; background:#effafa; color:#3f6970; font-size:12px; line-height:1.5; }
+.weekly-mom-download-list{ display:grid; gap:8px; }
+.weekly-mom-download-option{ display:flex; align-items:flex-start; gap:10px; padding:11px 12px; border:1px solid #dfe8ec; border-radius:9px; background:#fff; cursor:pointer; }
+.weekly-mom-download-option:hover{ border-color:#abd4d5; background:#f7fcfc; }
+.weekly-mom-download-option input{ margin-top:3px; accent-color:#167f83; }
+.weekly-mom-download-option b{ color:#173d57; font-size:12.5px; }
+.weekly-mom-download-option span{ display:block; margin-top:2px; color:#7890a2; font-size:11.5px; line-height:1.4; }
+.weekly-mom-import-preview{ overflow-x:auto; border:1px solid #dfe8ec; border-radius:9px; }
+.weekly-mom-import-preview table{ min-width:1900px; }
+.weekly-mom-import-preview th,.weekly-mom-import-preview td{ max-width:360px; }
+.weekly-mom-import-preview td{ white-space:pre-wrap; word-break:break-word; vertical-align:top; }
+.weekly-mom-import-preview .import-cell-empty{ color:#a1afb7; background:#fbfdfe; }
+.weekly-mom-column-check{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 10px; margin:0 0 14px; padding:10px 12px; border:1px solid #e4edef; border-radius:9px; background:#fbfdfe; }
+.weekly-mom-column-check-item{ display:flex; justify-content:space-between; gap:8px; color:#617887; font-size:11.5px; }
+.weekly-mom-column-check-item b{ color:#167f83; white-space:nowrap; }
 .weekly-mom-summary{
   display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin-bottom:12px;
 }
@@ -4400,6 +4432,7 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
   .weekly-mom-card-head{ flex-wrap:wrap; }
   .weekly-mom-card-actions{ width:100%; margin-left:0; }
   .weekly-mom-summary{ grid-template-columns:1fr; }
+  .weekly-mom-column-check{ grid-template-columns:1fr; }
 }
 .brd-modal .modal-head{ padding:18px 22px; border-bottom:1px solid #dfe9ed; background:#fbfdfe; }
 .brd-modal .modal-body{ background:#f4f8f9; padding:18px 22px 22px; }
@@ -6104,6 +6137,7 @@ const STATE = {
   editingBrdId: null,
   editingWeeklyMomId: null,
   weeklyMomRows: [],
+  weeklyMomExpanded: {},
   editingUserId: null,
   brdVersionRows: [],     // dòng lịch sử phiên bản đang soạn trong form BRD (mảng object)
   drawerCrId: null,       // cr_id (text) currently shown in drawer
@@ -7655,7 +7689,7 @@ function initShell(){
   $("#btnAddBrd").addEventListener("click", ()=> openBrdModal(null));
   $("#btnAddWeeklyMom").addEventListener("click", ()=> openWeeklyMomModal(null));
   $("#btnWeeklyMomImport").addEventListener("click", openWeeklyMomExcelImportModal);
-  $("#btnWeeklyMomDownload").addEventListener("click", downloadWeeklyMomExcel);
+  $("#btnWeeklyMomDownload").addEventListener("click", openWeeklyMomDownloadModal);
   $("#btnEvidenceZip").addEventListener("click", ()=> openExportSelectionModal("images"));
   $("#btnDashRefresh").addEventListener("click", async ()=>{
     if(STATE.refreshing) return;
@@ -12367,6 +12401,15 @@ function weeklyMomProgressParts(value){
   };
 }
 
+function weeklyMomProgressValue(item){
+  const stored = weeklyMomText(item?.progress);
+  if(stored) return stored;
+  const current = weeklyMomText(item?.current_update);
+  const next = weeklyMomText(item?.next_action);
+  return [current ? `Current Status: ${current}` : "", next ? `Next Action: ${next}` : ""]
+    .filter(Boolean).join("\n");
+}
+
 function weeklyMomExcelRowToItem(row){
   const progress = weeklyMomExcelText(row["Progress"]);
   const parts = weeklyMomProgressParts(progress);
@@ -12405,6 +12448,7 @@ async function fetchWeeklyMomList(){
     .select("*")
     .is("deleted_at", null)
     .order("meeting_date", { ascending:false })
+    .order("created_at", { ascending:false })
     .order("updated_at", { ascending:false });
   if(error){
     STATE.weeklyMomList = [];
@@ -12447,12 +12491,18 @@ function renderWeeklyMomList(){
     const crRows = rows.length ? rows.map(row=>`
       <tr>
         <td class="weekly-mom-crid">${esc(weeklyMomText(row.cr_id) || "—")}</td>
-        <td>${esc(weeklyMomText(row.current_update) || "—")}</td>
-        <td>${esc(weeklyMomText(row.next_action) || "—")}</td>
-        <td>${esc(weeklyMomText(row.eta) || "—")}</td>
-        <td>${esc(weeklyMomText(row.note) || "—")}</td>
+        <td class="${row.description ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.description) || "—")}</td>
+        <td class="${row.priority ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.priority) || "—")}</td>
+        <td class="${row.status ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.status) || "—")}</td>
+        <td class="${row.sub_status ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.sub_status) || "—")}</td>
+        <td class="${row.brd ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.brd) || "—")}</td>
+        <td class="${row.fsd ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.fsd) || "—")}</td>
+        <td class="${row.eta ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.eta) || "—")}</td>
+        <td class="${row.loop_mail_header ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.loop_mail_header) || "—")}</td>
+        <td class="${weeklyMomProgressValue(row) ? "" : "import-cell-empty"}">${esc(weeklyMomProgressValue(row) || "—")}</td>
+        <td class="${row.note ? "" : "import-cell-empty"}">${esc(weeklyMomText(row.note) || "—")}</td>
       </tr>
-    `).join("") : `<tr><td colspan="5" style="text-align:center;color:#8a9ca9;">Buổi họp này chưa có CR.</td></tr>`;
+    `).join("") : `<tr><td colspan="11" style="text-align:center;color:#8a9ca9;">Buổi họp này chưa có CR.</td></tr>`;
     const participants = weeklyMomText(record.participants);
     const summary = weeklyMomText(record.overall_summary);
     const uploadMeta = record.upload_date
@@ -12460,6 +12510,8 @@ function renderWeeklyMomList(){
       : "";
     const isExcelImport = record.source_type === "excel";
     const isCurrentUploadDay = !record.upload_date || record.upload_date === todayISO();
+    const recordKey = String(record.id);
+    const isExpanded = STATE.weeklyMomExpanded[recordKey] !== false;
     return `<article class="weekly-mom-card" data-weekly-id="${esc(String(record.id))}">
       <div class="weekly-mom-card-head">
         <div class="weekly-mom-card-date">${esc(weeklyMomDateLabel(record.meeting_date))}</div>
@@ -12469,19 +12521,23 @@ function renderWeeklyMomList(){
           ${uploadMeta ? `<div class="hint">${esc(uploadMeta)}</div>` : ""}
         </div>
         <div class="weekly-mom-card-actions">
-          ${!isExcelImport && isCurrentUploadDay ? weeklyMomActionButton("edit", record.id, "Sửa") : ""}
+          ${(isExcelImport || isCurrentUploadDay) ? weeklyMomActionButton("edit", record.id, isExcelImport ? "Sửa ngày họp" : "Sửa") : ""}
           ${weeklyMomActionButton("delete", record.id, "Xóa", true)}
+          <button class="weekly-mom-card-toggle" data-weekly-toggle="${esc(recordKey)}" type="button" aria-expanded="${isExpanded ? "true" : "false"}">
+            <span>${isExpanded ? "Thu lại" : "Xem chi tiết"}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
         </div>
       </div>
-      <div class="weekly-mom-card-body">
+      <div class="weekly-mom-card-body" ${isExpanded ? "" : "hidden"}>
         <div class="weekly-mom-summary">
           <div class="weekly-mom-summary-item"><div class="weekly-mom-summary-label">Số CR</div><div class="weekly-mom-summary-value">${rows.length}</div></div>
           <div class="weekly-mom-summary-item"><div class="weekly-mom-summary-label">Thành phần</div><div class="weekly-mom-summary-value">${esc(participants || "—")}</div></div>
           <div class="weekly-mom-summary-item"><div class="weekly-mom-summary-label">Tóm tắt</div><div class="weekly-mom-summary-value">${esc(summary || "—")}</div></div>
         </div>
         <div class="weekly-mom-form-rows">
-          <table class="weekly-mom-table">
-            <thead><tr><th>CR ID</th><th>Cập nhật hiện tại</th><th>Next action</th><th>ETA</th><th>Ghi chú</th></tr></thead>
+          <table class="weekly-mom-table weekly-mom-detail-table">
+            <thead><tr>${WEEKLY_MOM_EXCEL_HEADERS.map(header=>`<th>${esc(header)}</th>`).join("")}</tr></thead>
             <tbody>${crRows}</tbody>
           </table>
         </div>
@@ -12505,6 +12561,46 @@ function renderWeeklyMomList(){
       }
     });
   });
+  $all("#weeklyMomGrid [data-weekly-toggle]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const key = String(btn.dataset.weeklyToggle);
+      const card = btn.closest(".weekly-mom-card");
+      const expanded = STATE.weeklyMomExpanded[key] !== false;
+      STATE.weeklyMomExpanded[key] = !expanded;
+      card?.classList.toggle("is-collapsed", expanded);
+      const body = card?.querySelector(".weekly-mom-card-body");
+      if(body) body.hidden = expanded;
+      btn.setAttribute("aria-expanded", expanded ? "false" : "true");
+      const label = btn.querySelector("span");
+      if(label) label.textContent = expanded ? "Xem chi tiết" : "Thu lại";
+    });
+  });
+}
+
+function weeklyMomDateEditTemplate(record){
+  const rows = weeklyMomRowsOf(record);
+  return `<div class="modal modal-sm brd-modal">
+    <div class="modal-head">
+      <div><h3>Chỉnh sửa ngày họp</h3><div class="hint">${esc(weeklyMomText(record.source_file_name) || "Batch nhập từ Excel")}</div></div>
+      <button class="icon-btn" id="weeklyMomModalClose" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="weekly-mom-date-edit-note">
+        Chỉ thay đổi <b>Ngày họp thực tế</b> để xử lý trường hợp upload muộn. Ngày upload và toàn bộ 11 cột dữ liệu Excel vẫn được giữ nguyên.
+      </div>
+      <div class="tc-form-group" style="margin-top:12px;">
+        <div class="form-grid">
+          <div class="field"><label for="wm_meeting_date">Ngày họp thực tế <span class="req">*</span></label><input id="wm_meeting_date" type="date" value="${esc(record?.meeting_date || "")}"></div>
+          <div class="field"><label>Ngày upload</label><input type="text" value="${esc(weeklyMomDateLabel(record?.upload_date))}" readonly></div>
+          <div class="field"><label>Số CR</label><input type="text" value="${rows.length}" readonly></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="weeklyMomModalCancel" type="button">Hủy</button>
+      <button class="btn btn-primary" id="weeklyMomModalSave" type="button">Lưu ngày họp</button>
+    </div>
+  </div>`;
 }
 
 function weeklyMomModalTemplate(record){
@@ -12564,11 +12660,8 @@ function renderWeeklyMomFormRows(){
 
 function openWeeklyMomModal(record){
   if(record && !canManageWeeklyMom()) return;
-  if(record && record.source_type === "excel"){
-    toast("Batch nhập từ Excel là dữ liệu append-only — hãy nhập file mới để cập nhật.", "warn");
-    return;
-  }
-  if(record && record.upload_date && record.upload_date !== todayISO()){
+  const isExcelDateEdit = !!record && record.source_type === "excel";
+  if(record && !isExcelDateEdit && record.upload_date && record.upload_date !== todayISO()){
     toast("Biên bản của ngày trước đã được khóa — không được ghi đè dữ liệu quá khứ.", "warn");
     return;
   }
@@ -12579,14 +12672,21 @@ function openWeeklyMomModal(record){
   STATE.editingWeeklyMomId = record ? record.id : null;
   STATE.weeklyMomRows = JSON.parse(JSON.stringify(weeklyMomRowsOf(record)));
   const overlay = $("#weeklyMomModalOverlay");
-  overlay.innerHTML = weeklyMomModalTemplate(record);
-  initAutoGrow(overlay);
-  renderWeeklyMomFormRows();
+  overlay.innerHTML = isExcelDateEdit ? weeklyMomDateEditTemplate(record) : weeklyMomModalTemplate(record);
   overlay.classList.add("show");
-
   const close = ()=> overlay.classList.remove("show");
   $("#weeklyMomModalClose").addEventListener("click", close);
   $("#weeklyMomModalCancel").addEventListener("click", close);
+  if(isExcelDateEdit){
+    $("#weeklyMomModalSave").addEventListener("click", ()=> saveWeeklyMom(overlay, true));
+    if(!overlay.dataset.dismissBound){
+      overlay.dataset.dismissBound = "1";
+      overlay.addEventListener("click", e=>{ if(e.target === overlay) close(); });
+    }
+    return;
+  }
+  initAutoGrow(overlay);
+  renderWeeklyMomFormRows();
   $("#weeklyMomAddRow").addEventListener("click", ()=>{
     STATE.weeklyMomRows.push({ cr_id:"", current_update:"", next_action:"", eta:"", note:"" });
     renderWeeklyMomFormRows();
@@ -12614,12 +12714,28 @@ function openWeeklyMomModal(record){
 
 async function saveWeeklyMom(overlay, isEdit){
   if(!canManageWeeklyMom()) return;
+  const existing = isEdit && STATE.editingWeeklyMomId
+    ? STATE.weeklyMomList.find(item=>String(item.id) === String(STATE.editingWeeklyMomId))
+    : null;
+  if(existing?.source_type === "excel"){
+    const meetingDate = $("#wm_meeting_date")?.value;
+    if(!meetingDate){ toast("Vui lòng nhập Ngày họp thực tế.", "err"); return; }
+    const btn = $("#weeklyMomModalSave");
+    btn.disabled = true; btn.textContent = "Đang lưu...";
+    const { error } = await STATE.sb.from("weekly_mom").update({
+      meeting_date: meetingDate,
+      updated_at: new Date().toISOString(),
+      updated_by: STATE.userEmail || null,
+    }).eq("id", existing.id);
+    btn.disabled = false; btn.textContent = "Lưu ngày họp";
+    if(error){ toast("Cập nhật ngày họp thất bại: " + error.message, "err"); return; }
+    toast("Đã cập nhật ngày họp. Nội dung Excel vẫn được giữ nguyên.", "ok");
+    overlay.classList.remove("show");
+    await fetchWeeklyMomList();
+    renderWeeklyMomList();
+    return;
+  }
   if(isEdit && STATE.editingWeeklyMomId){
-    const existing = STATE.weeklyMomList.find(item=>String(item.id) === String(STATE.editingWeeklyMomId));
-    if(existing?.source_type === "excel"){
-      toast("Batch nhập từ Excel là dữ liệu append-only — hãy nhập file mới để cập nhật.", "err");
-      return;
-    }
     if(existing?.upload_date && existing.upload_date !== todayISO()){
       toast("Không được cập nhật biên bản đã upload vào ngày trước.", "err");
       return;
@@ -12771,17 +12887,19 @@ function handleWeeklyMomExcelFile(overlay, file){
       host.innerHTML = `<div class="empty-state" style="padding:30px 0;"><p>Sheet "${esc(sheetName)}" không có dữ liệu.</p></div>`;
       return;
     }
-    const headerKnown = WEEKLY_MOM_EXCEL_HEADERS.some(header=>
-      Object.prototype.hasOwnProperty.call(rows[0], header)
-    );
-    if(!headerKnown){
+     const missingHeaders = WEEKLY_MOM_EXCEL_HEADERS.filter(header=>
+       !Object.prototype.hasOwnProperty.call(rows[0], header)
+     );
+     if(missingHeaders.length){
       host.innerHTML = `<div class="empty-state" style="padding:30px 0;">
-        <p>Không nhận diện được cấu trúc file. Cần tối thiểu các cột theo mẫu: ${esc(WEEKLY_MOM_EXCEL_HEADERS.join(", "))}.</p>
+         <p>File đang thiếu ${missingHeaders.length} cột bắt buộc:</p>
+         <b>${esc(missingHeaders.join(", "))}</b>
+         <p class="hint" style="margin-top:8px;">Cần đủ header của 11 cột theo mẫu Report_Weekly trước khi xác nhận nhập.</p>
       </div>`;
       return;
     }
     const parsed = rows.map(row=> weeklyMomExcelRowToItem(row));
-    renderWeeklyMomExcelImportPreview(overlay, weeklyMomExcelValidateRows(parsed), sheetName);
+     renderWeeklyMomExcelImportPreview(overlay, weeklyMomExcelValidateRows(parsed), sheetName);
   };
   reader.readAsArrayBuffer(file);
 }
@@ -12791,27 +12909,37 @@ function renderWeeklyMomExcelImportPreview(overlay, annotated, sheetName){
   const total = annotated.length;
   const validCount = annotated.filter(row=>row.valid).length;
   const errorCount = total - validCount;
+  const columnStats = WEEKLY_MOM_EXCEL_HEADERS.map(header=>({
+    header,
+    filled: annotated.filter(row=>weeklyMomExcelText(
+      header === "Progress" ? weeklyMomProgressValue(row.data) : row.data[headerKeyForWeeklyMom(header)]
+    )).length
+  }));
   host.innerHTML = `
     <div class="import-summary">
       <div class="import-stat"><b>${total}</b><span>Tổng dòng ở sheet ${esc(sheetName)}</span></div>
       <div class="import-stat ok"><b>${validCount}</b><span>Hợp lệ (tạo batch mới)</span></div>
       <div class="import-stat ${errorCount ? "danger" : ""}"><b>${errorCount}</b><span>Có lỗi (bỏ qua)</span></div>
     </div>
-    <p style="font-size:12.5px;color:#7890a2;margin:-6px 0 14px;">
-      Hệ thống không dùng CR ID để update bản ghi cũ. Dữ liệu hợp lệ sẽ được lưu nguyên vẹn
-      trong một batch mới với ngày upload <b>${esc(todayISO())}</b>.
+    <p style="font-size:12.5px;color:#7890a2;margin:-6px 0 10px;">
+      Đã kiểm tra đủ header của 11 cột. <b>CR ID là cột bắt buộc có dữ liệu</b>;
+      các ô trống còn lại được đánh dấu “—” để bạn kiểm tra trước khi xác nhận.
+      Dữ liệu hợp lệ sẽ được lưu trong batch mới ngày <b>${esc(todayISO())}</b>.
     </p>
-    <div class="table-wrap">
+    <div class="weekly-mom-column-check">
+      ${columnStats.map(stat=>`<div class="weekly-mom-column-check-item"><span>${esc(stat.header)}</span><b>${stat.filled}/${total} có dữ liệu</b></div>`).join("")}
+    </div>
+    <div class="weekly-mom-import-preview">
       <table>
-        <thead><tr><th>#</th><th>CR ID</th><th>Description</th><th>Status</th><th>Progress</th><th>Kết quả</th></tr></thead>
+        <thead><tr><th>#</th>${WEEKLY_MOM_EXCEL_HEADERS.map(header=>`<th>${esc(header)}</th>`).join("")}<th>Kết quả</th></tr></thead>
         <tbody>
           ${annotated.map(row=>`
             <tr>
               <td class="cell-dim">${row.rowIndex}</td>
-              <td class="cell-id">${esc(row.data.cr_id || "—")}</td>
-              <td class="cell-title" title="${esc(row.data.description || "")}">${esc(row.data.description || "—")}</td>
-              <td>${esc(row.data.status || "—")}</td>
-              <td class="cell-title" title="${esc(row.data.progress || "")}">${esc(row.data.progress || "—")}</td>
+              ${WEEKLY_MOM_EXCEL_HEADERS.map(header=>{
+                const value = header === "CR ID" ? row.data.cr_id : header === "Progress" ? weeklyMomProgressValue(row.data) : row.data[headerKeyForWeeklyMom(header)];
+                return `<td class="${value ? "" : "import-cell-empty"}" title="${esc(value || "")}">${esc(value || "—")}</td>`;
+              }).join("")}
               <td>${
                 row.valid
                   ? `<span class="badge" style="background:var(--success-dim);color:var(--success);"><span class="dot" style="background:var(--success)"></span>Hợp lệ</span>`
@@ -12827,6 +12955,22 @@ function renderWeeklyMomExcelImportPreview(overlay, annotated, sheetName){
   confirm.disabled = validCount === 0;
   confirm.textContent = `Xác nhận nhập ${validCount} dòng hợp lệ`;
   confirm.onclick = ()=> executeWeeklyMomExcelImport(overlay, annotated);
+}
+
+function headerKeyForWeeklyMom(header){
+  return {
+    "CR ID":"cr_id",
+    "Description":"description",
+    "Priority":"priority",
+    "Status":"status",
+    "Sub-Status":"sub_status",
+    "BRD":"brd",
+    "FSD":"fsd",
+    "ETA":"eta",
+    "Loop Mail Header":"loop_mail_header",
+    "Progress":"progress",
+    "Note":"note"
+  }[header] || "";
 }
 
 async function executeWeeklyMomExcelImport(overlay, annotated){
@@ -12891,18 +13035,75 @@ function weeklyMomExportRow(item){
   ];
 }
 
-function downloadWeeklyMomExcel(){
+function weeklyMomDownloadCandidates(){
+  return STATE.weeklyMomList
+    .filter(record=>weeklyMomRowsOf(record).length)
+    .sort((a,b)=>{
+      const dateDiff = String(b.meeting_date || "").localeCompare(String(a.meeting_date || ""));
+      if(dateDiff) return dateDiff;
+      return new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0);
+    });
+}
+
+function openWeeklyMomDownloadModal(){
+  const candidates = weeklyMomDownloadCandidates();
+  if(!candidates.length){
+    toast("Chưa có dữ liệu Weekly MoM để tải.", "warn");
+    return;
+  }
+  const overlay = $("#weeklyMomModalOverlay");
+  overlay.innerHTML = `<div class="modal modal-lg brd-modal">
+    <div class="modal-head">
+      <div><h3>Tải Weekly MoM theo ngày</h3><div class="hint">Chọn đúng ngày hoặc batch nội dung cần xuất thành file Report_Weekly.</div></div>
+      <button class="icon-btn" id="weeklyMomModalClose" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="weekly-mom-date-edit-note" style="margin-bottom:12px;">
+        Mỗi lựa chọn tương ứng một biên bản/batch. Nếu cùng một ngày có nhiều lần import,
+        hãy chọn đúng tên file và số CR cần tải.
+      </div>
+      <div class="weekly-mom-download-list">
+        ${candidates.map((record, index)=>{
+          const source = record.source_type === "excel"
+            ? `Excel · ${record.source_file_name || "Không rõ tên file"}`
+            : `Manual · ${weeklyMomText(record.vendor) || "Không rõ Vendor"}`;
+          return `<label class="weekly-mom-download-option">
+            <input type="radio" name="weeklyMomDownloadRecord" value="${esc(String(record.id))}" ${index === 0 ? "checked" : ""}>
+            <span><b>${esc(weeklyMomDateLabel(record.meeting_date))} · ${esc(source)}</b>
+            <span>${weeklyMomRowsOf(record).length} CR · Upload ${esc(weeklyMomDateLabel(record.upload_date))}</span></span>
+          </label>`;
+        }).join("")}
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="weeklyMomModalCancel" type="button">Hủy</button>
+      <button class="btn btn-primary" id="weeklyMomModalSave" type="button">Tải file Excel</button>
+    </div>
+  </div>`;
+  overlay.classList.add("show");
+  const close = ()=> overlay.classList.remove("show");
+  $("#weeklyMomModalClose").addEventListener("click", close);
+  $("#weeklyMomModalCancel").addEventListener("click", close);
+  $("#weeklyMomModalSave").addEventListener("click", ()=>{
+    const selected = overlay.querySelector('input[name="weeklyMomDownloadRecord"]:checked');
+    if(!selected) return;
+    close();
+    downloadWeeklyMomExcel(selected.value);
+  });
+  if(!overlay.dataset.dismissBound){
+    overlay.dataset.dismissBound = "1";
+    overlay.addEventListener("click", e=>{ if(e.target === overlay) close(); });
+  }
+}
+
+function downloadWeeklyMomExcel(recordId){
   if(typeof XLSX === "undefined"){
     toast("Không tải được thư viện Excel (XLSX). Kiểm tra kết nối mạng rồi thử lại.", "err");
     return;
   }
-  const excelBatches = STATE.weeklyMomList
-    .filter(record=>record.source_type === "excel")
-    .sort((a,b)=> new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0));
-  const latest = excelBatches[0] || null;
-  const items = latest
-    ? weeklyMomRowsOf(latest)
-    : STATE.weeklyMomList.flatMap(record=>weeklyMomRowsOf(record));
+  const candidates = weeklyMomDownloadCandidates();
+  const selected = candidates.find(record=>String(record.id) === String(recordId)) || candidates[0] || null;
+  const items = selected ? weeklyMomRowsOf(selected) : [];
   if(!items.length){
     toast("Chưa có dữ liệu Weekly MoM để tải.", "warn");
     return;
@@ -12919,16 +13120,18 @@ function downloadWeeklyMomExcel(){
   XLSX.utils.book_append_sheet(workbook, worksheet, WEEKLY_MOM_EXCEL_SHEET_NAME);
   const metadata = [
     ["Thông tin export", ""],
-    ["Batch", latest ? "Latest Excel import" : "All Weekly MoM records"],
-    ["Ngày upload", latest?.upload_date || todayISO()],
-    ["Nguồn file", latest?.source_file_name || "—"],
+    ["Ngày họp", selected?.meeting_date || todayISO()],
+    ["Ngày upload", selected?.upload_date || todayISO()],
+    ["Batch", selected?.import_batch_id || selected?.id || "—"],
+    ["Nguồn", selected?.source_type === "excel" ? "Excel" : "Manual"],
+    ["Nguồn file", selected?.source_file_name || "—"],
     ["Số dòng", items.length],
     ["Múi giờ", "Asia/Ho_Chi_Minh (UTC+7)"]
   ];
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(metadata), "Import_Metadata");
-  const suffix = latest?.upload_date || todayISO();
+  const suffix = selected?.meeting_date || todayISO();
   XLSX.writeFile(workbook, `CR_Report_Summary_Weekly_${suffix.replaceAll("-", "")}.xlsx`);
-  toast(`Đã tải ${items.length} dòng từ ${latest ? "batch Excel mới nhất" : "Weekly MoM"}.`, "ok");
+  toast(`Đã tải ${items.length} dòng của ngày họp ${weeklyMomDateLabel(suffix)}.`, "ok");
 }
 
 function fmtBrdDateTime(iso){

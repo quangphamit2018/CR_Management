@@ -52,7 +52,7 @@
       --sidebar: 262px;
       font-family: "Be Vietnam Pro", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--ink);
-      background: #fbf3f2;
+      background: #f4e2e0;
     }
     * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #dba7a4 transparent; }
     *::-webkit-scrollbar { width: 9px; height: 9px; }
@@ -62,8 +62,8 @@
       margin: 0; min-width: 320px; color: var(--ink);
       background:
         radial-gradient(900px 480px at 92% -8%, rgba(229, 57, 53, .11), transparent 62%),
-        radial-gradient(800px 520px at -8% 108%, rgba(183, 28, 28, .08), transparent 60%),
-        #fbf3f2;
+        radial-gradient(800px 520px at -8% 108%, rgba(183, 28, 28, .10), transparent 60%),
+        #f4e2e0;
       background-attachment: fixed;
     }
     button, input, select, textarea { font: inherit; }
@@ -130,7 +130,16 @@
     .topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, #b71c1c 0%, #e53935 30%, rgba(229, 57, 53, 0) 78%); }
     .topbar h1 { margin: 0; font-size: 20px; letter-spacing: -.025em; }
     .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
-    .page { padding: 30px 34px 60px; }
+    /* section.page: "tờ làm việc" sáng, bo góc, có viền và bóng — nổi hẳn lên khỏi nền hồng đậm phía sau */
+    .page {
+      position: relative; margin: 18px 24px 26px; padding: 20px 24px 26px; border-radius: 30px;
+      background:
+        radial-gradient(640px 260px at 100% 0%, rgba(229, 57, 53, .07), transparent 70%),
+        linear-gradient(180deg, #fffefd 0%, #fff7f6 100%);
+      border: 1px solid #efcdcb;
+      box-shadow: inset 0 1px 0 #fff, 0 2px 6px rgba(120, 20, 24, .06), 0 36px 80px rgba(120, 20, 24, .13);
+    }
+    .page .panel { border-color: #f0d6d4; box-shadow: 0 1px 2px rgba(90, 13, 18, .06), 0 16px 38px rgba(120, 20, 24, .10); }
     .eyebrow {
       display: inline-block; color: var(--brand); font-size: 12px; font-weight: 650; margin-bottom: 10px;
       background: var(--g-soft); border: 1px solid var(--brand-soft-2); border-radius: 99px; padding: 4px 11px;
@@ -140,7 +149,24 @@
       background: var(--g-text); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
     }
     .page-subtitle { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
-    .header-row { display: flex; justify-content: space-between; gap: 18px; align-items: end; margin-bottom: 26px; }
+    /* header-row: banner đỏ đậm ở đầu mỗi trang, cùng họ với sidebar */
+    .header-row {
+      position: relative; overflow: hidden; display: flex; justify-content: space-between; gap: 18px; align-items: center;
+      padding: 20px 28px; margin-bottom: 18px; border-radius: 22px;
+      background:
+        radial-gradient(360px 220px at 92% -30%, rgba(255, 200, 87, .30), transparent 65%),
+        radial-gradient(320px 220px at 6% 140%, rgba(255, 110, 96, .34), transparent 65%),
+        linear-gradient(118deg, #c62828 0%, #a11318 46%, #5e0c12 100%);
+      box-shadow: 0 18px 38px rgba(140, 18, 24, .28), inset 0 1px 0 rgba(255, 255, 255, .18);
+    }
+    .header-row::after {
+      content: ""; position: absolute; right: -50px; bottom: -120px; width: 260px; height: 260px; border-radius: 50%; pointer-events: none;
+      border: 1px solid rgba(255, 255, 255, .15); box-shadow: 0 0 0 30px rgba(255, 255, 255, .03), 0 0 0 62px rgba(255, 255, 255, .02);
+    }
+    .header-row > * { position: relative; z-index: 1; }
+    .header-row .eyebrow { background: rgba(255, 255, 255, .13); border-color: rgba(255, 255, 255, .22); color: #ffdca0; margin-bottom: 9px; }
+    .header-row .page-title { background: none; -webkit-text-fill-color: #fff; color: #fff; font-size: 27px; }
+    .header-row .page-subtitle { color: rgba(255, 236, 234, .84); margin-top: 6px; }
 
     /* Dải chào mừng ở Tổng quan — điểm nhấn gradient lớn nhất của app */
     .header-row.hero {
@@ -157,7 +183,7 @@
     }
     .header-row.hero > * { position: relative; z-index: 1; }
     .hero .eyebrow { background: rgba(255, 255, 255, .13); border-color: rgba(255, 255, 255, .22); color: #ffdca0; }
-    .hero .page-title { background: none; -webkit-text-fill-color: #fff; color: #fff; }
+    .hero .page-title { background: none; -webkit-text-fill-color: #fff; color: #fff; font-size: 30px; }
     .hero .page-subtitle { color: rgba(255, 236, 234, .82); }
 
     .actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
@@ -222,6 +248,54 @@
     tr:hover td { background: linear-gradient(90deg, #fff1f0, #fffafa); }
     td strong { color: var(--ink); font-size: 12px; }
     tbody tr:last-child td { border-bottom: 0; }
+
+    /* Bảng dữ liệu lớn: cố định chiều cao, cuộn ngang + dọc, tiêu đề và cột chính luôn hiển thị */
+    .data-scroll { height: clamp(320px, calc(100vh - 444px), 800px); overflow: auto; overscroll-behavior: contain; background: #fff; }
+    .data-scroll.is-empty { display: grid; place-items: center; overflow: hidden; }
+    .data-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: max-content; }
+    .data-table tbody tr { --row-bg: #fff; }
+    .data-table tbody tr:nth-child(even) { --row-bg: #fffafa; }
+    .data-table tbody tr:hover { --row-bg: #fff0ef; }
+    .data-table tbody td { background: var(--row-bg); }
+    .data-table tbody tr:hover td { background: var(--row-bg); }
+    .data-table tbody tr:last-child td { border-bottom: 1px solid #f7e9e8; }
+    .data-table thead th { position: sticky; top: 0; z-index: 2; }
+    .data-table .col-idx, .data-table tr > :nth-child(2), .data-table .col-act { position: sticky; }
+    .data-table .col-idx { left: 0; width: 76px; min-width: 76px; max-width: 76px; padding-inline: 12px; text-align: right; color: #a08b8d; }
+    .data-table tr > :nth-child(2) { left: 76px; box-shadow: 1px 0 0 var(--line-strong); }
+    .data-table .col-act { right: 0; box-shadow: -1px 0 0 var(--line-strong); }
+    .data-table tbody .col-idx, .data-table tbody tr > :nth-child(2), .data-table tbody .col-act { z-index: 1; }
+    .data-table thead .col-idx, .data-table thead tr > :nth-child(2), .data-table thead .col-act { z-index: 3; }
+    .data-table .nil { color: #d2bcbd; }
+    .data-table th, .data-table td { padding-block: 9px; }
+    .data-table .btn-plain { padding: 4px; }
+    .data-table .btn-plain svg { width: 15px; height: 15px; }
+
+    .pager {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 22px;
+      padding: 12px 20px; border-top: 1px solid var(--line-strong); background: linear-gradient(180deg, #fffafa, #fff4f3);
+      font-size: 12px; color: var(--muted);
+    }
+    .pager b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pager-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+    .pager-size, .pager-jump { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .pager-size select, .pager-jump input {
+      height: 32px; border: 1px solid var(--line-strong); border-radius: 9px; padding: 0 8px; background: #fff; color: var(--ink);
+      font-size: 12px; font-weight: 600; outline: none; transition: .18s;
+    }
+    .pager-jump input { width: 64px; text-align: center; }
+    .pager-size select:focus, .pager-jump input:focus { border-color: #dd5a55; box-shadow: 0 0 0 4px rgba(229, 57, 53, .13); }
+    .pager-nav { display: flex; align-items: center; gap: 4px; }
+    .pager-btn {
+      min-width: 32px; height: 32px; padding: 0 9px; border-radius: 9px; border: 1px solid var(--line-strong); background: linear-gradient(180deg, #fff, #fff8f7);
+      color: var(--ink-2); font-size: 12px; font-weight: 650; display: inline-grid; place-items: center; transition: .16s; font-variant-numeric: tabular-nums;
+    }
+    .pager-btn svg { width: 15px; height: 15px; }
+    .pager-btn:hover:not(:disabled):not(.active) { background: var(--g-soft); border-color: #dc8985; color: var(--brand-dark); }
+    .pager-btn.active { background: var(--g-brand); color: #fff; border-color: transparent; box-shadow: 0 6px 14px rgba(183, 28, 28, .30); cursor: default; }
+    .pager-btn:disabled { opacity: .42; cursor: not-allowed; }
+    .pager-gap { min-width: 22px; text-align: center; color: #c98c89; }
+    .toolbar-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
     /* ---------- Badges / notices ---------- */
     .badge { display: inline-flex; align-items: center; border-radius: 99px; padding: 4px 10px; font-size: 10.5px; font-weight: 700; border: 1px solid transparent; }
@@ -315,9 +389,15 @@
       .topbar { padding: 0 17px; height: 64px; }
       .topbar h1 { font-size: 17px; }
       .topbar p { display: none; }
-      .page { padding: 22px 16px 46px; }
-      .header-row { align-items: flex-start; flex-direction: column; margin-bottom: 20px; }
+      .page { margin: 12px 10px 24px; padding: 14px 12px 22px; border-radius: 22px; }
+      .header-row { align-items: flex-start; flex-direction: column; margin-bottom: 16px; padding: 20px 18px; border-radius: 18px; }
       .header-row.hero { padding: 24px 20px; align-items: flex-start; border-radius: 20px; }
+      .data-scroll { height: clamp(300px, calc(100vh - 440px), 640px); }
+      .pager { padding: 12px 14px; }
+      /* Màn hình nhỏ: chỉ giữ dính cột UserName để còn chỗ xem dữ liệu */
+      .data-table .col-idx { display: none; }
+      .data-table tr > :nth-child(2) { left: 0; }
+      .data-table .col-act { position: static; box-shadow: none; }
       .page-title { font-size: 25px; }
       .grid-stats { gap: 10px; }
       .stat-card { padding: 16px 14px 14px; }
@@ -633,7 +713,9 @@
       close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg>',
       file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>',
       clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>',
-      refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11a8 8 0 0 0-14.8-4L3 10M3 5v5h5M4 13a8 8 0 0 0 14.8 4L21 14m0 5v-5h-5"/></svg>'
+      refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11a8 8 0 0 0-14.8-4L3 10M3 5v5h5M4 13a8 8 0 0 0 14.8 4L21 14m0 5v-5h-5"/></svg>',
+      pgPrev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>',
+      pgNext: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
     };
 
     const DMS_FIELDS = [
@@ -650,7 +732,17 @@
       ["created_datetime", "CreatedDateTime"], ["modified_datetime", "ModifiedDateTime"], ["is_active", "IsActive"]
     ];
 
+    // Số dòng mỗi trang cho phép người dùng chọn; nhớ lựa chọn gần nhất trên trình duyệt
+    const PAGE_SIZES = [10, 50, 100, 200, 500];
+    const PAGE_SIZE_KEY = "masterdata_page_size";
+    function loadPageSize() {
+      try { const v = Number(localStorage.getItem(PAGE_SIZE_KEY)); return PAGE_SIZES.includes(v) ? v : 50; } catch (_) { return 50; }
+    }
+    function savePageSize(v) { try { localStorage.setItem(PAGE_SIZE_KEY, String(v)); } catch (_) {} }
+    const FETCH_CHUNK = 1000;   // số dòng mỗi lần gọi Supabase khi tải toàn bộ bảng
+
     const state = {
+      page: 1, pageSize: loadPageSize(), progress: {},
       supabase: null, session: null, profile: null, tab: "dashboard", dataset: "dms",
       dms: [], central: [], profiles: [], logs: [], counts: { dms: 0, central: 0, pending: 0 },
       search: "", loading: false, requestSent: false
@@ -674,10 +766,21 @@
       setTimeout(() => node.remove(), 4200);
     }
 
+    function loadingText() {
+      const parts = Object.values(state.progress);
+      const done = parts.reduce((n, p) => n + p[0], 0), total = parts.reduce((n, p) => n + p[1], 0);
+      return total ? `Đang tải ${done.toLocaleString("vi-VN")} / ${total.toLocaleString("vi-VN")} dòng…` : "Đang tải dữ liệu…";
+    }
     function setLoading(value) {
       state.loading = value;
-      const el = document.querySelector("[data-loading]");
-      if (el) el.classList.toggle("hidden", !value);
+      if (!value) state.progress = {};
+      document.querySelectorAll("[data-loading]").forEach(el => el.classList.toggle("hidden", !value));
+      document.querySelectorAll("[data-loading-text]").forEach(el => el.textContent = loadingText());
+      const btn = $("#refresh-data"); if (btn) btn.disabled = value;
+    }
+    function setLoadProgress(table, done, total) {
+      state.progress[table] = [done, total];
+      document.querySelectorAll("[data-loading-text]").forEach(el => el.textContent = loadingText());
     }
 
     let lastScreen = null;
@@ -821,14 +924,116 @@
         </div>`;
     }
 
-    function renderDataset() {
-      const isDms = state.tab === "dms"; state.dataset = isDms ? "dms" : "central";
+    // ---------- Bảng dữ liệu: lọc → phân trang → dựng HTML ----------
+    const searchIndex = new WeakMap();
+    function rowSearchText(row, fields) {
+      let text = searchIndex.get(row);
+      if (text === undefined) { text = fields.map(([key]) => row[key] ?? "").join("\u0001").toLowerCase(); searchIndex.set(row, text); }
+      return text;
+    }
+    let filterMemo = { rows: null, q: "", out: null };
+    function getFilteredRows(rows, fields, query) {
+      const q = String(query || "").trim().toLowerCase();
+      if (!q) return rows;
+      if (filterMemo.rows === rows && filterMemo.q === q) return filterMemo.out;
+      const out = rows.filter(row => rowSearchText(row, fields).includes(q));
+      filterMemo = { rows, q, out };
+      return out;
+    }
+    const nf = (n) => Number(n).toLocaleString("vi-VN");
+    const cellHtml = (v) => (v === null || v === undefined || v === "") ? '<span class="nil">—</span>' : escapeHtml(v);
+
+    function getDatasetView() {
+      const isDms = state.tab === "dms";
       const fields = isDms ? DMS_FIELDS : CENTRAL_FIELDS;
       const rows = state[isDms ? "dms" : "central"];
-      const filtered = rows.filter(row => !state.search || Object.values(row).some(v => String(v ?? "").toLowerCase().includes(state.search.toLowerCase()))).slice(0, 500);
-      return `<div class="header-row"><div><div class="eyebrow">${isDms ? "DMS directory" : "Central directory"}</div><h2 class="page-title">${isDms ? "DMS Userlist" : "Central User list"}</h2><p class="page-subtitle">${isDms ? "Danh sách người dùng DMS theo tenant, vùng và trạng thái." : "Danh sách nhân sự Central và thông tin hoạt động."}</p></div><div class="actions">${canEdit() ? `<button class="btn btn-primary" id="new-row">${ICONS.plus} Thêm bản ghi</button>` : ""}</div></div>
-        <section class="panel"><div class="toolbar"><div class="search">${ICONS.search}<input id="table-search" value="${escapeHtml(state.search)}" placeholder="Tìm theo tên, email, tenant…" /></div><div style="display:flex;gap:9px;align-items:center"><span class="badge badge-blue">${filtered.length}${rows.length > 500 ? "+": ""} / ${state.counts[isDms ? "dms" : "central"].toLocaleString("vi-VN")} dòng</span><button class="btn btn-secondary" id="refresh-data">${ICONS.refresh} Làm mới</button></div></div>
-        ${filtered.length ? `<div class="table-wrap"><table><thead><tr>${fields.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}<th>Thao tác</th></tr></thead><tbody>${filtered.map(row => `<tr>${fields.map(([key]) => `<td>${key === "username" ? `<strong>${escapeHtml(row[key])}</strong>` : escapeHtml(row[key] || "—")}</td>`).join("")}<td><div style="display:flex;gap:4px">${canEdit() ? `<button class="btn btn-plain edit-row" data-key="${escapeHtml(row.username)}" title="Sửa">${ICONS.edit}</button>` : ""}${isAdmin() ? `<button class="btn btn-plain delete-row" data-key="${escapeHtml(row.username)}" title="Xóa" style="color:var(--danger)">${ICONS.trash}</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Không tìm thấy dữ liệu</strong>Thử đổi từ khóa tìm kiếm hoặc làm mới bảng.</div>`}</section>`;
+      const filtered = getFilteredRows(rows, fields, state.search);
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+      state.page = Math.min(Math.max(1, Math.floor(state.page) || 1), totalPages);
+      const start = (state.page - 1) * state.pageSize;
+      return { isDms, fields, rows, filtered, total, totalPages, start, pageRows: filtered.slice(start, start + state.pageSize) };
+    }
+
+    function rowBadgeText(v) {
+      return state.search.trim() ? `${nf(v.total)} kết quả / ${nf(v.rows.length)} dòng` : `${nf(v.rows.length)} dòng`;
+    }
+
+    function pageItems(current, totalPages) {
+      const set = new Set([1, totalPages, current - 1, current, current + 1]);
+      if (current <= 3) [2, 3, 4].forEach(p => set.add(p));
+      if (current >= totalPages - 2) [totalPages - 1, totalPages - 2, totalPages - 3].forEach(p => set.add(p));
+      const pages = [...set].filter(p => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+      const out = [];
+      pages.forEach((p, idx) => {
+        if (idx) { const gap = p - pages[idx - 1]; if (gap === 2) out.push(p - 1); else if (gap > 2) out.push("…"); }
+        out.push(p);
+      });
+      return out;
+    }
+
+    function renderPager(v) {
+      const { total, totalPages, start, pageRows } = v, page = state.page;
+      const from = total ? start + 1 : 0, to = start + pageRows.length;
+      const btn = (p, label, { disabled = false, active = false, aria = `Trang ${p}` } = {}) =>
+        `<button type="button" class="pager-btn${active ? " active" : ""}" data-page="${p}" aria-label="${aria}"${active ? ' aria-current="page"' : ""}${disabled ? " disabled" : ""}>${label}</button>`;
+      const nav = [
+        btn(page - 1, ICONS.pgPrev, { disabled: page === 1, aria: "Trang trước" }),
+        ...pageItems(page, totalPages).map(p => p === "…" ? '<span class="pager-gap">…</span>' : btn(p, nf(p), { active: p === page })),
+        btn(page + 1, ICONS.pgNext, { disabled: page === totalPages, aria: "Trang sau" })
+      ].join("");
+      return `<div class="pager">
+        <div>Hiển thị <b>${nf(from)}–${nf(to)}</b> / <b>${nf(total)}</b> ${state.search.trim() ? "kết quả" : "dòng"}</div>
+        <div class="pager-controls">
+          <label class="pager-size">Số dòng / trang <select id="page-size" aria-label="Số dòng mỗi trang">${PAGE_SIZES.map(n => `<option value="${n}"${n === state.pageSize ? " selected" : ""}>${n}</option>`).join("")}</select></label>
+          <nav class="pager-nav" aria-label="Phân trang">${nav}</nav>
+          ${totalPages > 1 ? `<label class="pager-jump">Đến trang <input id="page-jump" type="number" min="1" max="${totalPages}" value="${page}" inputmode="numeric" aria-label="Đến trang số" /></label>` : ""}
+        </div>
+      </div>`;
+    }
+
+    function renderDatasetBody(v) {
+      const { fields, pageRows, start, total } = v;
+      if (!total) {
+        const msg = state.loading && !v.rows.length
+          ? `<div class="loading"><i class="spinner"></i> <span data-loading-text>${loadingText()}</span></div>`
+          : `<div class="empty"><strong>Không tìm thấy dữ liệu</strong>Thử đổi từ khóa tìm kiếm hoặc làm mới bảng.</div>`;
+        return `<div class="table-wrap data-scroll is-empty">${msg}</div>${renderPager(v)}`;
+      }
+      const head = `<th class="col-idx">#</th>${fields.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}<th class="col-act">Thao tác</th>`;
+      const body = pageRows.map((row, i) => `<tr><td class="col-idx">${nf(start + i + 1)}</td>${fields.map(([key]) => `<td>${key === "username" ? `<strong>${cellHtml(row[key])}</strong>` : cellHtml(row[key])}</td>`).join("")}<td class="col-act"><div style="display:flex;gap:4px">${canEdit() ? `<button class="btn btn-plain edit-row" data-key="${escapeHtml(row.username)}" title="Sửa">${ICONS.edit}</button>` : ""}${isAdmin() ? `<button class="btn btn-plain delete-row" data-key="${escapeHtml(row.username)}" title="Xóa" style="color:var(--danger)">${ICONS.trash}</button>` : ""}</div></td></tr>`).join("");
+      return `<div class="table-wrap data-scroll" tabindex="0" aria-label="Bảng dữ liệu, cuộn ngang và dọc để xem đủ các cột"><table class="data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${renderPager(v)}`;
+    }
+
+    function renderDataset() {
+      const v = getDatasetView();
+      return `<div class="header-row"><div><div class="eyebrow">${v.isDms ? "DMS directory" : "Central directory"}</div><h2 class="page-title">${v.isDms ? "DMS Userlist" : "Central User list"}</h2><p class="page-subtitle">${v.isDms ? "Danh sách người dùng DMS theo tenant, vùng và trạng thái." : "Danh sách nhân sự Central và thông tin hoạt động."}</p></div><div class="actions">${canEdit() ? `<button class="btn btn-light" id="new-row">${ICONS.plus} Thêm bản ghi</button>` : ""}</div></div>
+        <section class="panel"><div class="toolbar"><div class="search">${ICONS.search}<input id="table-search" value="${escapeHtml(state.search)}" placeholder="Tìm theo tên, email, tenant…" autocomplete="off" /></div><div class="toolbar-right"><span class="loading${state.loading ? "" : " hidden"}" data-loading><i class="spinner"></i><span data-loading-text>${loadingText()}</span></span><span class="badge badge-blue" id="row-badge">${rowBadgeText(v)}</span><button class="btn btn-secondary" id="refresh-data"${state.loading ? " disabled" : ""}>${ICONS.refresh} Làm mới</button></div></div>
+        <div id="dataset-body">${renderDatasetBody(v)}</div></section>`;
+    }
+
+    // Chỉ cập nhật phần bảng + phân trang (không dựng lại cả trang) → tìm kiếm/chuyển trang mượt, không mất focus ô tìm kiếm
+    function updateDatasetBody() {
+      const body = $("#dataset-body"); if (!body) return;
+      const v = getDatasetView();
+      body.innerHTML = renderDatasetBody(v);
+      const badge = $("#row-badge"); if (badge) badge.textContent = rowBadgeText(v);
+      bindDatasetBody();
+    }
+    function goToPage(p) {
+      const n = Math.floor(Number(p));
+      if (!Number.isFinite(n)) return updateDatasetBody();
+      state.page = n; updateDatasetBody();
+    }
+    function bindDatasetBody() {
+      const body = $("#dataset-body"); if (!body) return;
+      body.querySelectorAll(".edit-row").forEach(el => el.addEventListener("click", () => openRowModal(el.dataset.key)));
+      body.querySelectorAll(".delete-row").forEach(el => el.addEventListener("click", () => deleteRow(el.dataset.key)));
+      body.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", () => goToPage(el.dataset.page)));
+      $("#page-size")?.addEventListener("change", e => { state.pageSize = Number(e.target.value); state.page = 1; savePageSize(state.pageSize); updateDatasetBody(); });
+      const jump = $("#page-jump");
+      jump?.addEventListener("keydown", e => { if (e.key === "Enter") goToPage(jump.value); });
+      jump?.addEventListener("change", () => goToPage(jump.value));
     }
 
     function renderAdmin() {
@@ -861,15 +1066,18 @@
 
     function bindAppEvents() {
       document.querySelectorAll("[data-tab]").forEach(el => el.addEventListener("click", () => {
-        state.tab = el.dataset.tab; state.search = ""; $("#sidebar")?.classList.remove("open"); render();
+        state.tab = el.dataset.tab; state.search = ""; state.page = 1; $("#sidebar")?.classList.remove("open"); render();
       }));
       $("#mobile-menu")?.addEventListener("click", () => $("#sidebar").classList.toggle("open"));
       $("#logout")?.addEventListener("click", logout);
       $("#refresh-data")?.addEventListener("click", loadData);
-      $("#table-search")?.addEventListener("input", e => { state.search = e.target.value; const cursor = e.target.selectionStart; render(); const input = $("#table-search"); input?.focus(); input?.setSelectionRange(cursor, cursor); });
+      let searchTimer = null;
+      $("#table-search")?.addEventListener("input", e => {
+        state.search = e.target.value; state.page = 1;
+        clearTimeout(searchTimer); searchTimer = setTimeout(updateDatasetBody, 150);
+      });
       $("#new-row")?.addEventListener("click", () => openRowModal());
-      document.querySelectorAll(".edit-row").forEach(el => el.addEventListener("click", () => openRowModal(el.dataset.key)));
-      document.querySelectorAll(".delete-row").forEach(el => el.addEventListener("click", () => deleteRow(el.dataset.key)));
+      bindDatasetBody();
       $("#file-input")?.addEventListener("change", e => e.target.files[0] && importWorkbook(e.target.files[0]));
       const dropzone = $("#dropzone");
       if (dropzone) {
@@ -982,20 +1190,52 @@
       render();
     }
 
+    // Tải TOÀN BỘ một bảng: Supabase giới hạn số dòng mỗi lần gọi nên ta lấy theo từng đoạn (range).
+    // Sắp xếp thêm theo username (duy nhất) để các đoạn không bị trùng/sót dòng khi nhiều dòng có cùng updated_at.
+    async function fetchAllRows(table) {
+      const build = (from, to, withCount) => state.supabase.from(table)
+        .select("*", withCount ? { count: "exact" } : undefined)
+        .order("updated_at", { ascending: false }).order("username", { ascending: true }).range(from, to);
+      const first = await build(0, FETCH_CHUNK - 1, true);
+      if (first.error) return { data: [], count: 0, error: first.error };
+      const total = first.count ?? first.data.length;
+      const step = first.data.length || FETCH_CHUNK;          // máy chủ có thể trả ít hơn FETCH_CHUNK dòng/lần
+      const chunks = [first.data];
+      let loaded = first.data.length;
+      setLoadProgress(table, loaded, total);
+      const offsets = []; for (let o = step; o < total; o += step) offsets.push(o);
+      for (let i = 0; i < offsets.length; i += 4) {           // tải song song tối đa 4 đoạn
+        const results = await Promise.all(offsets.slice(i, i + 4).map(o => build(o, o + step - 1, false)));
+        for (const r of results) {
+          if (r.error) return { data: chunks.flat(), count: total, error: r.error };
+          chunks.push(r.data); loaded += r.data.length;
+        }
+        setLoadProgress(table, loaded, total);
+      }
+      return { data: chunks.flat(), count: total, error: null };
+    }
+
+    let reloadQueued = false;
     async function loadData() {
       if (!state.supabase || !state.profile) return;
+      if (state.loading) { reloadQueued = true; return; }      // đang tải: xếp hàng tải lại sau để không mất thay đổi vừa lưu
       setLoading(true);
-      const [dms, central, profiles, logs] = await Promise.all([
-        state.supabase.from("dms_users").select("*", { count: "exact" }).order("updated_at", { ascending: false }).limit(500),
-        state.supabase.from("central_users").select("*", { count: "exact" }).order("updated_at", { ascending: false }).limit(500),
-        isAdmin() ? state.supabase.from("profiles").select("*").order("created_at", { ascending: false }) : Promise.resolve({ data: [], count: 0 }),
-        isAdmin() ? state.supabase.from("import_logs").select("*").order("created_at", { ascending: false }).limit(20) : Promise.resolve({ data: [], count: 0 })
-      ]);
-      if (dms.error || central.error) toast(`Không tải được dữ liệu: ${(dms.error || central.error).message}`, "error");
-      state.dms = dms.data || []; state.central = central.data || []; state.profiles = profiles.data || []; state.logs = logs.data || [];
-      state.counts.dms = dms.count ?? state.dms.length; state.counts.central = central.count ?? state.central.length;
-      state.counts.pending = state.profiles.filter(p => p.approval_status === "pending").length;
-      setLoading(false); if ($("#root").innerHTML) render();
+      try {
+        const [dms, central, profiles, logs] = await Promise.all([
+          fetchAllRows("dms_users"),
+          fetchAllRows("central_users"),
+          isAdmin() ? state.supabase.from("profiles").select("*").order("created_at", { ascending: false }) : Promise.resolve({ data: [], count: 0 }),
+          isAdmin() ? state.supabase.from("import_logs").select("*").order("created_at", { ascending: false }).limit(20) : Promise.resolve({ data: [], count: 0 })
+        ]);
+        if (dms.error || central.error) toast(`Không tải được đầy đủ dữ liệu: ${(dms.error || central.error).message}`, "error");
+        state.dms = dms.data || []; state.central = central.data || []; state.profiles = profiles.data || []; state.logs = logs.data || [];
+        state.counts.dms = dms.count ?? state.dms.length; state.counts.central = central.count ?? state.central.length;
+        state.counts.pending = state.profiles.filter(p => p.approval_status === "pending").length;
+      } finally {
+        setLoading(false);
+      }
+      if ($("#root").innerHTML) render();
+      if (reloadQueued) { reloadQueued = false; await loadData(); }
     }
 
     async function login() {

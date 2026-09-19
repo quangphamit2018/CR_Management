@@ -4363,15 +4363,15 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 }
 .weekly-mom-card-date{ color:#167f83; font-size:12px; font-weight:800; white-space:nowrap; }
 .weekly-mom-card-vendor{ color:#173d57; font-size:14px; font-weight:800; }
-.weekly-mom-card-title{ color:#6d8391; font-size:12px; margin-top:3px; }
+.weekly-mom-card-title{ color:#3d5b6d; font-size:12px; margin-top:3px; }
 .weekly-mom-card-actions{ margin-left:auto; display:flex; gap:6px; }
-.weekly-mom-card-body{ padding:13px 17px 16px; }
+.weekly-mom-card-body{ padding:13px 17px 16px; min-width:0; }
 .weekly-mom-card.is-collapsed .weekly-mom-card-body{ display:none; }
 .weekly-mom-card-toggle{ display:inline-flex; align-items:center; gap:5px; border:1px solid #dce8ec; border-radius:7px; padding:6px 8px; color:#557082; background:#fff; cursor:pointer; font-size:11px; font-weight:750; }
 .weekly-mom-card-toggle:hover{ color:#167f83; border-color:#abd4d5; background:#f5fbfb; }
 .weekly-mom-card-toggle svg{ width:13px; height:13px; transition:transform .18s ease; }
 .weekly-mom-card:not(.is-collapsed) .weekly-mom-card-toggle svg{ transform:rotate(180deg); }
-.weekly-mom-detail-table{ min-width:1680px; table-layout:fixed; }
+.weekly-mom-detail-table{ width:100%; min-width:2050px; table-layout:fixed; }
 .weekly-mom-detail-table th:nth-child(1),.weekly-mom-detail-table td:nth-child(1){ width:92px; }
 .weekly-mom-detail-table th:nth-child(2),.weekly-mom-detail-table td:nth-child(2){ width:260px; }
 .weekly-mom-detail-table th:nth-child(3),.weekly-mom-detail-table td:nth-child(3){ width:100px; }
@@ -4403,19 +4403,24 @@ body.detail-nav-visible .modal-overlay.full .modal-head{
 }
 .weekly-mom-summary-item{ padding:9px 10px; border:1px solid #e6eef0; border-radius:9px; background:#fcfefe; }
 .weekly-mom-summary-label{ color:#8a9ca9; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
-.weekly-mom-summary-value{ color:#405d70; font-size:12px; line-height:1.45; margin-top:3px; white-space:pre-wrap; }
+.weekly-mom-summary-value{ color:#23465a; font-size:12px; line-height:1.5; margin-top:3px; white-space:pre-wrap; }
 .weekly-mom-table{ width:100%; border-collapse:separate; border-spacing:0; border:1px solid #e1eaed; border-radius:9px; overflow:hidden; }
-.weekly-mom-table th,.weekly-mom-table td{ padding:8px 9px; border-right:1px solid #e6eef0; border-bottom:1px solid #e6eef0; vertical-align:top; text-align:left; font-size:11.5px; }
+.weekly-mom-table th,.weekly-mom-table td{ padding:9px 10px; border-right:1px solid #d7e4e8; border-bottom:1px solid #d7e4e8; vertical-align:top; text-align:left; font-size:12.5px; }
 .weekly-mom-table th:last-child,.weekly-mom-table td:last-child{ border-right:0; }
 .weekly-mom-table tbody tr:last-child td{ border-bottom:0; }
-.weekly-mom-table th{ color:#567083; background:#f3f8f9; font-size:10.5px; font-weight:800; white-space:nowrap; }
-.weekly-mom-table td{ color:#405d70; white-space:pre-wrap; line-height:1.4; }
+.weekly-mom-table tbody tr:nth-child(even) td{ background:#f8fbfc; }
+.weekly-mom-table tbody tr:hover td{ background:#eef8f8; }
+.weekly-mom-table th{ color:#24495d; background:#e8f2f4; font-size:11.5px; font-weight:850; white-space:nowrap; }
+.weekly-mom-table td{ color:#183f55; white-space:pre-wrap; line-height:1.5; }
 .weekly-mom-crid{ color:#167f83; font-weight:800; white-space:nowrap; }
 .weekly-mom-empty,.weekly-mom-error{
   padding:44px 20px; border:1px dashed #cfdfe3; border-radius:13px; color:#78909f; text-align:center; background:#fff;
 }
 .weekly-mom-error{ color:#a1564f; border-color:#e8c9c5; background:#fffafa; }
-.weekly-mom-form-rows{ overflow-x:auto; border:1px solid #dfe8ec; border-radius:9px; }
+.weekly-mom-form-rows{ width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; border:1px solid #dfe8ec; border-radius:9px; -webkit-overflow-scrolling:touch; scrollbar-color:#9bbdc3 #eef5f6; scrollbar-width:thin; }
+.weekly-mom-form-rows::-webkit-scrollbar{ height:11px; }
+.weekly-mom-form-rows::-webkit-scrollbar-track{ background:#eef5f6; border-radius:8px; }
+.weekly-mom-form-rows::-webkit-scrollbar-thumb{ background:#9bbdc3; border:2px solid #eef5f6; border-radius:8px; }
 .weekly-mom-form-table{ width:100%; min-width:960px; border-collapse:separate; border-spacing:0; }
 .weekly-mom-form-table th,.weekly-mom-form-table td{ padding:7px; border-right:1px solid #e3ebef; border-bottom:1px solid #e3ebef; vertical-align:top; }
 .weekly-mom-form-table th:last-child,.weekly-mom-form-table td:last-child{ border-right:0; }
@@ -12505,9 +12510,6 @@ function renderWeeklyMomList(){
     `).join("") : `<tr><td colspan="11" style="text-align:center;color:#8a9ca9;">Buổi họp này chưa có CR.</td></tr>`;
     const participants = weeklyMomText(record.participants);
     const summary = weeklyMomText(record.overall_summary);
-    const uploadMeta = record.upload_date
-      ? `Upload ${weeklyMomDateLabel(record.upload_date)}${record.source_file_name ? ` · ${record.source_file_name}` : ""}`
-      : "";
     const isExcelImport = record.source_type === "excel";
     const isCurrentUploadDay = !record.upload_date || record.upload_date === todayISO();
     const recordKey = String(record.id);
@@ -12518,7 +12520,6 @@ function renderWeeklyMomList(){
         <div>
           <div class="weekly-mom-card-vendor">${esc(weeklyMomText(record.vendor) || "Chưa nhập Vendor")}</div>
           <div class="weekly-mom-card-title">${esc(weeklyMomText(record.meeting_title) || "Weekly Vendor Meeting")}</div>
-          ${uploadMeta ? `<div class="hint">${esc(uploadMeta)}</div>` : ""}
         </div>
         <div class="weekly-mom-card-actions">
           ${(isExcelImport || isCurrentUploadDay) ? weeklyMomActionButton("edit", record.id, isExcelImport ? "Sửa ngày họp" : "Sửa") : ""}

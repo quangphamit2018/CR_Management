@@ -13281,14 +13281,15 @@ async function downloadWeeklyMomExcel(recordId){
     right: { style:"thin", color:{ argb:"FFD7E4E8" } }
   };
   const headerBorder = {
-    top: { style:"thin", color:{ argb:"FF0D777A" } },
-    left: { style:"thin", color:{ argb:"FF0D777A" } },
-    bottom: { style:"medium", color:{ argb:"FF0D777A" } },
-    right: { style:"thin", color:{ argb:"FF0D777A" } }
+    top: { style:"thin", color:{ argb:"FF163A5C" } },
+    left: { style:"thin", color:{ argb:"FF163A5C" } },
+    bottom: { style:"medium", color:{ argb:"FF163A5C" } },
+    right: { style:"thin", color:{ argb:"FF163A5C" } }
   };
   const bodyFont = { name:"Aptos", size:10, color:{ argb:"FF183F55" } };
   const headerFont = { name:"Aptos Display", size:10, bold:true, color:{ argb:"FFFFFFFF" } };
-  const headerFill = { type:"pattern", pattern:"solid", fgColor:{ argb:"FF159A9C" } };
+  // Màu xanh navy chủ đạo của giao diện web (--navy: #0A1E33).
+  const headerFill = { type:"pattern", pattern:"solid", fgColor:{ argb:"FF0A1E33" } };
   const evenRowFill = { type:"pattern", pattern:"solid", fgColor:{ argb:"FFF8FBFC" } };
   const statusFill = { type:"pattern", pattern:"solid", fgColor:{ argb:"FFEEF8F8" } };
 

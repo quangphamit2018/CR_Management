@@ -245,8 +245,10 @@
     const state = {
       supabase: null, session: null, profile: null, tab: "dashboard", dataset: "dms",
       dms: [], central: [], profiles: [], logs: [], counts: { dms: 0, central: 0, pending: 0 },
-      search: "", loading: false
+      search: "", loading: false, requestSent: false
     };
+    let profileChannel = null;
+    let adminChannel = null;
 
     const $ = (selector) => document.querySelector(selector);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
@@ -300,7 +302,8 @@
         <h2>${rejected ? "Tài khoản chưa được cấp quyền" : "Tài khoản đang chờ duyệt"}</h2>
         <p>${rejected ? "Super-admin đã từ chối yêu cầu truy cập của tài khoản này. Vui lòng liên hệ quản trị viên nếu cần được xem xét lại." : "Yêu cầu của bạn đã được ghi nhận. Super-admin cần phê duyệt trước khi bạn có thể xem dữ liệu."}</p>
         <div class="notice notice-info" style="text-align:left"><b>${escapeHtml(state.profile.email)}</b><br>Trạng thái: ${statusBadge(state.profile.approval_status)}</div>
-        <button class="btn btn-secondary" style="margin-top:18px" id="logout-pending">Đăng xuất</button>
+        ${!rejected ? `<button class="btn btn-primary" style="margin-top:14px;width:100%" id="send-request-btn" ${state.requestSent ? "disabled" : ""}>${state.requestSent ? "Đã gửi yêu cầu ✓" : "Gửi yêu cầu tới quản trị viên"}</button>` : ""}
+        <button class="btn btn-secondary" style="margin-top:9px;width:100%" id="logout-pending">Đăng xuất</button>
       </section></main>`;
     }
 
@@ -461,6 +464,53 @@
         }
       }
       if (state.profile?.approval_status === "approved") await loadData();
+      subscribeProfileChanges(state.session.user.id);
+    }
+
+    function subscribeProfileChanges(userId) {
+      if (profileChannel) { state.supabase.removeChannel(profileChannel); profileChannel = null; }
+      if (!userId) return;
+      profileChannel = state.supabase
+        .channel(`profile-${userId}`)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` }, async (payload) => {
+          state.profile = payload.new;
+          if (state.profile.approval_status === "approved") { toast("Tài khoản của bạn đã được phê duyệt!", "success"); await loadData(); }
+          render();
+        })
+        .subscribe();
+      // Nếu là Super-admin, lắng nghe luôn kênh thông báo "có người vừa gửi yêu cầu chờ duyệt".
+      if (isAdmin()) subscribeAdminNotifications(); else if (adminChannel) { state.supabase.removeChannel(adminChannel); adminChannel = null; }
+    }
+
+    function subscribeAdminNotifications() {
+      if (adminChannel) { state.supabase.removeChannel(adminChannel); adminChannel = null; }
+      adminChannel = state.supabase
+        .channel("admin-notify")
+        .on("broadcast", { event: "new-request" }, async (payload) => {
+          const p = payload.payload || {};
+          toast(`${p.display_name || p.email || "Một tài khoản"} vừa gửi yêu cầu phê duyệt.`);
+          await loadData();
+          render();
+        })
+        .subscribe();
+    }
+
+    async function sendRequestToAdmin() {
+      if (!state.supabase || !state.session || state.requestSent) return;
+      const channel = state.supabase.channel("admin-notify");
+      channel.subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.send({
+            type: "broadcast",
+            event: "new-request",
+            payload: { email: state.profile?.email || state.session.user.email, display_name: state.profile?.display_name || "" }
+          });
+          state.supabase.removeChannel(channel);
+        }
+      });
+      state.requestSent = true;
+      toast("Đã gửi yêu cầu tới quản trị viên.", "success");
+      render();
     }
 
     async function loadData() {
@@ -510,6 +560,9 @@
       }, 500);
     }
     async function logout() {
+      if (profileChannel) { state.supabase?.removeChannel(profileChannel); profileChannel = null; }
+      if (adminChannel) { state.supabase?.removeChannel(adminChannel); adminChannel = null; }
+      state.requestSent = false;
       await state.supabase?.auth.signOut(); state.session = null; state.profile = null; render();
     }
 
@@ -589,6 +642,7 @@
     document.addEventListener("click", e => {
       if (e.target.closest("#google-login")) login();
       if (e.target.closest("#logout-pending")) logout();
+      if (e.target.closest("#send-request-btn")) sendRequestToAdmin();
     });
     boot();
   </script>

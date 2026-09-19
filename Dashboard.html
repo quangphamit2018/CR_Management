@@ -1159,6 +1159,152 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   @media (prefers-reduced-motion:reduce){
     .slicer-row .panel, .dd-btn, .btn-export, .pager button, table.data-table td, table.data-table a.tlink{ transition:none !important; }
   }
+
+  /* ======================================================================
+     REDESIGN v4 — Total tickets · Chart-panel · KPI/Donut · Nút đồng bộ
+     ====================================================================== */
+
+  /* ---------- 1) Total tickets: bỏ icon bên trái ---------- */
+  .total-box{
+    grid-template-columns:auto; grid-template-areas:"label" "value"; justify-items:center; text-align:center;
+    padding:14px 48px 20px;
+  }
+  .total-box::before{ content:none; display:none; }
+  .total-label{ justify-self:center; }
+
+  /* ---------- Tiêu đề thẻ: icon + chữ căn trái (dùng chung) ---------- */
+  .chart-panel .panel-title, .donut-panel .panel-title, .bar-panel .panel-title{ justify-content:flex-start; gap:10px; text-align:left; }
+  .chart-panel .panel-title .title-text, .bar-panel .panel-title .title-text{ flex:1; text-align:left; }
+  .donut-panel .panel-title .pt-text{ flex:1; }
+
+  /* ---------- 2) Chart-panel (Total Tickets By Day / Month) ---------- */
+  .chart-panel{
+    border:1px solid var(--line); border-radius:14px; background:linear-gradient(180deg,#ffffff 0%,#f8fbfe 100%);
+    box-shadow:var(--shadow-card); margin-bottom:18px;
+  }
+  .chart-panel .panel-title{ padding:11px 16px; font-size:14px; border-radius:13px 13px 0 0; }
+  .chart-panel .panel-body{ height:310px; padding:16px 18px 8px; }
+
+  /* Nút chuyển Ngày / Tháng dạng segmented control */
+  .title-toggle{
+    right:14px; gap:2px; padding:3px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.3); border-radius:999px;
+  }
+  .title-toggle button{
+    border:none; background:transparent; color:#fff; padding:4px 15px; border-radius:999px; font-size:11.5px; font-weight:700; font-family:inherit;
+    transition:background .15s ease, color .15s ease;
+  }
+  .title-toggle button:hover:not(.active){ background:rgba(255,255,255,.22); }
+  .title-toggle button.active{ background:#fff; color:var(--navy-800); box-shadow:0 2px 6px rgba(0,0,0,.28); }
+  .title-toggle button:focus-visible{ outline:2px solid #fff; outline-offset:1px; }
+
+  /* ---------- 3) KPI cards + Donut ---------- */
+  .kpi-donut-row{ gap:18px; margin-bottom:20px; }
+  .kpi-card{
+    --k:var(--navy-700); position:relative; height:210px; min-width:190px; border:1px solid var(--line); border-radius:14px;
+    background:linear-gradient(180deg,#ffffff 0%,#f7fafd 100%); box-shadow:var(--shadow-card);
+    transition:box-shadow .18s ease, border-color .18s ease;
+  }
+  @supports (background: color-mix(in srgb, red 10%, white)){
+    .kpi-card{ background:linear-gradient(180deg,#ffffff 0%, color-mix(in srgb, var(--k) 7%, #ffffff) 100%); }
+  }
+  .kpi-card:hover{ border-color:#9db4c8; box-shadow:0 2px 4px rgba(16,41,68,.08), 0 14px 32px rgba(16,41,68,.16); }
+  .kpi-ok{ --k:#28A745; }
+  .kpi-progress{ --k:#e5383b; }
+  .kpi-new{ --k:#118DFF; }
+  .kpi-cancel{ --k:#6c7a89; }
+  .kpi-head{
+    display:flex; align-items:center; justify-content:flex-start; gap:10px; padding:11px 14px; text-align:left;
+    font-size:14px; font-weight:700; border-radius:13px 13px 0 0; border-bottom:4px solid var(--k);
+  }
+  .kpi-body{ flex-direction:column; gap:6px; padding:10px 16px 18px; }
+  .kpi-value{ font-size:50px; font-weight:800; line-height:1; letter-spacing:-.5px; font-variant-numeric:tabular-nums; }
+  .kpi-sub{
+    padding:3px 12px; border-radius:999px; font-size:12px; font-weight:700; background:#eef3f8; color:var(--k);
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .kpi-sub:empty{ display:none; }
+  @supports (background: color-mix(in srgb, red 10%, white)){
+    .kpi-sub{ background:color-mix(in srgb, var(--k) 13%, #fff); color:color-mix(in srgb, var(--k) 78%, #000); border:1px solid color-mix(in srgb, var(--k) 30%, #fff); }
+  }
+  .kpi-meter{ width:72%; height:7px; margin-top:6px; border-radius:999px; background:#e2e9f0; overflow:hidden; box-shadow:inset 0 1px 2px rgba(16,41,68,.15); }
+  .kpi-meter i{ display:block; height:100%; width:var(--w,0%); border-radius:inherit; background:var(--k); transition:width .5s ease; }
+  /* Ẩn phần phụ khi số liệu còn đang skeleton (tránh lộ số cũ) */
+  .kpi-value.skeleton-num ~ .kpi-sub, .kpi-value.skeleton-num ~ .kpi-meter{ visibility:hidden; }
+
+  .donut-panel{
+    height:210px; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-card);
+    background:linear-gradient(180deg,#ffffff 0%,#f8fbfe 100%);
+  }
+  .donut-panel .panel-title{ padding:11px 14px; font-size:14px; border-radius:13px 13px 0 0; }
+  .donut-panel .panel-body{ padding:6px 14px 8px; }
+
+  /* Tiêu đề bar-panel: cùng kiểu căn trái + icon */
+  .bar-panel .panel-title{ font-size:14px; }
+
+  /* ---------- 4) Nút Đồng bộ dữ liệu ---------- */
+  .sync-box{ gap:8px; align-items:flex-end; min-width:0; }
+  .public-sync-btn{
+    display:inline-flex; align-items:center; gap:10px; height:46px; padding:0 24px 0 7px; border-radius:999px;
+    border:1px solid rgba(255,255,255,.24); background:var(--brand-gradient); color:#fff; font:inherit; font-size:13.5px; font-weight:700;
+    letter-spacing:.2px; cursor:pointer; white-space:nowrap;
+    box-shadow:0 1px 0 rgba(255,255,255,.2) inset, 0 8px 18px rgba(16,41,68,.32);
+    transition:background .18s ease, box-shadow .18s ease, transform .12s ease;
+  }
+  .public-sync-btn .sync-ico{
+    flex:0 0 auto; width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
+    background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.34);
+  }
+  .public-sync-btn .sync-ico svg{
+    width:16px; height:16px; fill:none; stroke:#fff; stroke-width:2.1; stroke-linecap:round; stroke-linejoin:round; transition:transform .45s ease;
+  }
+  .public-sync-btn:hover:not(:disabled){
+    background:linear-gradient(180deg,#245d8f 0%,#143659 55%,#0a2036 100%); transform:translateY(-1px);
+    box-shadow:0 1px 0 rgba(255,255,255,.22) inset, 0 12px 24px rgba(16,41,68,.38), 0 0 0 4px rgba(17,141,255,.22);
+  }
+  .public-sync-btn:hover:not(:disabled) .sync-ico svg{ transform:rotate(180deg); }
+  .public-sync-btn:active:not(:disabled){ transform:translateY(1px); }
+  .public-sync-btn:focus-visible{ outline:3px solid var(--accent-ring); outline-offset:3px; }
+  .public-sync-btn:disabled{
+    cursor:progress; background:linear-gradient(180deg,#5b7f9c,#3d6180); border-color:rgba(255,255,255,.2); box-shadow:none; transform:none;
+  }
+  .public-sync-btn:disabled .sync-ico svg{ animation:sync-spin 1s linear infinite; }
+  @keyframes sync-spin{ to{ transform:rotate(360deg); } }
+
+  .sync-freshness{
+    gap:7px; margin-top:0; padding:5px 13px 5px 11px; border-radius:999px; font-size:11.5px; font-weight:600;
+    background:#e8f6ec; border:1px solid #b9e2c4; color:#1e7e34;
+  }
+  .sync-freshness .dot{ width:8px; height:8px; box-shadow:0 0 0 3px rgba(30,126,52,.2); }
+  .sync-freshness.warn{ background:#fff4d6; border-color:#f0dc9b; color:#8a6100; }
+  .sync-freshness.warn .dot{ box-shadow:0 0 0 3px rgba(184,134,11,.22); }
+  .sync-freshness.stale{ background:#fdecea; border-color:#f3b8b3; color:#b02a24; }
+  .sync-freshness.stale .dot{ box-shadow:0 0 0 3px rgba(192,57,43,.22); }
+  .public-sync-status:not(:empty){
+    max-width:280px; padding:7px 12px; border-radius:10px; font-size:11.5px; font-weight:600; line-height:1.5; text-align:left;
+    background:var(--info-bg); border:1px solid var(--info-line); color:var(--info);
+  }
+  .public-sync-status.ok:not(:empty){ background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok); }
+  .public-sync-status.err:not(:empty){ background:var(--danger-bg); border-color:var(--danger-line); color:var(--danger); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:768px){
+    .total-box{ padding:10px 30px 16px; }
+    .chart-panel .panel-body{ height:250px; padding:10px 8px 4px; }
+    .kpi-card{ height:auto; flex:0 0 auto; min-height:88px; }
+    .kpi-head{ border-bottom:none; border-right:4px solid var(--k); border-radius:13px 0 0 13px; }
+    .kpi-body{ flex-direction:column; gap:4px; padding:10px 8px; }
+    .kpi-value{ font-size:32px; }
+    .kpi-meter{ display:none; }
+    .donut-panel{ height:auto; }
+    .title-toggle{ right:auto; }
+    .public-sync-btn{ width:100%; justify-content:center; padding:0 20px 0 7px; }
+    .public-sync-status:not(:empty){ max-width:100%; text-align:center; }
+  }
+  @media (max-width:400px){ .kpi-value{ font-size:26px; } }
+  @media (prefers-reduced-motion:reduce){
+    .public-sync-btn, .public-sync-btn .sync-ico svg, .kpi-card, .kpi-meter i, .title-toggle button{ transition:none !important; }
+    .public-sync-btn:disabled .sync-ico svg{ animation:none; }
+  }
 </style>
 </head>
 <body>
@@ -1318,7 +1464,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       </div>
     </div>
     <div class="sync-box">
-      <button id="publicSyncBtn" class="public-sync-btn">🔄 Đồng bộ dữ liệu</button>
+      <button id="publicSyncBtn" class="public-sync-btn" type="button"><span class="sync-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/></svg></span><span class="sync-label">Đồng bộ dữ liệu</span></button>
       <div id="publicSyncStatus" class="public-sync-status"></div>
       <div id="syncFreshness" class="sync-freshness" style="display:none;"><span class="dot"></span><span id="syncFreshnessLabel"></span></div>
     </div>
@@ -1403,7 +1549,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   <div class="row chart-panel panel">
     <div class="panel-title">
-      <span class="title-text">Total Tickets By Day</span>
+      <span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span><span class="title-text">Total Tickets By Day</span>
       <div class="title-toggle" id="areaGranToggle">
         <button data-g="day" class="active">Ngày</button>
         <button data-g="month">Tháng</button>
@@ -1413,24 +1559,24 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   </div>
 
   <div class="kpi-donut-row">
-    <div class="kpi-card">
-      <div class="kpi-head">Ticket Resolved</div>
-      <div class="kpi-body"><div class="kpi-value skeleton-num" style="color:var(--good)" id="kpiResolved">0</div></div>
+    <div class="kpi-card kpi-ok">
+      <div class="kpi-head"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg></span><span>Ticket Resolved</span></div>
+      <div class="kpi-body"><div class="kpi-value skeleton-num" style="color:var(--good)" id="kpiResolved">0</div><div class="kpi-sub" id="kpiResolvedPct"></div><div class="kpi-meter" aria-hidden="true"><i></i></div></div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-head">Ticket In Progress</div>
-      <div class="kpi-body"><div class="kpi-value skeleton-num" style="color:var(--bad)" id="kpiPending">0</div></div>
+    <div class="kpi-card kpi-progress">
+      <div class="kpi-head"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span>Ticket In Progress</span></div>
+      <div class="kpi-body"><div class="kpi-value skeleton-num" style="color:var(--bad)" id="kpiPending">0</div><div class="kpi-sub" id="kpiPendingPct"></div><div class="kpi-meter" aria-hidden="true"><i></i></div></div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-head">Ticket New</div>
-      <div class="kpi-body"><div class="kpi-value skeleton-num" style="color:var(--c1)" id="kpiNew">0</div></div>
+    <div class="kpi-card kpi-new">
+      <div class="kpi-head"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13l2-7h12l2 7v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 13h5l1 2h4l1-2h5"/></svg></span><span>Ticket New</span></div>
+      <div class="kpi-body"><div class="kpi-value skeleton-num" style="color:var(--c1)" id="kpiNew">0</div><div class="kpi-sub" id="kpiNewPct"></div><div class="kpi-meter" aria-hidden="true"><i></i></div></div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-head">Ticket Cancelled</div>
-      <div class="kpi-body"><div class="kpi-value skeleton-num" style="color:var(--fg-sec)" id="kpiCancelled">0</div></div>
+    <div class="kpi-card kpi-cancel">
+      <div class="kpi-head"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg></span><span>Ticket Cancelled</span></div>
+      <div class="kpi-body"><div class="kpi-value skeleton-num" style="color:var(--fg-sec)" id="kpiCancelled">0</div><div class="kpi-sub" id="kpiCancelledPct"></div><div class="kpi-meter" aria-hidden="true"><i></i></div></div>
     </div>
     <div class="donut-panel">
-      <div class="panel-title">Ticket By Application</div>
+      <div class="panel-title"><span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9h9"/><path d="M20.5 15A9 9 0 1 1 9 3.5"/></svg></span><span class="pt-text">Ticket By Application</span></div>
       <div class="panel-body"><canvas id="donutChart"></canvas><div class="skel-overlay" id="skelDonut"></div></div>
     </div>
   </div>
@@ -1438,7 +1584,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   <div class="mid-row">
     <div class="panel bar-panel">
       <div class="panel-title">
-        <span class="title-text">Total Tickets by Agent</span>
+        <span class="pt-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h10M3 12h16M3 19h7"/></svg></span><span class="title-text">Total Tickets by Agent</span>
         <button class="sort-btn" id="barSortBtn" title="Đổi chiều sắp xếp">
           <span id="barSortIcon">▲</span><span id="barSortLabel">Tăng dần</span>
         </button>
@@ -1987,21 +2133,43 @@ const cOrange = '#123a5e';
 const cBlue = '#118DFF';
 const donutColors = ['#118DFF','#12239E','#E66C37','#6B007B','#E044A7','#744EC2','#D9B300','#D64550','#197278','#1AAB40','#15C6F4','#4092FF','#FFA058','#BE5DC9'];
 
+/* Điểm cao nhất của biểu đồ vùng được nhấn mạnh (chỉ ảnh hưởng cách vẽ) */
+const areaIsPeak = (ctx)=>{
+  const d = ctx.dataset.data; if(!d || !d.length) return false;
+  return d[ctx.dataIndex] === Math.max.apply(null, d);
+};
 const areaChart = new Chart(document.getElementById('areaChart'), {
   type:'line',
   data:{ labels:[], datasets:[{ label:'Total Tickets', data:[],
-    borderColor:cOrange, backgroundColor:'rgba(18,58,94,0.32)', fill:true, tension:0.3,
-    pointRadius:3, pointBackgroundColor:cBlue, pointBorderColor:cBlue, borderWidth:2 }]},
+    borderColor:'#1b4a73', borderWidth:2.5, fill:true, tension:0.3,
+    backgroundColor:(ctx)=>{
+      const ch = ctx.chart, a = ch.chartArea;
+      if(!a) return 'rgba(17,141,255,0.2)';
+      const g = ch.ctx.createLinearGradient(0, a.top, 0, a.bottom);
+      g.addColorStop(0, 'rgba(17,141,255,0.38)'); g.addColorStop(1, 'rgba(17,141,255,0.02)');
+      return g;
+    },
+    pointRadius:(ctx)=> areaIsPeak(ctx) ? 6 : 3, pointHoverRadius:7,
+    pointBackgroundColor:(ctx)=> areaIsPeak(ctx) ? '#d64550' : cBlue,
+    pointBorderColor:'#ffffff', pointBorderWidth:2 }]},
   options:{ responsive:true, maintainAspectRatio:false,
+    interaction:{ mode:'index', intersect:false },
+    layout:{ padding:{ top:16, right:6 } },
     plugins:{
       legend:{display:false}, title:{display:false},
-      datalabels:{ align:'top', anchor:'end', color:'#252423', font:{size:9,weight:'600'}, offset:2 }
+      tooltip:{ backgroundColor:'#102944', padding:10, cornerRadius:8, displayColors:false,
+        titleFont:{size:12,weight:'700'}, bodyFont:{size:12},
+        callbacks:{ label:(c)=> ' ' + Number(c.parsed.y).toLocaleString('vi-VN') + ' ticket' } },
+      datalabels:{ align:'top', anchor:'end', offset:3,
+        color:(ctx)=> areaIsPeak(ctx) ? '#d64550' : '#33475b',
+        font:(ctx)=> ({ size: areaIsPeak(ctx) ? 11 : 9, weight: areaIsPeak(ctx) ? '800' : '600' }) }
     },
     scales:{
-      x:{ ticks:{ color:'#252423', font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:10 },
-          grid:{ display:true, color:'#e5e5e5', drawTicks:false, drawOnChartArea:true, tickLength:0 },
-          title:{ display:true, text:'Year', font:{size:9}, color:'#888' } },
-      y:{ display:false, grace:'10%' } } }
+      x:{ ticks:{ color:'#33475b', font:{size:10,weight:'600'}, maxRotation:0, autoSkip:true, maxTicksLimit:10, padding:6 },
+          border:{ display:false, dash:[3,4] },
+          grid:{ display:true, color:'#e0e8f0', drawTicks:false, drawOnChartArea:true, tickLength:0 },
+          title:{ display:true, text:'Year', font:{size:9}, color:'#8494a5' } },
+      y:{ display:true, grace:'10%', border:{ display:false }, ticks:{ display:false }, grid:{ color:'#edf2f7', drawTicks:false } } } }
 });
 
 /* Nền "đường ray" mờ phía sau mỗi thanh (chỉ là lớp vẽ trang trí, không đụng dữ liệu) */
@@ -2048,14 +2216,37 @@ const barChart = new Chart(document.getElementById('barChart'), {
       y:{ grid:{display:false}, border:{display:false}, ticks:{ color:'#33475b', font:{size:12,weight:'600'}, padding:10 } } } }
 });
 
+/* Hiển thị tổng số ticket ở giữa vòng tròn (chỉ vẽ thêm, không đổi dữ liệu) */
+const donutCenterPlugin = {
+  id:'donutCenter',
+  afterDraw(chart){
+    const a = chart.chartArea; if(!a) return;
+    const data = (chart.data.datasets[0] && chart.data.datasets[0].data) || [];
+    const total = data.reduce((x, y)=> x + (Number(y) || 0), 0);
+    if(!total) return;
+    const cx = (a.left + a.right) / 2, cy = (a.top + a.bottom) / 2, c = chart.ctx;
+    c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#102944'; c.font = '800 19px "Segoe UI", Arial, sans-serif';
+    c.fillText(total.toLocaleString('vi-VN'), cx, cy - 6);
+    c.fillStyle = '#5b6b7b'; c.font = '600 10.5px "Segoe UI", Arial, sans-serif';
+    c.fillText('ticket', cx, cy + 12);
+    c.restore();
+  }
+};
 const donutChart = new Chart(document.getElementById('donutChart'), {
   type:'doughnut',
-  data:{ labels:[], datasets:[{ data:[], backgroundColor:donutColors, borderWidth:1, borderColor:'#fff' }]},
-  options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+  plugins:[donutCenterPlugin],
+  data:{ labels:[], datasets:[{ data:[], backgroundColor:donutColors, borderWidth:2, borderColor:'#fff', borderRadius:4, hoverOffset:6 }]},
+  options:{ responsive:true, maintainAspectRatio:false, cutout:'66%',
     plugins:{
-      legend:{ position:'right', labels:{ boxWidth:9, font:{size:10.5}, usePointStyle:true, pointStyle:'circle', padding:6 } },
+      legend:{ position:'right', labels:{ boxWidth:9, font:{size:10.5,weight:'600'}, color:'#33475b', usePointStyle:true, pointStyle:'circle', padding:6 } },
+      tooltip:{ backgroundColor:'#102944', padding:10, cornerRadius:8,
+        callbacks:{ label:(c)=>{
+          const tot = c.dataset.data.reduce((x,y)=>x+y,0);
+          return ' ' + Number(c.parsed).toLocaleString('vi-VN') + ' ticket (' + (tot ? (c.parsed/tot*100).toFixed(1) : 0) + '%)';
+        } } },
       datalabels:{
-        color:'#444', font:{size:9.5,weight:'600'}, anchor:'end', align:'end', offset:6,
+        color:'#33475b', font:{size:9.5,weight:'700'}, anchor:'end', align:'end', offset:6,
         formatter:(v,ctx)=>{
           const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
           return total? (v/total*100).toFixed(2)+'%' : '';
@@ -3572,6 +3763,15 @@ function refresh(){
   document.getElementById('kpiPending').textContent = filtered.filter(d=>STATUS_PENDING.includes(d.Status)).length.toLocaleString('vi-VN');
   document.getElementById('kpiNew').textContent = filtered.filter(d=>STATUS_NEW.includes(d.Status)).length.toLocaleString('vi-VN');
   document.getElementById('kpiCancelled').textContent = filtered.filter(d=>STATUS_CANCEL.includes(d.Status)).length.toLocaleString('vi-VN');
+
+  /* [UI] Tỉ lệ % trên tổng ticket đang lọc + thanh tỉ lệ dưới mỗi ô KPI (chỉ hiển thị) */
+  [['kpiResolvedPct', STATUS_RESOLVED], ['kpiPendingPct', STATUS_PENDING], ['kpiNewPct', STATUS_NEW], ['kpiCancelledPct', STATUS_CANCEL]].forEach(([id, list])=>{
+    const el = document.getElementById(id); if(!el) return;
+    const n = filtered.filter(d=>list.includes(d.Status)).length;
+    const pct = filtered.length ? (n / filtered.length * 100) : 0;
+    el.textContent = filtered.length ? pct.toFixed(1).replace('.', ',') + '% trên tổng' : '';
+    const card = el.closest('.kpi-card'); if(card) card.style.setProperty('--w', pct.toFixed(1) + '%');
+  });
 
   // Area chart: count by day hoặc theo tháng (tuỳ areaGranularity)
   const byPeriod = {};

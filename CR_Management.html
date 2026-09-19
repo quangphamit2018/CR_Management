@@ -5122,6 +5122,96 @@ html{
   .filter-chip{ padding-left:7px; padding-right:7px; }
   .tb-menu{ left:10px !important; right:10px !important; }
 }
+
+/* ==========================================================================
+   WEEKLY MOM SURFACE LANGUAGE — dùng chung cho toàn bộ workspace sáng
+   Chỉ áp dụng bên trong .view: giữ nguyên sidebar, topbar, nền workspace và
+   toàn bộ màu trạng thái hiện có; chỉ nâng cấp chiều sâu và độ nổi bật của
+   panel/card/table ở các tab.
+   ========================================================================== */
+.view .panel,
+.view .list-panel,
+.view .brd-workspace{
+  background:linear-gradient(145deg,#ffffff 0%,#f8fbfc 62%,#f2f8f8 100%);
+  border-color:#cbdfe4;
+  box-shadow:0 7px 20px rgba(22,52,78,.07), inset 0 3px 0 #159a9c;
+}
+
+.view .list-panel-head,
+.view .brd-toolbar{
+  background:linear-gradient(105deg,#e9f7f6 0%,#f8fbfc 58%,#eef7f8 100%);
+  border-bottom-color:#c5dfe1;
+}
+.view .list-panel-head{
+  box-shadow:inset 0 3px 0 #159a9c;
+}
+.view .list-panel-foot{
+  background:#fbfdfe;
+  border-top-color:#d8e7ea;
+}
+
+.view .kpi-card{
+  background:linear-gradient(145deg,#ffffff 0%,#f7fbfc 72%,#eff8f7 100%);
+  border-color:#cbdfe4;
+  box-shadow:0 7px 20px rgba(22,52,78,.07), inset 0 3px 0 rgba(21,154,156,.82);
+}
+.view .kpi-card:hover{
+  border-color:#9cced0;
+  box-shadow:0 10px 25px rgba(22,52,78,.11), inset 0 3px 0 #159a9c;
+}
+
+.view .stat-tile,
+.view .substat-pill,
+.view .tc-detail-summary,
+.view .rel-detail-summary{
+  background:linear-gradient(145deg,#ffffff 0%,#f7fbfc 100%);
+  border-color:#cbdfe4;
+  box-shadow:0 5px 15px rgba(22,52,78,.05);
+}
+.view .stat-tile:hover,
+.view .substat-pill:hover{
+  background:#ffffff;
+  border-color:#9cced0;
+  box-shadow:0 8px 18px rgba(22,52,78,.08);
+}
+
+.view .brd-card,
+.view .cr-card{
+  background:linear-gradient(145deg,#ffffff 0%,#f8fbfc 100%);
+  border-color:#cbdfe4;
+  box-shadow:0 5px 15px rgba(22,52,78,.05);
+}
+.view .brd-card:hover,
+.view .cr-card:hover{
+  border-color:#9cced0;
+  box-shadow:0 10px 25px rgba(22,52,78,.11);
+}
+
+.view thead th{
+  background:linear-gradient(180deg,#e9f7f6 0%,#f2f8f9 100%);
+  color:#153e55;
+  border-bottom-color:#b9d8dc;
+  box-shadow:0 2px 0 #9fcdd0;
+}
+.view tbody tr:nth-child(even) td:not(.cell-actions){
+  background:#f8fbfc;
+}
+.view tbody tr:hover td{
+  background:#eef8f8;
+}
+.view tbody tr:hover td.cell-actions{
+  background:#eef8f8;
+}
+
+.view .filter-chip,
+.view .tb-search input{
+  border-color:#cbdfe4;
+}
+.view .filter-chip:focus-within,
+.view .tb-search input:focus{
+  border-color:#70b9bb;
+  box-shadow:0 0 0 3px rgba(23,159,160,.09);
+}
 </style>
 </head>
 <body>

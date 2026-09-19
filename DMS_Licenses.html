@@ -296,46 +296,6 @@
     .toast.success { background: linear-gradient(135deg, #10935f, #075d3b); border-left-color: #a7f3d0; }
     @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
-    /* ---------- Login / trạng thái ---------- */
-    .login-shell {
-      min-height: 100vh; display: grid; place-items: center; padding: 24px; position: relative; overflow: hidden;
-      background:
-        radial-gradient(55% 50% at 10% 6%, rgba(255, 120, 100, .55), transparent 62%),
-        radial-gradient(50% 55% at 94% 96%, rgba(240, 84, 72, .42), transparent 62%),
-        linear-gradient(140deg, #c62828 0%, #8e1216 46%, #36070b 100%);
-    }
-    .login-shell::before {
-      content: ""; position: absolute; inset: 0; pointer-events: none;
-      background-image: linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
-      background-size: 46px 46px;
-      -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 0%, transparent 72%); mask-image: radial-gradient(circle at 50% 42%, #000 0%, transparent 72%);
-    }
-    .login-card {
-      position: relative; overflow: hidden; width: min(450px, 100%); background: linear-gradient(180deg, #fff 0%, #fff8f7 100%);
-      border: 1px solid rgba(255, 255, 255, .55); border-radius: 26px; box-shadow: 0 34px 90px rgba(30, 4, 7, .45); padding: 38px 36px 34px;
-    }
-    .login-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: linear-gradient(90deg, #ff7a6b, #e53935 35%, #b71c1c 65%, #5e0c12); }
-    .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 44px; }
-    .login-logo .brand-mark { width: 44px; height: 44px; border-radius: 13px; }
-    .login-logo .brand-mark svg { width: 22px; height: 22px; }
-    .login-logo small { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
-    .login-card h1 { margin: 0; font-size: 28px; letter-spacing: -.04em; background: var(--g-text); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; width: fit-content; max-width: 100%; }
-    .login-card > p { color: var(--muted); line-height: 1.65; font-size: 13px; margin: 10px 0 28px; }
-    .google-btn { width: 100%; border: 1px solid var(--line-strong); background: linear-gradient(180deg, #fff, #fff8f7); color: var(--ink-2); border-radius: 12px; padding: 13px 14px; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 10px; transition: .2s; box-shadow: 0 2px 6px rgba(90, 13, 18, .06); }
-    .google-btn:hover { border-color: #dc8985; background: var(--g-soft); box-shadow: 0 10px 24px rgba(183, 28, 28, .16); transform: translateY(-1px); }
-    .google-icon { width: 18px; height: 18px; }
-    .login-foot { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 17px; color: var(--muted); font-size: 11.5px; line-height: 1.6; }
-    .center-state {
-      min-height: 100vh; display: grid; place-items: center; padding: 24px;
-      background: radial-gradient(50% 45% at 12% 8%, rgba(229, 57, 53, .18), transparent 65%), radial-gradient(45% 50% at 92% 94%, rgba(183, 28, 28, .14), transparent 65%), #fbf3f2;
-    }
-    .state-card { position: relative; overflow: hidden; width: min(520px, 100%); background: linear-gradient(180deg, #fff, #fff8f7); border-radius: 24px; border: 1px solid var(--line); padding: 36px 34px 34px; box-shadow: var(--shadow); text-align: center; }
-    .state-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: linear-gradient(90deg, #e53935, #b71c1c 55%, #5e0c12); }
-    .state-icon { margin: 0 auto 18px; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #fff3df, #ffdca0); color: var(--warning); box-shadow: 0 8px 20px rgba(217, 119, 6, .22); }
-    .state-icon.danger { background: linear-gradient(135deg, #ffeeed, #ffc9c5); color: var(--danger); box-shadow: 0 8px 20px rgba(183, 28, 28, .22); }
-    .state-icon svg { width: 26px; }
-    .state-card h2 { margin: 0; font-size: 20px; }
-    .state-card p { color: var(--muted); font-size: 13px; line-height: 1.65; margin: 9px auto 21px; max-width: 390px; }
     .loading { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); font-size: 13px; }
     .spinner { width: 16px; height: 16px; border: 2px solid #f0cfcc; border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -366,14 +326,259 @@
       .toolbar { padding: 12px 15px; }
       .form-grid { grid-template-columns: 1fr; }
       .field.full { grid-column: auto; }
-      .login-card { padding: 30px 26px 28px; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
     }
+
+    /* =====================================================================
+       Auth screens — đăng nhập / chờ duyệt / loading
+       Một lớp nền "aurora" cố định nằm ngoài #root nên khi chuyển giữa các màn hình
+       nền không bị chạy lại, chỉ phần nội dung chuyển cảnh.
+       ===================================================================== */
+    :root { --ease: cubic-bezier(.22, 1, .36, 1); --ease-io: cubic-bezier(.65, 0, .35, 1); }
+    #root { position: relative; z-index: 1; }
+    body.auth { background: #36070b; }
+
+    .aurora {
+      position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+      background: linear-gradient(140deg, #c62828 0%, #8e1216 46%, #36070b 100%);
+      opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s .5s;
+    }
+    body.auth .aurora { opacity: 1; visibility: visible; transition: opacity .5s ease; }
+    .aurora .blob { position: absolute; border-radius: 50%; will-change: transform; }
+    .aurora .b1 { width: 62vmax; height: 62vmax; left: -20vmax; top: -26vmax; background: radial-gradient(circle, rgba(255, 122, 107, .62), transparent 62%); animation: drift-a 22s ease-in-out infinite alternate; }
+    .aurora .b2 { width: 58vmax; height: 58vmax; right: -22vmax; bottom: -28vmax; background: radial-gradient(circle, rgba(240, 84, 72, .52), transparent 62%); animation: drift-b 27s ease-in-out infinite alternate; }
+    .aurora .b3 { width: 34vmax; height: 34vmax; left: 34%; top: 26%; background: radial-gradient(circle, rgba(255, 168, 120, .26), transparent 66%); animation: drift-c 31s ease-in-out infinite alternate; }
+    .aurora .grid {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, .055) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .055) 1px, transparent 1px);
+      background-size: 46px 46px;
+      -webkit-mask-image: radial-gradient(ellipse at 35% 40%, #000 0%, transparent 70%); mask-image: radial-gradient(ellipse at 35% 40%, #000 0%, transparent 70%);
+    }
+    @keyframes drift-a { to { transform: translate3d(16vmax, 12vmax, 0) scale(1.14); } }
+    @keyframes drift-b { to { transform: translate3d(-14vmax, -10vmax, 0) scale(1.1); } }
+    @keyframes drift-c { to { transform: translate3d(-12vmax, 10vmax, 0) scale(1.25); } }
+
+    /* Trình tự xuất hiện: chỉ chạy một lần khi vào màn hình (class is-entering) */
+    .is-entering .rv { animation: rise .8s var(--ease) backwards; animation-delay: calc(var(--d, 0) * 1ms); }
+    @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+    @keyframes fade-in { from { opacity: 0; } }
+    @keyframes panel-in { from { opacity: 0; transform: translateX(56px); } }
+    @keyframes panel-in-up { from { opacity: 0; transform: translateY(48px); } }
+    @keyframes card-in { from { opacity: 0; transform: translateY(30px) scale(.95); } }
+    @keyframes row-in { from { opacity: 0; transform: translateX(-16px); } }
+    @keyframes chip-in { from { opacity: 0; transform: scale(.7) translateY(10px); } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes pop-in { from { opacity: 0; transform: scale(.94); } }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+
+    /* ---------- Đăng nhập: chia đôi ---------- */
+    .auth-split { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(440px, .88fr); }
+    .auth-showcase { position: relative; display: flex; flex-direction: column; gap: 28px; padding: 44px 56px 44px 64px; color: #fff; }
+    .auth-brand { display: flex; align-items: center; gap: 12px; }
+    .auth-brand strong { font-size: 16px; letter-spacing: -.02em; }
+    .auth-brand small { display: block; color: rgba(255, 225, 222, .74); font-size: 11px; margin-top: 3px; }
+    .auth-stage { margin: auto 0; display: grid; gap: 40px; }
+    .showcase-copy { max-width: 560px; }
+    .showcase-copy h2 { margin: 0; font-size: clamp(28px, 2.9vw, 42px); line-height: 1.14; letter-spacing: -.04em; font-weight: 750; text-wrap: balance; }
+    .showcase-copy p { margin: 16px 0 0; font-size: 15px; line-height: 1.7; color: rgba(255, 232, 229, .84); max-width: 440px; }
+
+    .preview-wrap { position: relative; width: min(470px, 100%); }
+    .preview {
+      border-radius: 24px; padding: 18px 16px 10px;
+      background: linear-gradient(160deg, rgba(255, 255, 255, .21), rgba(255, 255, 255, .07));
+      border: 1px solid rgba(255, 255, 255, .26); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+      box-shadow: 0 32px 74px rgba(20, 2, 5, .42), inset 0 1px 0 rgba(255, 255, 255, .36);
+    }
+    .pv-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 6px 12px; font-size: 13px; font-weight: 650; }
+    .pv-search { width: 118px; height: 26px; border-radius: 99px; background: rgba(255, 255, 255, .13); border: 1px solid rgba(255, 255, 255, .2); }
+    .pv-rows { position: relative; }
+    .pv-row { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 10px; border-radius: 13px; position: relative; }
+    .pv-row + .pv-row::before { content: ""; position: absolute; left: 10px; right: 10px; top: 0; height: 1px; background: rgba(255, 255, 255, .11); }
+    .pv-ava { width: 30px; height: 30px; border-radius: 50%; flex: none; background: linear-gradient(135deg, var(--h1), var(--h2)); box-shadow: 0 0 0 2px rgba(255, 255, 255, .22); }
+    .pv-lines { flex: 1; display: grid; gap: 6px; }
+    .pv-lines i { display: block; height: 7px; border-radius: 99px; background: rgba(255, 255, 255, .36); }
+    .pv-lines i:last-child { height: 6px; width: 52%; background: rgba(255, 255, 255, .17); }
+    .pv-role { font-size: 10.5px; font-weight: 650; padding: 4px 10px; border-radius: 99px; background: rgba(255, 255, 255, .15); border: 1px solid rgba(255, 255, 255, .24); }
+    .pv-scan {
+      position: absolute; left: 0; right: 0; top: 0; height: 52px; border-radius: 13px; pointer-events: none; opacity: 0;
+      background: linear-gradient(90deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .05));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3);
+      animation: scan 9s var(--ease-io) 2.4s infinite both;
+    }
+    @keyframes scan {
+      0% { transform: translateY(0); opacity: 0; }
+      5%, 12% { transform: translateY(0); opacity: 1; }
+      18%, 30% { transform: translateY(52px); }
+      36%, 48% { transform: translateY(104px); }
+      54%, 66% { transform: translateY(156px); }
+      72%, 84% { transform: translateY(208px); opacity: 1; }
+      100% { transform: translateY(208px); opacity: 0; }
+    }
+    .pv-chip {
+      position: absolute; display: flex; align-items: center; gap: 9px; padding: 9px 14px 9px 10px; border-radius: 15px; white-space: nowrap;
+      font-size: 12px; font-weight: 650; color: var(--ink); background: rgba(255, 255, 255, .97); box-shadow: 0 18px 38px rgba(20, 2, 5, .36);
+      animation: float 6.5s ease-in-out infinite;
+    }
+    .pv-chip.c1 { right: -20px; top: -22px; }
+    .pv-chip.c2 { left: 34px; bottom: -32px; animation-duration: 7.5s; animation-delay: -2.5s; }
+    .chip-ico { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--g-brand); box-shadow: 0 4px 10px rgba(183, 28, 28, .3); }
+    .chip-ico svg { width: 13px; height: 13px; }
+    .is-entering .preview { animation: card-in .95s var(--ease) .5s backwards; }
+    .is-entering .pv-row { animation: row-in .65s var(--ease) backwards; animation-delay: calc(.95s + var(--i) * 90ms); }
+    .is-entering .pv-chip.c1 { animation: chip-in .7s var(--ease) 1.5s backwards, float 6.5s ease-in-out 2.2s infinite; }
+    .is-entering .pv-chip.c2 { animation: chip-in .7s var(--ease) 1.7s backwards, float 7.5s ease-in-out 2.4s infinite; }
+
+    .auth-form-side {
+      position: relative; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding: 48px 56px;
+      background: radial-gradient(420px 320px at 100% 0%, rgba(229, 57, 53, .10), transparent 70%), linear-gradient(180deg, #fff 0%, #fff8f7 100%);
+      border-radius: 38px 0 0 38px; box-shadow: -34px 0 90px rgba(20, 2, 5, .34);
+    }
+    .is-entering .auth-form-side { animation: panel-in .95s var(--ease) backwards; }
+    .auth-form { width: min(400px, 100%); margin: 0 auto; }
+    .auth-form h1 {
+      margin: 0; font-size: 31px; line-height: 1.15; letter-spacing: -.04em; font-weight: 750; width: fit-content; max-width: 100%;
+      background: var(--g-text); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+    }
+    .auth-form > p { color: var(--muted); line-height: 1.7; font-size: 13.5px; margin: 12px 0 28px; }
+
+    .google-btn {
+      position: relative; overflow: hidden; width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px;
+      border: 0; border-radius: 15px; padding: 13px 18px; color: #fff; font-weight: 700; font-size: 14.5px; cursor: pointer;
+      background: var(--g-brand);
+      box-shadow: 0 14px 30px rgba(183, 28, 28, .34), inset 0 1px 0 rgba(255, 255, 255, .26);
+      transition: transform .3s var(--ease), box-shadow .3s var(--ease), background .3s;
+    }
+    .google-btn::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%);
+      background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .34) 50%, transparent 65%);
+    }
+    .google-btn:hover:not(:disabled) { background: var(--g-brand-hover); transform: translateY(-2px); box-shadow: 0 22px 40px rgba(183, 28, 28, .42), inset 0 1px 0 rgba(255, 255, 255, .3); }
+    .google-btn:hover:not(:disabled)::after { transform: translateX(120%); transition: transform .85s var(--ease); }
+    .google-btn:active:not(:disabled) { transform: translateY(0) scale(.985); box-shadow: 0 8px 18px rgba(183, 28, 28, .3); }
+    .google-btn:disabled { cursor: progress; }
+    .g-chip { position: relative; width: 30px; height: 30px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 3px 8px rgba(60, 8, 12, .28); }
+    .google-icon { width: 18px; height: 18px; transition: transform .35s var(--ease), opacity .2s; }
+    .google-btn:hover:not(:disabled) .google-icon { transform: scale(1.12); }
+    .g-spin { position: absolute; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #f0cfcc; border-top-color: var(--brand); animation: spin .7s linear infinite; opacity: 0; transition: opacity .2s; }
+    .google-btn.is-loading .google-icon { opacity: 0; transform: scale(.5); }
+    .google-btn.is-loading .g-spin { opacity: 1; }
+
+    .flow { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .flow-title { font-size: 12.5px; font-weight: 650; color: var(--ink-2); margin-bottom: 16px; }
+    .flow-list { list-style: none; margin: 0; padding: 0; }
+    .flow-item { position: relative; display: flex; gap: 14px; padding-bottom: 18px; }
+    .flow-item:last-child { padding-bottom: 0; }
+    .flow-item:not(:last-child)::before { content: ""; position: absolute; left: 13px; top: 30px; bottom: 2px; width: 2px; border-radius: 2px; background: linear-gradient(180deg, var(--brand-soft-2), rgba(251, 213, 210, .2)); }
+    .flow-num { position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 700; color: var(--brand); background: var(--g-soft); border: 1px solid var(--brand-soft-2); }
+    .flow-item b { display: block; font-size: 12.5px; color: var(--ink); line-height: 28px; }
+    .flow-item small { display: block; font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: -3px; }
+
+    /* ---------- Chờ duyệt / loading ---------- */
+    .auth-center { min-height: 100vh; display: grid; place-items: center; padding: 28px 20px; }
+    .pending-card {
+      position: relative; overflow: hidden; width: min(480px, 100%); text-align: center; padding: 42px 36px 30px; border-radius: 30px;
+      background: linear-gradient(180deg, #fff 0%, #fff8f7 100%);
+      box-shadow: 0 44px 110px rgba(20, 2, 5, .52), 0 0 0 1px rgba(255, 255, 255, .5);
+    }
+    .pending-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: linear-gradient(90deg, #ff7a6b, #e53935 35%, #b71c1c 65%, #5e0c12); }
+    .is-entering .pending-card { animation: card-in .9s var(--ease) backwards; }
+
+    .status-orb { position: relative; width: 86px; height: 86px; margin: 0 auto 22px; display: grid; place-items: center; }
+    .status-orb::before, .status-orb::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; border: 2px solid rgba(245, 158, 11, .55); animation: ring 2.8s ease-out infinite; }
+    .status-orb::after { animation-delay: 1.4s; }
+    @keyframes ring { from { transform: scale(.9); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
+    .status-orb .core {
+      position: relative; z-index: 1; width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; color: #8a4b05;
+      background: linear-gradient(135deg, #ffe4ae, #ffb04a);
+      box-shadow: 0 16px 34px rgba(217, 119, 6, .36), inset 0 1px 0 rgba(255, 255, 255, .65);
+    }
+    .status-orb svg { width: 34px; height: 34px; }
+    .status-orb.is-rejected::before, .status-orb.is-rejected::after { display: none; }
+    .status-orb.is-rejected .core { color: #8e1216; background: linear-gradient(135deg, #ffd3cf, #ff8f88); box-shadow: 0 16px 34px rgba(183, 28, 28, .32), inset 0 1px 0 rgba(255, 255, 255, .6); }
+    .hand-h, .hand-m { transform-box: view-box; transform-origin: 12px 12px; animation: spin 24s linear infinite; }
+    .hand-m { animation-duration: 3s; }
+    .pending-card h2 { margin: 0; font-size: 22px; letter-spacing: -.03em; font-weight: 750; }
+    .pending-card > p, .pending-card .rv > p { color: var(--muted); font-size: 13.5px; line-height: 1.7; margin: 10px auto 0; max-width: 380px; }
+
+    .steps { list-style: none; margin: 28px 0 22px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); }
+    .step { position: relative; display: grid; justify-items: center; align-content: start; gap: 10px; padding: 0 4px; font-size: 11.5px; font-weight: 600; line-height: 1.35; color: var(--muted); }
+    .step .dot {
+      position: relative; z-index: 1; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 700;
+      color: #b69a9c; background: #fff; border: 2px solid var(--line-strong);
+    }
+    .step:not(:last-child)::after {
+      content: ""; position: absolute; top: 14px; left: calc(50% + 21px); width: calc(100% - 42px); height: 2px; border-radius: 2px;
+      background-image: linear-gradient(90deg, var(--line-strong) 6px, transparent 6px); background-size: 11px 2px;
+    }
+    .step.done { color: #0b7a4f; }
+    .step.done .dot { color: #fff; border-color: transparent; background: linear-gradient(135deg, #17b978, #0a7048); box-shadow: 0 6px 14px rgba(11, 122, 79, .3); }
+    .step.done .dot svg { width: 15px; height: 15px; stroke-width: 2.6; }
+    .step.done::after { background-image: none; background: linear-gradient(90deg, #17b978, #e53935); transform-origin: left; }
+    .is-entering .step.done::after { animation: line-fill .9s var(--ease) .8s backwards; }
+    @keyframes line-fill { from { transform: scaleX(0); } }
+    .step.current { color: var(--brand); font-weight: 700; }
+    .step.current .dot { border-color: var(--brand-light); }
+    .step.current::after { animation: march 1.1s linear infinite; }
+    @keyframes march { to { background-position-x: 11px; } }
+    .pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--g-brand); animation: pulse 1.9s ease-out infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, .55); } 75%, 100% { box-shadow: 0 0 0 10px rgba(229, 57, 53, 0); } }
+    .step.fail { color: var(--danger); font-weight: 700; }
+    .step.fail .dot { color: #fff; border-color: transparent; background: linear-gradient(135deg, #e53935, #8e1216); box-shadow: 0 6px 14px rgba(183, 28, 28, .3); }
+    .step.fail .dot svg { width: 14px; height: 14px; stroke-width: 2.6; }
+
+    .account { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border-radius: 16px; background: linear-gradient(100deg, #fff1f0, #fff8f7); border: 1px solid var(--brand-soft-2); }
+    .account .avatar { width: 38px; height: 38px; font-size: 13px; }
+    .account-info { flex: 1; min-width: 0; }
+    .account-info b { display: block; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .account-info small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .live { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 16px 0 20px; font-size: 12px; color: var(--muted); }
+    .live i { width: 8px; height: 8px; border-radius: 50%; background: #10a06a; animation: live 1.9s ease-out infinite; }
+    @keyframes live { 0% { box-shadow: 0 0 0 0 rgba(16, 160, 106, .55); } 75%, 100% { box-shadow: 0 0 0 8px rgba(16, 160, 106, 0); } }
+    .pending-actions { display: grid; gap: 10px; }
+    .pending-card .account + .pending-actions { margin-top: 18px; }
+
+    .loading-card { display: inline-flex; align-items: center; gap: 12px; padding: 16px 24px; border-radius: 18px; background: rgba(255, 255, 255, .97); color: var(--ink-2); font-size: 13px; font-weight: 600; box-shadow: 0 30px 70px rgba(20, 2, 5, .45); animation: fade-in .35s ease both; }
+
+    /* ---------- Button system ---------- */
+    .btn-primary { position: relative; overflow: hidden; }
+    .btn-primary::after { content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%); background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .3) 50%, transparent 65%); }
+    .btn-primary:hover:not(:disabled)::after { transform: translateX(120%); transition: transform .8s var(--ease); }
+    .btn { transition: transform .25s var(--ease), box-shadow .25s var(--ease), background .25s, border-color .25s, color .25s; }
+    .btn:active:not(:disabled) { transform: translateY(0) scale(.985); }
+    .btn-lg { padding: 14px 20px; font-size: 14px; border-radius: 15px; }
+    .btn-lg svg { width: 18px; height: 18px; }
+    .btn-block { width: 100%; }
+    .btn-success { color: #fff; background: linear-gradient(135deg, #17b978 0%, #0b8a58 55%, #086b45 100%); box-shadow: 0 12px 26px rgba(11, 122, 79, .32), inset 0 1px 0 rgba(255, 255, 255, .25); }
+    .btn-success:disabled { opacity: 1; cursor: default; }
+    .btn.is-sent { animation: pop-in .45s var(--ease); }
+    .btn.is-sent svg { stroke-width: 2.4; }
+    .btn.is-sent svg path { stroke-dasharray: 26; stroke-dashoffset: 26; animation: draw .5s ease .15s forwards; }
+    #send-request-btn svg { transition: transform .3s var(--ease); }
+    #send-request-btn:hover:not(:disabled) svg { transform: translate(2px, -2px); }
+    #logout-pending svg { transition: transform .3s var(--ease); }
+    #logout-pending:hover svg { transform: translateX(3px); }
+
+    /* ---------- Auth: responsive ---------- */
+    @media (max-width: 960px) {
+      .auth-split { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .auth-showcase { padding: 30px 26px 56px; gap: 22px; }
+      .auth-stage { margin: 0; }
+      .showcase-copy h2 { font-size: 26px; }
+      .auth-form h1 { font-size: 26px; }
+      .showcase-copy p, .preview-wrap { display: none; }
+      .auth-form-side { border-radius: 30px 30px 0 0; margin-top: -30px; padding: 36px 26px 40px; justify-content: flex-start; box-shadow: 0 -22px 60px rgba(20, 2, 5, .32); }
+      .is-entering .auth-form-side { animation-name: panel-in-up; }
+    }
+    @media (max-width: 480px) {
+      .pending-card { padding: 36px 22px 24px; border-radius: 26px; }
+      .step { font-size: 11px; }
+    }
   </style>
 </head>
-<body>
+<body class="auth">
+  <div class="aurora" aria-hidden="true"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><i class="grid"></i></div>
   <div id="root"></div>
   <div id="modal-root"></div>
   <div id="toast-root" class="toast-wrap"></div>
@@ -389,6 +594,11 @@
     const APP_CHANNEL_PREFIX = "masterdata-portal-dms-licenses";
 
     const ICONS = {
+      send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5 21 3Z"/></svg>',
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+      logout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M16 8l4 4-4 4M20 12H9"/></svg>',
+      lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+      clockLive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path class="hand-h" d="M12 12V8"/><path class="hand-m" d="M12 12V6.5"/></svg>',
       grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
       users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 20v-1.8a3.6 3.6 0 0 0-3.6-3.6H6.6A3.6 3.6 0 0 0 3 18.2V20"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M17 11a3.5 3.5 0 1 0-1.1-6.8M21 20v-1.8a3.6 3.6 0 0 0-2.7-3.5"/></svg>',
       database: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg>',
@@ -449,38 +659,94 @@
       if (el) el.classList.toggle("hidden", !value);
     }
 
+    let lastScreen = null;
     function render() {
       const root = $("#root");
-      if (!state.session) { root.innerHTML = renderLogin(); return; }
-      if (!state.profile) { root.innerHTML = renderLoadingState(); return; }
-      if (state.profile.approval_status !== "approved") { root.innerHTML = renderPending(); return; }
-      root.innerHTML = renderApp();
-      bindAppEvents();
+      let screen;
+      if (state.booting) screen = "loading";            // đang khôi phục phiên đăng nhập → tránh chớp màn hình login
+      else if (!state.session) screen = "login";
+      else if (!state.profile) screen = "loading";
+      else if (state.profile.approval_status !== "approved") screen = "pending";
+      else screen = "app";
+      const entering = screen !== lastScreen;             // chỉ chạy animation xuất hiện khi mới vào màn hình
+      document.body.classList.toggle("auth", screen !== "app");
+      if ((screen === "login" || screen === "loading") && !entering) return; // giữ nguyên DOM để animation không bị chạy lại
+      lastScreen = screen;
+      if (screen === "login") root.innerHTML = renderLogin(entering);
+      else if (screen === "loading") root.innerHTML = renderLoadingState();
+      else if (screen === "pending") root.innerHTML = renderPending(entering);
+      else { root.innerHTML = renderApp(); bindAppEvents(); }
     }
 
-    function renderLogin() {
-      return `<main class="login-shell"><section class="login-card">
-        <div class="login-logo"><div class="brand-mark">${ICONS.database}</div><div><b>Masterdata Portal</b><small>CCVN data workspace</small></div></div>
-        <h1>Đăng nhập để tiếp tục</h1>
-        <p>Dùng tài khoản Gmail đã được Super-admin phê duyệt để truy cập, tra cứu và quản lý masterdata.</p>
-        <button class="google-btn" id="google-login"><svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.72-.06-1.42-.18-2.09H12v3.95h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.22c1.89-1.74 2.99-4.3 2.99-7.39Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.89 6.62-2.38l-3.22-2.51c-.89.6-2.03.96-3.4.96-2.61 0-4.82-1.76-5.61-4.13H3.06v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.94A6.05 6.05 0 0 1 6.08 12c0-.67.11-1.32.31-1.94V7.47H3.06A10 10 0 0 0 2 12c0 1.63.39 3.17 1.06 4.53l3.33-2.59Z"/><path fill="#EA4335" d="M12 5.93c1.47 0 2.79.51 3.83 1.51l2.87-2.87C16.97 2.89 14.7 2 12 2a10 10 0 0 0-8.94 5.47l3.33 2.59C7.18 7.69 9.39 5.93 12 5.93Z"/></svg>Tiếp tục với Google</button>
-        <div class="login-foot">Tài khoản mới sẽ được tạo ở trạng thái <b>chờ duyệt</b>. Super-admin sẽ cấp quyền trước khi bạn vào được dữ liệu.</div>
-      </section></main>`;
+    function setLoginBusy(busy) {
+      const btn = $("#google-login"); if (!btn) return;
+      btn.classList.toggle("is-loading", busy); btn.disabled = busy;
+      const label = btn.querySelector(".g-label"); if (label) label.textContent = busy ? "Đang chờ đăng nhập từ Google…" : "Tiếp tục với Google";
+    }
+
+    function renderLogin(entering) {
+      const rows = [
+        ["#ffd9a0", "#ff8a65", 62, "Super-admin"], ["#ffc2cc", "#e53935", 48, "Senior-member"], ["#ffe0a8", "#f4511e", 70, "Member"],
+        ["#f8bbd0", "#d81b60", 54, "Member"], ["#ffcdd2", "#c62828", 66, "Senior-member"]
+      ];
+      return `<main class="auth-split ${entering ? "is-entering" : ""}">
+        <section class="auth-showcase">
+          <div class="auth-brand rv" style="--d:100"><div class="brand-mark">${ICONS.database}</div><div><strong>Masterdata Portal</strong><small>CCVN data workspace</small></div></div>
+          <div class="auth-stage">
+            <div class="showcase-copy">
+              <h2 class="rv" style="--d:220">Một nơi duy nhất cho masterdata CCVN</h2>
+              <p class="rv" style="--d:320">Tra cứu, cập nhật và phân quyền danh sách người dùng DMS và Central. Nhanh gọn, và được bảo vệ theo từng vai trò.</p>
+            </div>
+            <div class="preview-wrap" aria-hidden="true">
+              <div class="preview">
+                <div class="pv-head"><span>DMS Userlist</span><i class="pv-search"></i></div>
+                <div class="pv-rows"><i class="pv-scan"></i>${rows.map(([h1, h2, w, role], i) => `<div class="pv-row" style="--i:${i};--h1:${h1};--h2:${h2}"><i class="pv-ava"></i><div class="pv-lines"><i style="width:${w}%"></i><i></i></div><span class="pv-role">${role}</span></div>`).join("")}</div>
+              </div>
+              <div class="pv-chip c1"><span class="chip-ico">${ICONS.lock}</span>Bảo vệ bằng RLS</div>
+              <div class="pv-chip c2"><span class="chip-ico">${ICONS.users}</span>Phân quyền theo vai trò</div>
+            </div>
+          </div>
+        </section>
+        <section class="auth-form-side"><div class="auth-form">
+          <h1 class="rv" style="--d:450">Đăng nhập để tiếp tục</h1>
+          <p class="rv" style="--d:540">Dùng tài khoản Gmail đã được Super-admin phê duyệt để truy cập, tra cứu và quản lý masterdata.</p>
+          <button class="google-btn rv" style="--d:640" id="google-login" type="button"><span class="g-chip"><svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.72-.06-1.42-.18-2.09H12v3.95h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.22c1.89-1.74 2.99-4.3 2.99-7.39Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.89 6.62-2.38l-3.22-2.51c-.89.6-2.03.96-3.4.96-2.61 0-4.82-1.76-5.61-4.13H3.06v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.94A6.05 6.05 0 0 1 6.08 12c0-.67.11-1.32.31-1.94V7.47H3.06A10 10 0 0 0 2 12c0 1.63.39 3.17 1.06 4.53l3.33-2.59Z"/><path fill="#EA4335" d="M12 5.93c1.47 0 2.79.51 3.83 1.51l2.87-2.87C16.97 2.89 14.7 2 12 2a10 10 0 0 0-8.94 5.47l3.33 2.59C7.18 7.69 9.39 5.93 12 5.93Z"/></svg><i class="g-spin"></i></span><span class="g-label">Tiếp tục với Google</span></button>
+          <div class="flow rv" style="--d:760">
+            <div class="flow-title">Lần đầu đăng nhập?</div>
+            <ol class="flow-list">
+              <li class="flow-item"><i class="flow-num">1</i><div><b>Đăng nhập bằng Google</b><small>Tài khoản mới được tạo ở trạng thái chờ duyệt.</small></div></li>
+              <li class="flow-item"><i class="flow-num">2</i><div><b>Super-admin phê duyệt</b><small>Quản trị viên cấp quyền truy cập và vai trò cho bạn.</small></div></li>
+              <li class="flow-item"><i class="flow-num">3</i><div><b>Truy cập masterdata</b><small>Xem và quản lý dữ liệu theo đúng quyền được cấp.</small></div></li>
+            </ol>
+          </div>
+        </div></section>
+      </main>`;
     }
 
     function renderLoadingState() {
-      return `<main class="center-state"><section class="state-card"><div class="loading"><i class="spinner"></i> Đang xác thực tài khoản…</div></section></main>`;
+      return `<main class="auth-center"><div class="loading-card" role="status"><i class="spinner"></i> Đang xác thực tài khoản…</div></main>`;
     }
 
-    function renderPending() {
+    function renderPending(entering) {
       const rejected = state.profile.approval_status === "rejected";
-      return `<main class="center-state"><section class="state-card">
-        <div class="state-icon ${rejected ? "danger" : ""}">${rejected ? ICONS.close : ICONS.clock}</div>
-        <h2>${rejected ? "Tài khoản chưa được cấp quyền" : "Tài khoản đang chờ duyệt"}</h2>
-        <p>${rejected ? "Super-admin đã từ chối yêu cầu truy cập của tài khoản này. Vui lòng liên hệ quản trị viên nếu cần được xem xét lại." : "Yêu cầu của bạn đã được ghi nhận. Super-admin cần phê duyệt trước khi bạn có thể xem dữ liệu."}</p>
-        <div class="notice notice-info" style="text-align:left"><b>${escapeHtml(state.profile.email)}</b><br>Trạng thái: ${statusBadge(state.profile.approval_status)}</div>
-        ${!rejected ? `<button class="btn btn-primary" style="margin-top:14px;width:100%" id="send-request-btn" ${state.requestSent ? "disabled" : ""}>${state.requestSent ? "Đã gửi yêu cầu ✓" : "Gửi yêu cầu tới quản trị viên"}</button>` : ""}
-        <button class="btn btn-secondary" style="margin-top:9px;width:100%" id="logout-pending">Đăng xuất</button>
+      const who = state.profile.display_name || state.profile.email;
+      const steps = rejected
+        ? `<li class="step done"><i class="dot">${ICONS.check}</i>Đăng nhập Google</li><li class="step fail"><i class="dot">${ICONS.close}</i>Bị từ chối</li><li class="step"><i class="dot">3</i>Truy cập dữ liệu</li>`
+        : `<li class="step done"><i class="dot">${ICONS.check}</i>Đăng nhập Google</li><li class="step current"><i class="dot"><span class="pulse"></span></i>Chờ phê duyệt</li><li class="step"><i class="dot">3</i>Truy cập dữ liệu</li>`;
+      const sendBtn = state.requestSent
+        ? `<button class="btn btn-success btn-lg btn-block is-sent" id="send-request-btn" disabled>${ICONS.check} Đã gửi yêu cầu</button>`
+        : `<button class="btn btn-primary btn-lg btn-block" id="send-request-btn">${ICONS.send} Gửi yêu cầu tới quản trị viên</button>`;
+      return `<main class="auth-center ${entering ? "is-entering" : ""}"><section class="pending-card">
+        <div class="status-orb ${rejected ? "is-rejected" : ""} rv" style="--d:250"><div class="core">${rejected ? ICONS.close : ICONS.clockLive}</div></div>
+        <h2 class="rv" style="--d:340">${rejected ? "Tài khoản chưa được cấp quyền" : "Tài khoản đang chờ duyệt"}</h2>
+        <p class="rv" style="--d:420">${rejected ? "Super-admin đã từ chối yêu cầu truy cập của tài khoản này. Vui lòng liên hệ quản trị viên nếu cần được xem xét lại." : "Yêu cầu của bạn đã được ghi nhận. Super-admin cần phê duyệt trước khi bạn có thể xem dữ liệu."}</p>
+        <ol class="steps rv" style="--d:500">${steps}</ol>
+        <div class="account rv" style="--d:580"><div class="avatar">${initials(who)}</div><div class="account-info"><b>${escapeHtml(state.profile.email)}</b><small>Tài khoản đang đăng nhập</small></div>${statusBadge(state.profile.approval_status)}</div>
+        ${rejected ? "" : `<div class="live rv" style="--d:640"><i></i>Trang sẽ tự cập nhật ngay khi bạn được phê duyệt</div>`}
+        <div class="pending-actions rv" style="--d:700">
+          ${rejected ? "" : sendBtn}
+          <button class="btn btn-secondary btn-lg btn-block" id="logout-pending">${ICONS.logout} Đăng xuất</button>
+        </div>
       </section></main>`;
     }
 
@@ -595,6 +861,7 @@
     }
 
     async function boot() {
+      state.booting = configured();
       render();
       if (!configured()) return;
       state.supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
@@ -603,10 +870,12 @@
         // Cửa sổ này chỉ là popup phụ để hoàn tất OAuth Google; khi đã có session thì đóng lại,
         // cửa sổ chính (window.opener) sẽ tự nhận session qua đồng bộ đa-tab của Supabase.
         if (window.opener && session) { setTimeout(() => window.close(), 300); return; }
-        await resolveProfile(); render();
+        await resolveProfile(); state.booting = false; render();
       });
-      const { data } = await state.supabase.auth.getSession();
-      state.session = data.session; await resolveProfile(); render();
+      try {
+        const { data } = await state.supabase.auth.getSession();
+        state.session = data.session; await resolveProfile();
+      } finally { state.booting = false; render(); }
     }
 
     async function resolveProfile() {
@@ -712,18 +981,20 @@
         toast("Hãy tự cấu hình SUPABASE_CONFIG ở đầu file HTML trước khi đăng nhập.", "error");
         return;
       }
+      setLoginBusy(true);
       // Google chặn (403) việc load trang đăng nhập của họ bên trong iframe, nên ta mở OAuth
       // trong một cửa sổ popup riêng thay vì để Supabase redirect ngay tại trang hiện tại.
       const { data, error } = await state.supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: window.location.href, skipBrowserRedirect: true }
       });
-      if (error) { toast(`Đăng nhập thất bại: ${error.message}`, "error"); return; }
+      if (error) { setLoginBusy(false); toast(`Đăng nhập thất bại: ${error.message}`, "error"); return; }
       const w = 480, h = 640;
       const left = window.screenX + (window.outerWidth - w) / 2;
       const top = window.screenY + (window.outerHeight - h) / 2;
       const popup = window.open(data.url, "google-login", `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`);
       if (!popup) {
+        setLoginBusy(false);
         toast("Trình duyệt đã chặn cửa sổ popup. Vui lòng cho phép popup cho trang này rồi bấm đăng nhập lại.", "error");
         return;
       }
@@ -731,7 +1002,7 @@
       // vẫn chủ động đọc lại session từ localStorage để cập nhật giao diện.
       const poll = setInterval(async () => {
         if (popup.closed) {
-          clearInterval(poll);
+          clearInterval(poll); setLoginBusy(false);
           const { data: sd } = await state.supabase.auth.getSession();
           if (sd.session) { state.session = sd.session; await resolveProfile(); render(); }
         }
@@ -819,7 +1090,7 @@
     }
 
     document.addEventListener("click", e => {
-      if (e.target.closest("#google-login")) login();
+      if (e.target.closest("#google-login")) login().catch(err => { setLoginBusy(false); toast(`Đăng nhập thất bại: ${err.message}`, "error"); });
       if (e.target.closest("#logout-pending")) logout();
       if (e.target.closest("#send-request-btn")) sendRequestToAdmin();
     });
